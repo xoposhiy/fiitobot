@@ -1,0 +1,9 @@
+bin/
+obj/
+.idea/
+.vs/
+.suo
+packages/
+launchSettings.json
+Settings.Production.cs
+sethook.cmd

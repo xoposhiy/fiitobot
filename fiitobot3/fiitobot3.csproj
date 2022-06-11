@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netcoreapp3.1</TargetFramework>
+        <ImplicitUsings>disable</ImplicitUsings>
+        <Nullable>disable</Nullable>
+        <LangVersion>8.0</LangVersion>
+        <AssemblyName>fiitobot</AssemblyName>
+        <RootNamespace>fiitobot</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="AspNetCore.Yandex.ObjectStorage" Version="0.1.8.4" />
+        <PackageReference Include="Telegram.Bot" Version="18.0.0-alpha.3" />
+        <PackageReference Include="WTelegramClient" Version="2.4.1" />
+        <PackageReference Include="Yandex.Cloud.SDK" Version="1.1.1" />
+        <PackageReference Include="Google.Apis.Sheets.v4" Version="1.48.0.2028" />
+        <PackageReference Include="Ydb.Sdk" Version="0.0.5" />
+    </ItemGroup>
+
+</Project>
