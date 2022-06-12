@@ -18,8 +18,7 @@ namespace fiitobot.Services
         Task ShowContact(Contact contact, long chatId, AccessRight right);
         Task ShowPhoto(Contact contact, PersonPhoto photo, long chatId, AccessRight right);
         Task ShowOtherResults(Contact[] otherContacts, long chatId);
-        Task SayHasMoreResults(int moreResultsCount, long chatId);
-        Task SayNoResults(long chatId);
+        Task SayNoResults(long chatId, Contact fromContact);
         Task SayNoRights(long chatId, AccessRight userAccessRights);
         Task SayBeMoreSpecific(long chatId);
         Task InlineSearchResults(string inlineQueryId, Contact[] foundContacts, AccessRight right);
@@ -153,16 +152,10 @@ namespace fiitobot.Services
              await botClient.SendPhotoAsync(chatId, new InputOnlineFile(photo.RandomPhoto), caption: $"<a href='{photo.PhotosDirectory}'>{photo.DirName}</a>", parseMode:ParseMode.Html);
         }
 
-        public async Task SayHasMoreResults(int moreResultsCount, long chatId)
+        public async Task SayNoResults(long chatId, Contact fromContact)
         {
-            await botClient.SendTextMessageAsync(chatId,
-                $"Есть ещё {moreResultsCount.Pluralize("подходящий человек", "подходящих человека", "подходящих человек")}",
-                ParseMode.Html);
-        }
-
-        public async Task SayNoResults(long chatId)
-        {
-            await botClient.SendTextMessageAsync(chatId, $"Не нашел никого подходящего. Хотите кого-нибудь случайного? /random", ParseMode.Html);
+            var text = "Не нашлось никого подходящего :(\n\nНе унывайте! Найдите кого-нибудь случайного /random! Или поищите по своей школе или городу!";
+            await botClient.SendTextMessageAsync(chatId, text, ParseMode.Html);
         }
 
         public async Task SayBeMoreSpecific(long chatId)

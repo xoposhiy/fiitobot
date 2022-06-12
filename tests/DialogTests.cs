@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using FakeItEasy;
@@ -173,7 +174,29 @@ public class DialogTests
         Assert.AreEqual(1, Fake.GetCalls(contactsPresenter).Count());
     }
 
-    private HandleUpdateService PrepareUpdateService(IPresenter presenter, IPhotoRepository photoRepository = null)
+    [TestCase("Гимназия 9")]
+    [TestCase("9")]
+    [TestCase("Гимназия 99")]
+    [TestCase("тагил")]
+    [TestCase("Нижний Тагил")]
+    public async Task SearchBySchoolOrCity(string query)
+    {
+        var contactsPresenter = A.Fake<IPresenter>();
+        var handleUpdateService = PrepareUpdateService(contactsPresenter);
+
+        await handleUpdateService.HandlePlainText(query, 42, AccessRight.Student);
+
+        A.CallTo(() => 
+                contactsPresenter.ShowContactsBy(
+                    A<string>.Ignored, 
+                    A<IList<Contact>>.That.Matches(p => p.Count == 1), 
+                    42, 
+                    AccessRight.Student))
+            .MustHaveHappenedOnceExactly();
+        Assert.AreEqual(1, Fake.GetCalls(contactsPresenter).Count());
+    }
+
+    private HandleUpdateService PrepareUpdateService(IPresenter presenter, IPhotoRepository? photoRepository = null)
     {
         return new HandleUpdateService(null, null, data, photoRepository, presenter);
     }

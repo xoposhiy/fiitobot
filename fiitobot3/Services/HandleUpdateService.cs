@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Types;
@@ -211,19 +212,29 @@ namespace fiitobot.Services
                 await presenter.ShowOtherResults(contacts.Skip(1).Select(p => p.Contact).ToArray(), fromChatId);
             if (contacts.Length == 0)
             {
-                var peopleByCity = botData.People.Where(p => p.Contact.City.ContainsSameText(text)).Select(p => p.Contact).ToList();
-                if (peopleByCity.Count > 0)
-                {
-                    await presenter.ShowContactsBy(peopleByCity[0].City, peopleByCity, fromChatId, accessRight);
+                if (await ShowContactsListBy(text, c => c.School, fromChatId, accessRight))
                     return;
-                }
-                var peopleBySchool = botData.People.Where(p => p.Contact.School.ContainsSameText(text)).Select(p => p.Contact).ToList();
-                if (peopleBySchool.Count > 0){
-                    await presenter.ShowContactsBy(peopleBySchool[0].School, peopleBySchool, fromChatId, accessRight);
+                if (await ShowContactsListBy(text, c => c.City, fromChatId, accessRight))
                     return;
-                }
                 await presenter.SayNoResults(fromChatId);
             }
+        }
+
+        private async Task<bool> ShowContactsListBy(string text, Func<Contact, string> getProperty, long chatId,
+            AccessRight accessRight)
+        {
+            var contacts = botData.People.Select(p => p.Contact).ToList();
+            var res = contacts.Where(c => SmartContains(getProperty(c), text))
+                .ToList();
+            if (res.Count == 0) return false;
+            var criteria = res.GroupBy(getProperty).MaxBy(g => g.Count()).Key;
+            await presenter.ShowContactsBy(criteria, res, chatId, accessRight);
+            return true;
+        }
+
+        private bool SmartContains(string value, string query)
+        {
+            return new Regex($@"\b{query}\b", RegexOptions.IgnoreCase).IsMatch(value);
         }
 
         private async Task SayCompliment(Contact contact, long fromChatId)
