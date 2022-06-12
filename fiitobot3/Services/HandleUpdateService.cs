@@ -22,12 +22,12 @@ namespace fiitobot.Services
         private BotData botData;
         private readonly IPresenter presenter;
         private readonly BotDataRepository botDataRepo;
-        private readonly PhotoRepository photoRepository;
+        private readonly IPhotoRepository photoRepository;
         private readonly Random random = new Random();
 
         public HandleUpdateService(SheetContactsRepository contactsRepository, DetailsRepository detailsRepository,
             BotDataRepository botDataRepo,
-            PhotoRepository photoRepository,
+            IPhotoRepository photoRepository,
             IPresenter presenter)
         {
             this.contactsRepository = contactsRepository;
@@ -40,7 +40,7 @@ namespace fiitobot.Services
 
         public HandleUpdateService(SheetContactsRepository contactsRepository, DetailsRepository detailsRepository,
             BotData botData,
-            PhotoRepository photoRepository,
+            IPhotoRepository photoRepository,
             IPresenter presenter)
         {
             this.contactsRepository = contactsRepository;

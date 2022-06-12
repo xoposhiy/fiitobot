@@ -23,7 +23,8 @@ public class DialogTests
     [TestCase("Мизурова Анастасия")]
     [TestCase("username42")]
     [TestCase("@username42")]
-    public async Task PlainTextMessage_SearchesStudent(string query)
+    [TestCase("Мизурова Анастасия Лишние Слова")]
+    public async Task SearchesStudent(string query)
     {
         var contactsPresenter = A.Fake<IPresenter>();
         var handleUpdateService = PrepareUpdateService(contactsPresenter);
@@ -68,18 +69,50 @@ public class DialogTests
     }
 
     [TestCase("Мизурова")]
-    [Ignore("Нужен тестовый PhotoRepo")]
     public async Task AdminQuery_ShowsPhoto(string query)
+    {
+        var contactsPresenter = A.Fake<IPresenter>();
+        var photoRepo = A.Fake<IPhotoRepository>();
+        var handleUpdateService = PrepareUpdateService(contactsPresenter, photoRepo);
+
+        await handleUpdateService.HandlePlainText(query, 123, AccessRight.Admin);
+
+        A.CallTo(() => photoRepo.FindRandomPhoto(A<Contact>.Ignored))
+            .Returns(Task.FromResult(new PersonPhoto(null, null, null)));
+        A.CallTo(() => contactsPresenter.ShowContact(
+                A<Contact>.Ignored,
+                123, AccessRight.Admin))
+            .MustHaveHappenedOnceExactly();
+        A.CallTo(() => contactsPresenter.ShowPhoto(
+                A<Contact>.Ignored, A<PersonPhoto>.Ignored, 123, AccessRight.Admin))
+            .MustHaveHappenedOnceExactly();
+    }
+    
+    [TestCase("Досье Мизурова")]
+    public async Task AdminDetailsQuery_ShowsDetails(string query)
     {
         var contactsPresenter = A.Fake<IPresenter>();
         var handleUpdateService = PrepareUpdateService(contactsPresenter);
 
         await handleUpdateService.HandlePlainText(query, 123, AccessRight.Admin);
 
-        A.CallTo(() => contactsPresenter.ShowContact(
-                A<Contact>.Ignored,
-                123, AccessRight.Admin))
+        A.CallTo(() => contactsPresenter.ShowDetails(
+            A<PersonData>.Ignored, data!.SourceSpreadsheets, 123))
             .MustHaveHappenedOnceExactly();
+    }
+
+    [TestCase("Досье Мизурова")]
+    public async Task DoNotShowDetailsToStudents(string query)
+    {
+        var contactsPresenter = A.Fake<IPresenter>();
+        var handleUpdateService = PrepareUpdateService(contactsPresenter);
+
+        await handleUpdateService.HandlePlainText(query, 123, AccessRight.Student);
+
+        A.CallTo(() => contactsPresenter.ShowDetails(
+                null, null, 123))
+            .WithAnyArguments()
+             .MustNotHaveHappened();
     }
 
     [TestCase("asstudent Мизурова")]
@@ -96,23 +129,8 @@ public class DialogTests
             .MustHaveHappenedOnceExactly();
     }
 
-
-    [TestCase("Мизурова Анастасия Неизвестнокакоевна")]
-    public async Task PlainTextMessage_SearchesStudent_IgnoringSomeParts(string query)
-    {
-        var contactsPresenter = A.Fake<IPresenter>();
-        var handleUpdateService = PrepareUpdateService(contactsPresenter);
-        
-        await handleUpdateService.HandlePlainText(query, 123, AccessRight.Student);
-        
-        A.CallTo(() => contactsPresenter.ShowContact(
-                A<Contact>.That.Matches(c => c.LastName == "Мизуро́ва"), 
-                123, AccessRight.Student))
-            .MustHaveHappenedOnceExactly();
-    }
-    
     [TestCase("Иван")]
-    public async Task PlainTextMessage_SearchesManyStudents(string firstName)
+    public async Task ShowOtherStudentsList_IfMoreThanOneResult(string firstName)
     {
         var contactsPresenter = A.Fake<IPresenter>();
         var handleUpdateService = PrepareUpdateService(contactsPresenter);
@@ -128,9 +146,35 @@ public class DialogTests
                 42))
             .MustHaveHappenedOnceExactly();
     }
-    
-    private HandleUpdateService PrepareUpdateService(IPresenter presenter)
+
+    [TestCase("Abracadabra")]
+    public async Task ShowNoResults(string query)
     {
-        return new HandleUpdateService(null, null, data, null, presenter);
+        var contactsPresenter = A.Fake<IPresenter>();
+        var handleUpdateService = PrepareUpdateService(contactsPresenter);
+
+        await handleUpdateService.HandlePlainText(query, 42, AccessRight.Student);
+
+        A.CallTo(() => contactsPresenter.SayNoResults(42))
+            .MustHaveHappenedOnceExactly();
+        Assert.AreEqual(1, Fake.GetCalls(contactsPresenter).Count());
+    }
+
+    [TestCase("Иван")]
+    public async Task ExternalUsers_HasNoAccess(string query)
+    {
+        var contactsPresenter = A.Fake<IPresenter>();
+        var handleUpdateService = PrepareUpdateService(contactsPresenter);
+
+        await handleUpdateService.HandlePlainText(query, 42, AccessRight.External);
+
+        A.CallTo(() => contactsPresenter.SayNoRights(42, AccessRight.External))
+            .MustHaveHappenedOnceExactly();
+        Assert.AreEqual(1, Fake.GetCalls(contactsPresenter).Count());
+    }
+
+    private HandleUpdateService PrepareUpdateService(IPresenter presenter, IPhotoRepository photoRepository = null)
+    {
+        return new HandleUpdateService(null, null, data, photoRepository, presenter);
     }
 }
