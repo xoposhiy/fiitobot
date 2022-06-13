@@ -30,7 +30,7 @@ namespace fiitobot.Services
             {
                 anyAdminIds.Add(creator.UserID);
             }
-            Console.WriteLine("Admins: " + studAdmins.Count);
+            Console.WriteLine("Administrators: " + studAdmins.Count);
             var adminIds = studAdmins.Select(p => p.id).ToHashSet();
             Console.WriteLine($"Found {adminIds.Count} student admins");
 
@@ -55,7 +55,7 @@ namespace fiitobot.Services
             }
             Console.WriteLine($"Final last authors: {lastAuthors.Count}");
             var adminsToRemove = studAdmins.Where(a => !lastAuthors.ContainsKey(a.id)).ToList();
-            Console.WriteLine($"Admins to remove {adminsToRemove.Count}");
+            Console.WriteLine($"Administrators to remove {adminsToRemove.Count}");
 
             foreach (var adminToRemove in adminsToRemove)
             {
@@ -66,7 +66,7 @@ namespace fiitobot.Services
             var chatUsers = participants.users.Values;
             Console.WriteLine($"Found {chatUsers.Count} participants");
             var adminsToAdd = chatUsers.Where(user => lastAuthors.ContainsKey(user.ID) && students.Contains(user.ID) && !anyAdminIds.Contains(user.ID)).ToList();
-            Console.WriteLine($"Admins to add {adminsToAdd.Count}");
+            Console.WriteLine($"Administrators to add {adminsToAdd.Count}");
             foreach (var user in adminsToAdd)
             {
                 await client.Channels_EditAdmin(channel, user, new ChatAdminRights() { flags = ChatAdminRights.Flags.post_messages | ChatAdminRights.Flags.edit_messages }, studentRank);

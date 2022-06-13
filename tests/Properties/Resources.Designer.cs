@@ -62,7 +62,7 @@ namespace tests.Properties {
         
         /// <summary>
         ///   Looks up a localized string similar to {
-        ///  &quot;Admins&quot;: [
+        ///  &quot;Administrators&quot;: [
         ///    &quot;@chanterelle_n&quot;,
         ///    &quot;@lerybinskaya&quot;,
         ///    &quot;@ryzhaya_chebupelya&quot;,

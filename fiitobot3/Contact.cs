@@ -2,12 +2,11 @@ using System;
 
 namespace fiitobot
 {
-
     public class Contact
     {
         public Contact(int admissionYear, string lastName, string firstName, string patronymic, int groupIndex,
             int subgroupIndex, string city, string school, string concurs, string rating, string telegram, string phone,
-            string email, string note, long tgId)
+            string email, string note, long tgId, string job, ContactType type)
         {
             AdmissionYear = admissionYear;
             LastName = lastName;
@@ -24,6 +23,8 @@ namespace fiitobot
             Email = email;
             Note = note;
             TgId = tgId;
+            Job = job;
+            Type = type;
         }
 
         public int AdmissionYear;
@@ -41,6 +42,8 @@ namespace fiitobot
         public string Email;
         public string Note;
         public long TgId;
+        public string Job;
+        public ContactType Type;
 
         public string FormatMnemonicGroup(DateTime now)
         {
@@ -60,10 +63,17 @@ namespace fiitobot
         public bool SameContact(string query)
         {
             query = query.Canonize();
-            var first = FirstName.Canonize();
-            var last = LastName.Canonize();
-            return first == query || last == query || last + ' ' + first == query || first + ' ' + last == query ||
-                   query == Telegram.ToLower() || ('@' + query) == Telegram.ToLower();
+            try
+            {
+                var first = FirstName.Canonize();
+                var last = LastName.Canonize();
+                return first == query || last == query || last + ' ' + first == query || first + ' ' + last == query ||
+                       query == Telegram.ToLower() || ('@' + query) == Telegram.ToLower();
+            }
+            catch (Exception e)
+            {
+                throw new Exception(ToString(), e);
+            }
         }
 
         public override string ToString()
@@ -71,6 +81,13 @@ namespace fiitobot
             return $"{FirstName} {LastName} {Telegram} {TgId}";
         }
 
+    }
+
+    public enum ContactType
+    {
+        Student,
+        Administration,
+        Teacher
     }
 
     public static class PluralizeExtensions

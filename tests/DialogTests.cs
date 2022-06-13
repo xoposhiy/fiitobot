@@ -18,14 +18,17 @@ public class DialogTests
         data = new BotDataBuilder().Build();
     }
     
-    [TestCase("Мизурова")]
-    [TestCase("Мизуро́ва")]
-    [TestCase("Анастасия Мизурова")]
-    [TestCase("Мизурова Анастасия")]
-    [TestCase("username42")]
-    [TestCase("@username42")]
-    [TestCase("Мизурова Анастасия Лишние Слова")]
-    public async Task SearchesStudent(string query)
+    [TestCase("Мизурова", "Мизуро́ва")]
+    [TestCase("Мизуро́ва", "Мизуро́ва")]
+    [TestCase("Анастасия Мизурова", "Мизуро́ва")]
+    [TestCase("Мизурова Анастасия", "Мизуро́ва")]
+    [TestCase("username42", "Мизуро́ва")]
+    [TestCase("@username42", "Мизуро́ва")]
+    [TestCase("Мизурова Анастасия Лишние Слова", "Мизуро́ва")]
+    [TestCase("Егоров Павел", "Егоров")]
+    [TestCase("Семёнов Иван", "Семёнов")]
+    [TestCase("Иванов", "Иванов")]
+    public async Task SearchesStudent(string query, string expectedLastNameOfSingleResult)
     {
         var contactsPresenter = A.Fake<IPresenter>();
         var handleUpdateService = PrepareUpdateService(contactsPresenter);
@@ -33,9 +36,12 @@ public class DialogTests
         await handleUpdateService.HandlePlainText(query, 123, AccessRight.Student);
         
         A.CallTo(() => contactsPresenter.ShowContact(
-                A<Contact>.That.Matches(c => c.LastName == "Мизуро́ва"), 
+                A<Contact>.That.Matches(c => c.LastName == expectedLastNameOfSingleResult), 
                 123, AccessRight.Student))
             .MustHaveHappenedOnceExactly();
+        A.CallTo(() => contactsPresenter.ShowOtherResults(null, 0))
+            .WithAnyArguments()
+            .MustNotHaveHappened();
     }
 
     [TestCase("/random")]

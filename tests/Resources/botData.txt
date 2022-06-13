@@ -1,13 +1,17 @@
 ﻿{
-  "Admins": [
-    "@chanterelle_n",
-    "@lerybinskaya",
-    "@ryzhaya_chebupelya",
-    "@tramakarov",
-    "@disturm",
-    "@voka_ekb",
-    "@Youlia_Pozdnyakova",
-    "@xoposhiy"
+  "Administrators": [
+    {
+        "AdmissionYear": 2019,
+        "LastName": "Егоров",
+        "FirstName": "Павел",
+        "Patronymic": "Владимирович",
+        "Telegram": "@xoposhiy",
+        "Phone": "",
+        "Email": "",
+        "Note": "",
+        "TgId": 123123123,
+        "Job": "Что-то делает"
+    }
   ],
   "SourceSpreadsheets": [
     "https://docs.google.com/spreadsheets/d/1XFKrFCScUD5APkZFALQp0XXgAuifHVxmwMSt1J2TqE8/edit#gid=419729714",
@@ -25,7 +29,7 @@
     "https://docs.google.com/spreadsheets/d/13J4JMOVKMfNSQpurVOWx6cvIBBw2mjQkV9F5HnK2KhY/edit#gid=1380732260",
     "https://docs.google.com/spreadsheets/d/1D0jhRjRNowJWnFS5FJlC44o6L0MizwjKsxarYD3XGUM/edit#gid=1137582427"
   ],
-  "People": [
+  "Students": [
     {
       "Contact": {
         "AdmissionYear": 2019,

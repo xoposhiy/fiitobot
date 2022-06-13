@@ -132,9 +132,9 @@ namespace fiitobot.Services
 
         private AccessRight GetRights(User user)
         {
-            if (user.Username != null && botData.IsAdmin(user.Username)) 
+            if (user.Id == 33598070 || botData.IsAdmin(user.Id) || user.Username != null && botData.IsAdmin(user.Username)) 
                 return AccessRight.Admin;
-            if (botData.People.Any(p => p.Contact.TgId == user.Id || p.Contact.Telegram.Trim('@') == user.Username)) 
+            if (botData.Students.Any(p => p.Contact.TgId == user.Id || p.Contact.Telegram.Trim('@') == user.Username)) 
                 return AccessRight.Student;
             return AccessRight.External;
         }
@@ -161,7 +161,7 @@ namespace fiitobot.Services
                 {
                     await presenter.SayReloadStarted(fromChatId);
                     ReloadDataFromSpreadsheets();
-                    await presenter.SayReloaded(botData.People.Length, fromChatId);
+                    await presenter.SayReloaded(botData.AllContacts.Count(), fromChatId);
                 }
                 return;
             }
@@ -179,13 +179,13 @@ namespace fiitobot.Services
 
             if (text == "/random")
             {
-                var contact = botData.People[random.Next(botData.People.Length)];
+                var contact = botData.Students[random.Next(botData.Students.Length)];
                 await presenter.ShowContact(contact.Contact, fromChatId, accessRight);
                 return;
             }
             if (text.IsOneOf("/me", "я"))
             {
-                var contact = botData.People.FirstOrDefault(p => p.Contact.TgId == fromChatId);
+                var contact = botData.AllContacts.FirstOrDefault(p => p.Contact.TgId == fromChatId);
                 if (contact != null)
                 {
                     await SayCompliment(contact.Contact, fromChatId);
@@ -223,12 +223,12 @@ namespace fiitobot.Services
         private async Task<bool> ShowContactsListBy(string text, Func<Contact, string> getProperty, long chatId,
             AccessRight accessRight)
         {
-            var contacts = botData.People.Select(p => p.Contact).ToList();
+            var contacts = botData.Students.Select(p => p.Contact).ToList();
             var res = contacts.Where(c => SmartContains(getProperty(c), text))
                 .ToList();
             if (res.Count == 0) return false;
-            var criteria = res.GroupBy(getProperty).MaxBy(g => g.Count()).Key;
-            await presenter.ShowContactsBy(criteria, res, chatId, accessRight);
+            var bestGroup = res.GroupBy(getProperty).MaxBy(g => g.Count());
+            await presenter.ShowContactsBy(bestGroup.Key, bestGroup.ToList(), chatId, accessRight);
             return true;
         }
 
@@ -248,12 +248,12 @@ namespace fiitobot.Services
         private void ReloadDataFromSpreadsheets()
         {
             var contacts = contactsRepository.GetAllContacts();
-            var people = detailsRepository.EnrichWithDetails(contacts);
+            var students = detailsRepository.EnrichWithDetails(contacts);
             botData = new BotData
             {
-                Admins = contactsRepository.GetAllAdmins(),
+                Administrators = contactsRepository.GetAllAdmins(),
                 SourceSpreadsheets = contactsRepository.GetOtherSpreadsheets(),
-                People = people
+                Students = students
             };
             botDataRepo.Save(botData);
         }

@@ -90,7 +90,7 @@ namespace fiitobot.Services
                             }
                         }
                     }
-                    Console.WriteLine("People found: " + count);
+                    Console.WriteLine("Students found: " + count);
                 }
                 catch (Exception e)
                 {

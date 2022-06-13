@@ -35,15 +35,16 @@ namespace fiitobot.Services
             if (personDirectories.Count == 1)
             {
                 var dir = personDirectories[0];
-                var photoDirectoryUrl = dir.PublicUrl;
+                var photoDirUrl = dir.PublicUrl;
+                if (photoDirUrl == null) return null;
                 json = await client.GetStringAsync(
-                    $"https://cloud-api.yandex.net/v1/disk/public/resources?public_key={UrlEncoder.Default.Encode(photoDirectoryUrl)}&fields=_embedded.items.preview&preview_size=800x600");
+                    $"https://cloud-api.yandex.net/v1/disk/public/resources?public_key={UrlEncoder.Default.Encode(photoDirUrl)}&fields=_embedded.items.preview&preview_size=800x600");
                 response = JsonConvert.DeserializeObject<YdResourcesResponse>(json);
                 var photos = response.Embedded.Items;
                 if (photos.Count == 0)
                     return null;
                 var randomPhoto = photos.SelectOne(random);
-                return new PersonPhoto(new Uri(photoDirectoryUrl), new Uri(randomPhoto.Preview), dir.Name);
+                return new PersonPhoto(new Uri(photoDirUrl), new Uri(randomPhoto.Preview), dir.Name);
             }
             return null;
         }
@@ -73,6 +74,9 @@ namespace fiitobot.Services
     {
         [JsonProperty("public_url")]
         public string PublicUrl { get; set; }
+
+        [JsonProperty("public_key")]
+        public string PublicKey { get; set; }
 
         [JsonProperty("type")]
         public string Type { get; set; }

@@ -18,7 +18,7 @@ namespace fiitobot.Services
         Task ShowContact(Contact contact, long chatId, AccessRight right);
         Task ShowPhoto(Contact contact, PersonPhoto photo, long chatId, AccessRight right);
         Task ShowOtherResults(Contact[] otherContacts, long chatId);
-        Task SayNoResults(long chatId, Contact fromContact);
+        Task SayNoResults(long chatId);
         Task SayNoRights(long chatId, AccessRight userAccessRights);
         Task SayBeMoreSpecific(long chatId);
         Task InlineSearchResults(string inlineQueryId, Contact[] foundContacts, AccessRight right);
@@ -140,11 +140,21 @@ namespace fiitobot.Services
 
         public async Task ShowContact(Contact contact, long chatId, AccessRight right)
         {
-            var inlineKeyboardMarkup = right.IsOneOf(AccessRight.Admin, AccessRight.Staff)
-                ? new InlineKeyboardMarkup(new InlineKeyboardButton("Подробнее!"){CallbackData = $"Досье {contact.LastName} {contact.FirstName}"})
-                : null;
-            var htmlText = FormatContactAsHtml(contact, right);
-            await botClient.SendTextMessageAsync(chatId, htmlText, ParseMode.Html, replyMarkup: inlineKeyboardMarkup);
+            if (contact.Type == ContactType.Student)
+            {
+                var inlineKeyboardMarkup = right.IsOneOf(AccessRight.Admin, AccessRight.Staff)
+                    ? new InlineKeyboardMarkup(new InlineKeyboardButton("Подробнее!")
+                        { CallbackData = $"Досье {contact.LastName} {contact.FirstName}" })
+                    : null;
+                var htmlText = FormatContactAsHtml(contact, right);
+                await botClient.SendTextMessageAsync(chatId, htmlText, ParseMode.Html,
+                    replyMarkup: inlineKeyboardMarkup);
+            }
+            else if (contact.Type == ContactType.Administration)
+            {
+                var htmlText = FormatContactAsHtml(contact, right);
+                await botClient.SendTextMessageAsync(chatId, htmlText, ParseMode.Html);
+            }
         }
 
         public async Task ShowPhoto(Contact contact, PersonPhoto photo, long chatId, AccessRight right)
@@ -152,7 +162,7 @@ namespace fiitobot.Services
              await botClient.SendPhotoAsync(chatId, new InputOnlineFile(photo.RandomPhoto), caption: $"<a href='{photo.PhotosDirectory}'>{photo.DirName}</a>", parseMode:ParseMode.Html);
         }
 
-        public async Task SayNoResults(long chatId, Contact fromContact)
+        public async Task SayNoResults(long chatId)
         {
             var text = "Не нашлось никого подходящего :(\n\nНе унывайте! Найдите кого-нибудь случайного /random! Или поищите по своей школе или городу!";
             await botClient.SendTextMessageAsync(chatId, text, ParseMode.Html);
@@ -175,16 +185,27 @@ namespace fiitobot.Services
         {
             var b = new StringBuilder();
             b.AppendLine($"<b>{contact.LastName} {contact.FirstName} {contact.Patronymic}</b>");
-            b.AppendLine($"{contact.FormatMnemonicGroup(DateTime.Now)} (год поступления: {contact.AdmissionYear})");
-
-            b.AppendLine($"🏫 Школа: {contact.School}");
-            b.AppendLine($"🏙️ Город: {contact.City}");
-            if (right.IsOneOf(AccessRight.Admin, AccessRight.Staff))
-                b.AppendLine($"Поступление {FormatConcurs(contact.Concurs)} c рейтингом {contact.Rating}");
+            if (contact.Type == ContactType.Student)
+            {
+                b.AppendLine($"{contact.FormatMnemonicGroup(DateTime.Now)} (год поступления: {contact.AdmissionYear})");
+                if (!string.IsNullOrWhiteSpace(contact.School))
+                    b.AppendLine($"🏫 Школа: {contact.School}");
+                if (!string.IsNullOrWhiteSpace(contact.City))
+                    b.AppendLine($"🏙️ Город: {contact.City}");
+                if (right.IsOneOf(AccessRight.Admin, AccessRight.Staff))
+                    b.AppendLine($"Поступление {FormatConcurs(contact.Concurs)} c рейтингом {contact.Rating}");
+            }
+            if (contact.Type == ContactType.Administration)
+            {
+                b.AppendLine($"Чем занимается: {contact.Job}");
+            }
             b.AppendLine();
-            b.AppendLine($"📧 {contact.Email}");
-            b.AppendLine($"📞 {contact.Phone}");
-            b.AppendLine($"💬 {contact.Telegram}");
+            if (!string.IsNullOrWhiteSpace(contact.Email))
+                b.AppendLine($"📧 {contact.Email}");
+            if (!string.IsNullOrWhiteSpace(contact.Phone))
+                b.AppendLine($"📞 {contact.Phone}");
+            if (!string.IsNullOrWhiteSpace(contact.Telegram))
+                b.AppendLine($"💬 {contact.Telegram}");
             b.AppendLine($"{EscapeForHtml(contact.Note)}");
             return b.ToString();
         }
@@ -201,8 +222,11 @@ namespace fiitobot.Services
 
         public async Task ShowContactsBy(string criteria, IList<Contact> people, long chatId, AccessRight accessRight)
         {
-            var list = string.Join("\n", people.Select(p => $"<b>{p.FirstName} {p.LastName}</b> {p.FormatMnemonicGroup(DateTime.Now)} {p.Telegram}"));
-            await botClient.SendTextMessageAsync(chatId, $"{criteria}:\n\n{list}", ParseMode.Html);
+            people = people.OrderByDescending(p => p.AdmissionYear).ThenBy(p => p.LastName).ThenBy(p => p.FirstName).ToList();
+            var listCount = people.Count > 20 ? 15 : people.Count;
+            var list = string.Join("\n", people.Select(p => $"<b>{p.LastName} {p.FirstName}</b> {p.FormatMnemonicGroup(DateTime.Now)} {p.Telegram}").Take(20));
+            var ending = listCount < people.Count ? $"\n\nЕсть ещё {people.Count - listCount} подходящих человек" : "";
+            await botClient.SendTextMessageAsync(chatId, $"{criteria}:\n\n{list}{ending}", ParseMode.Html);
         }
 
         public async Task ShowOtherResults(Contact[] otherContacts, long chatId)

@@ -17,9 +17,9 @@ var people = detailsRepo.EnrichWithDetails(contacts);
 Console.WriteLine("Enrich " + sw.Elapsed);
 var botData = new BotData
 {
-    Admins = repo.GetAllAdmins(),
+    Administrators = repo.GetAllAdmins(),
     SourceSpreadsheets = repo.GetOtherSpreadsheets(),
-    People = people
+    Students = people
 };
 var content = JsonConvert.SerializeObject(botData, Formatting.Indented);
 File.WriteAllText("data.json", content);
