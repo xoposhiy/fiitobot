@@ -90,19 +90,13 @@ namespace fiitobot.Services
                 ParseMode.Html);
         }
 
-        public Task ShowHelp(long fromChatId)
-        {
-            throw new NotImplementedException();
-        }
-
         public async Task ShowHelp(long fromChatId, AccessRight accessRight)
         {
-            var spreadsheetUrl = $"https://docs.google.com/spreadsheets/d/{spreadsheetId}";
             var b = new StringBuilder("Это бот для команды и студентов ФИИТ УрФУ. Напиши фамилию и/или имя студента ФИИТ и я расскажу всё, что о нём знаю. Но только если ты из ФИИТ.");
             if (accessRight.IsOneOf(AccessRight.Admin))
                 b.AppendLine(
                     "\n\nВ любом другом чате напиши @fiitobot и после пробела начни писать фамилию. Я покажу, кого я знаю с такой фамилией, и после выбора конкретного студента, запощу карточку про студента в чат." +
-                    $"\n\nВсе данные я беру из гугл-таблицы {spreadsheetUrl}");
+                    $"\n\nВсе данные я беру из <a href='{SpreadsheetUrl}'>гугл-таблицы к контактами</a>");
             await botClient.SendTextMessageAsync(fromChatId, b.ToString(), ParseMode.Html);
         }
 
@@ -150,7 +144,7 @@ namespace fiitobot.Services
                 await botClient.SendTextMessageAsync(chatId, htmlText, ParseMode.Html,
                     replyMarkup: inlineKeyboardMarkup);
             }
-            else if (contact.Type == ContactType.Administration)
+            else
             {
                 var htmlText = FormatContactAsHtml(contact, right);
                 await botClient.SendTextMessageAsync(chatId, htmlText, ParseMode.Html);
@@ -195,8 +189,14 @@ namespace fiitobot.Services
                 if (right.IsOneOf(AccessRight.Admin, AccessRight.Staff))
                     b.AppendLine($"Поступление {FormatConcurs(contact.Concurs)} c рейтингом {contact.Rating}");
             }
-            if (contact.Type == ContactType.Administration)
+            else if (contact.Type == ContactType.Administration)
             {
+                b.AppendLine($"Команда ФИИТ");
+                b.AppendLine($"Чем занимается: {contact.Job}");
+            }
+            else if (contact.Type == ContactType.Teacher)
+            {
+                b.AppendLine($"Преподаватель ФИИТ");
                 b.AppendLine($"Чем занимается: {contact.Job}");
             }
             b.AppendLine();
@@ -207,8 +207,15 @@ namespace fiitobot.Services
             if (!string.IsNullOrWhiteSpace(contact.Telegram))
                 b.AppendLine($"💬 {contact.Telegram}");
             b.AppendLine($"{EscapeForHtml(contact.Note)}");
+            if (right == AccessRight.Admin)
+            {
+                b.AppendLine();
+                b.AppendLine($"<a href='{SpreadsheetUrl}'>Все контакты ФИИТ</a>");
+            }
             return b.ToString();
         }
+
+        public string SpreadsheetUrl => $"https://docs.google.com/spreadsheets/d/{spreadsheetId}";
 
         private string FormatConcurs(string concurs)
         {
@@ -224,9 +231,21 @@ namespace fiitobot.Services
         {
             people = people.OrderByDescending(p => p.AdmissionYear).ThenBy(p => p.LastName).ThenBy(p => p.FirstName).ToList();
             var listCount = people.Count > 20 ? 15 : people.Count;
-            var list = string.Join("\n", people.Select(p => $"<b>{p.LastName} {p.FirstName}</b> {p.FormatMnemonicGroup(DateTime.Now)} {p.Telegram}").Take(20));
+            var list = string.Join("\n", people.Select(RenderContactAsListItem).Take(20));
             var ending = listCount < people.Count ? $"\n\nЕсть ещё {people.Count - listCount} подходящих человек" : "";
             await botClient.SendTextMessageAsync(chatId, $"{criteria}:\n\n{list}{ending}", ParseMode.Html);
+        }
+
+        private static string RenderContactAsListItem(Contact p)
+        {
+            var who = p.Type switch
+            {
+                ContactType.Student => p.FormatMnemonicGroup(DateTime.Now),
+                ContactType.Administration => "Команда ФИИТ. " + p.Job,
+                ContactType.Teacher => "Преподаватель ФИИТ. " + p.Job,
+                _ => p.Type.ToString()
+            }; 
+            return $"<b>{p.LastName} {p.FirstName}</b> {p.Telegram} {who}";
         }
 
         public async Task ShowOtherResults(Contact[] otherContacts, long chatId)

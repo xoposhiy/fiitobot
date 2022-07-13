@@ -9,7 +9,8 @@ namespace fiitobot
         public Contact[] Administrators;
         public string[] SourceSpreadsheets;
         public PersonData[] Students;
-        public IEnumerable<PersonData> AllContacts => Students.Concat(Administrators.Select(PersonData.FromContact));
+        public IEnumerable<PersonData> AllContacts => Students.Concat(Administrators.Select(PersonData.FromContact)).Concat(Teachers?.Select(PersonData.FromContact) ?? Array.Empty<PersonData>());
+        public Contact[] Teachers;
 
         public PersonData[] FindPerson(string query)
         {

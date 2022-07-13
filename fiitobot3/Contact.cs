@@ -44,9 +44,10 @@ namespace fiitobot
         public long TgId;
         public string Job;
         public ContactType Type;
-
+        
         public string FormatMnemonicGroup(DateTime now)
         {
+            if (AdmissionYear <= 0) return "";
             var delta = now.Month >= 8 ? 0 : 1;
             var course = now.Year - AdmissionYear + 1 - delta;
             return $"ФТ-{course}0{GroupIndex}-{SubgroupIndex}";
@@ -54,6 +55,7 @@ namespace fiitobot
 
         public string FormatOfficialGroup(DateTime now)
         {
+            if (AdmissionYear <= 0) return "";
             var delta = now.Month >= 8 ? 0 : 1;
             var course = now.Year - AdmissionYear + 1 - delta;
             var id = new[] { "0801", "0802", "0809", "0810" }[GroupIndex - 1];

@@ -134,6 +134,8 @@ namespace fiitobot.Services
         {
             if (user.Id == 33598070 || botData.IsAdmin(user.Id) || user.Username != null && botData.IsAdmin(user.Username)) 
                 return AccessRight.Admin;
+            if (botData.Teachers.Any(c => c.TgId == user.Id || c.Telegram.Trim('@') == user.Username)) 
+                return AccessRight.Staff;
             if (botData.Students.Any(p => p.Contact.TgId == user.Id || p.Contact.Telegram.Trim('@') == user.Username)) 
                 return AccessRight.Student;
             return AccessRight.External;
@@ -151,7 +153,7 @@ namespace fiitobot.Services
                 await presenter.ShowHelp(fromChatId, accessRight);
                 return;
             }
-            if (text == "/reload")
+            if (text.StartsWith("/reload"))
             {
                 if (accessRight != AccessRight.Admin)
                 {
@@ -252,6 +254,7 @@ namespace fiitobot.Services
             botData = new BotData
             {
                 Administrators = contactsRepository.GetAllAdmins(),
+                Teachers = contactsRepository.GetAllTeachers(),
                 SourceSpreadsheets = contactsRepository.GetOtherSpreadsheets(),
                 Students = students
             };

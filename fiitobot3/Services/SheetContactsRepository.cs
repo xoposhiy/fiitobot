@@ -10,6 +10,7 @@ namespace fiitobot.Services
         private readonly GSheetClient sheetClient;
         private volatile Contact[] contacts;
         private volatile Contact[] admins;
+        private volatile Contact[] teachers;
         private volatile string[] otherSpreadsheets;
         private DateTime lastUpdateTime = DateTime.MinValue;
         private readonly object locker = new object();
@@ -32,8 +33,9 @@ namespace fiitobot.Services
             lock (locker)
             {
                 if (DateTime.Now - lastUpdateTime <= TimeSpan.FromMinutes(1) && !force) return;
-                contacts = LoadContacts();
-                admins = LoadAdmins();
+                contacts = LoadContacts(ContactType.Student, "Students");
+                admins = LoadContacts(ContactType.Administration, "Administrators");
+                teachers = LoadContacts(ContactType.Teacher, "Teachers");
                 otherSpreadsheets = LoadDetailSourceSpreadsheets();
                 lastUpdateTime = DateTime.Now;
             }
@@ -49,6 +51,12 @@ namespace fiitobot.Services
         {
             ReloadIfNeeded();
             return admins;
+        }
+
+        public Contact[] GetAllTeachers()
+        {
+            ReloadIfNeeded();
+            return teachers;
         }
 
         public string[] LoadDetailSourceSpreadsheets()
@@ -67,15 +75,6 @@ namespace fiitobot.Services
                    query == contact.Telegram.ToLower() || ('@' + query) == contact.Telegram.ToLower();
         }
 
-        public Contact[] LoadAdmins()
-        {
-            return LoadContacts(ContactType.Administration, "Administrators");
-        }
-
-        public Contact[] LoadContacts()
-        {
-            return LoadContacts(ContactType.Student, "Students");
-        }
         public Contact[] LoadContacts(ContactType contactType, string sheetName)
         {
             var spreadsheet = sheetClient.GetSpreadsheet(spreadsheetId);
