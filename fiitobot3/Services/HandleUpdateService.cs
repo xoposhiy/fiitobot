@@ -99,12 +99,14 @@ namespace fiitobot.Services
             // logger.LogInformation(
             //     "Receive message type {messageType}: {text} from {message.From} charId {message.Chat.Id}", message.Type,
             //     message.Text, message.From, message.Chat.Id);
+            var silentOnNoResults = message.ReplyToMessage != null;
             var accessRight = GetRights(message.From);
+            var inGroupChat = message.From?.Id != message.Chat.Id;
             if (message.Type == MessageType.Text)
                 if (message.ForwardFrom != null)
                     await HandleForward(message.ForwardFrom!, message.Chat.Id, accessRight);
                 else
-                    await HandlePlainText(message.Text!, message.Chat.Id, accessRight);
+                    await HandlePlainText(message.Text!, message.Chat.Id, accessRight, silentOnNoResults);
         }
 
         private async Task HandleForward(User user, long fromChatId, AccessRight accessRight)
@@ -141,14 +143,14 @@ namespace fiitobot.Services
             return AccessRight.External;
         }
 
-        public async Task HandlePlainText(string text, long fromChatId, AccessRight accessRight)
+        public async Task HandlePlainText(string text, long fromChatId, AccessRight accessRight, bool silentOnNoResults = false)
         {
             if (text.StartsWith("asstudent ") && accessRight != AccessRight.External)
             {
                 text = text.Replace("asstudent ", "");
                 accessRight = AccessRight.Student;
             }
-            if (text == "/start" || text == "/help")
+            if (text.StartsWith("/start") || text.StartsWith("/help"))
             {
                 await presenter.ShowHelp(fromChatId, accessRight);
                 return;
@@ -179,13 +181,13 @@ namespace fiitobot.Services
                 return;
             }
 
-            if (text == "/random")
+            if (text.StartsWith("/random"))
             {
                 var contact = botData.Students[random.Next(botData.Students.Length)];
                 await presenter.ShowContact(contact.Contact, fromChatId, accessRight);
                 return;
             }
-            if (text.IsOneOf("/me", "я"))
+            if (text.StartsWith("/me") || text == "я")
             {
                 var contact = botData.AllContacts.FirstOrDefault(p => p.Contact.TgId == fromChatId);
                 if (contact != null)
@@ -195,6 +197,8 @@ namespace fiitobot.Services
                     return;
                 }
             }
+            if (text.StartsWith("/"))
+                return;
             var contacts = SearchPeople(text);
             const int maxResultsCount = 1;
             foreach (var person in contacts.Take(maxResultsCount))
@@ -218,7 +222,8 @@ namespace fiitobot.Services
                     return;
                 if (await ShowContactsListBy(text, c => c.City, fromChatId, accessRight))
                     return;
-                await presenter.SayNoResults(fromChatId);
+                if (!silentOnNoResults)
+                    await presenter.SayNoResults(fromChatId);
             }
         }
 
@@ -236,7 +241,7 @@ namespace fiitobot.Services
 
         private bool SmartContains(string value, string query)
         {
-            return new Regex($@"\b{query}\b", RegexOptions.IgnoreCase).IsMatch(value);
+            return new Regex($@"\b{Regex.Escape(query)}\b", RegexOptions.IgnoreCase).IsMatch(value);
         }
 
         private async Task SayCompliment(Contact contact, long fromChatId)
