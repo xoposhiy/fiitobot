@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -28,6 +29,9 @@ namespace fiitobot.Services
         Task ShowErrorToDevops(Update incomingUpdate, string errorMessage);
         Task ShowHelp(long fromChatId, AccessRight right);
         Task ShowContactsBy(string criteria, IList<Contact> people, long chatId, AccessRight accessRight);
+        Task ShowDownloadContactsYearSelection(long fromChatId);
+        Task ShowDownloadContactsSuffixSelection(long fromChatId, string year);
+        Task SendContacts(long fromChatId, byte[] content, string filename);
     }
 
     public class Presenter : IPresenter
@@ -187,7 +191,10 @@ namespace fiitobot.Services
                 if (!string.IsNullOrWhiteSpace(contact.City))
                     b.AppendLine($"🏙️ Город: {contact.City}");
                 if (right.IsOneOf(AccessRight.Admin, AccessRight.Staff))
+                {
                     b.AppendLine($"Поступление {FormatConcurs(contact.Concurs)} c рейтингом {contact.Rating}");
+                    b.AppendLine($"{contact.SecretNote}");
+                }
             }
             else if (contact.Type == ContactType.Administration)
             {
@@ -234,6 +241,63 @@ namespace fiitobot.Services
             var list = string.Join("\n", people.Select(RenderContactAsListItem).Take(20));
             var ending = listCount < people.Count ? $"\n\nЕсть ещё {people.Count - listCount} подходящих человек" : "";
             await botClient.SendTextMessageAsync(chatId, $"{criteria}:\n\n{list}{ending}", ParseMode.Html);
+        }
+
+        public async Task ShowDownloadContactsYearSelection(long chatId)
+        {
+            var inlineKeyboardMarkup = new InlineKeyboardMarkup(new[]
+            {
+                new[]
+                {
+                    new InlineKeyboardButton("2019"){CallbackData = "/contacts_2019"},
+                    new InlineKeyboardButton("2020"){CallbackData = "/contacts_2020"},
+                    new InlineKeyboardButton("2021"){CallbackData = "/contacts_2021"},
+                    new InlineKeyboardButton("2022"){CallbackData = "/contacts_2022"},
+                    new InlineKeyboardButton("Все"){CallbackData = "/contacts_all"}
+                }, 
+            });
+            await botClient.SendTextMessageAsync(
+                chatId,
+                "Тут можно скачать файл с контактами ФИИТ, подходящий для импорта в Google Contacts (а их телефон может автоматически синхронизировать с контактами Telegram). Выберите год поступления.",
+                ParseMode.Html, replyMarkup:inlineKeyboardMarkup);
+        }
+
+        public async Task ShowDownloadContactsSuffixSelection(long chatId, string year)
+        {
+            var inlineKeyboardMarkup = new InlineKeyboardMarkup(new[]
+            {
+                new[]
+                {
+                    new InlineKeyboardButton("Егор фт21 Павлов"){CallbackData = $"/contacts_{year}_ftYY"},
+                },
+                new[]
+                {
+                    new InlineKeyboardButton("Егор Владимирович Павлов ФТ21"){CallbackData = $"/contacts_{year}_patronymic"},
+                },
+                new[]
+                {
+                    new InlineKeyboardButton("Егор фт Павлов"){CallbackData = $"/contacts_{year}_ft"},
+                },
+                new[]
+                {
+                    new InlineKeyboardButton("Егор Павлов"){CallbackData = $"/contacts_{year}_nosuffix"},
+                },
+            });
+            await botClient.SendTextMessageAsync(
+                chatId,
+                "Можно к имени добавлять пометку ФИИТа или год поступления. Как лучше?",
+                ParseMode.Html, replyMarkup: inlineKeyboardMarkup);
+        }
+
+        public async Task SendContacts(long fromChatId, byte[] content, string filename)
+        {
+            var caption = "Зайдите на https://contacts.google.com и импортируйте этот файл. " +
+                          "Если у вас на телефоне контакты синхронизируются с Google, а Telegram синхронизируется с контактами телефона, " +
+                          "то через некоторое время контакты в Telegram поменяют имена на правильные.";
+            await botClient.SendDocumentAsync(
+                fromChatId, 
+                new InputOnlineFile(new MemoryStream(content), filename),
+                caption: caption);
         }
 
         private static string RenderContactAsListItem(Contact p)

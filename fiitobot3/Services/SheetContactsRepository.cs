@@ -79,7 +79,7 @@ namespace fiitobot.Services
         {
             var spreadsheet = sheetClient.GetSpreadsheet(spreadsheetId);
             var studentsSheet = spreadsheet.GetSheetByName(sheetName);
-            var data = studentsSheet.ReadRange("A1:O");
+            var data = studentsSheet.ReadRange("A1:P");
             var headers = data[0].TakeWhile(s => !string.IsNullOrWhiteSpace(s)).ToList();
             return data.Skip(1).Select(row => ParseContactFromRow(row, headers, contactType)).ToArray();
         }
@@ -116,7 +116,8 @@ namespace fiitobot.Services
                 Get("Note"),
                 long.TryParse(Get("TgId"), out var tgId) ? tgId : -1,
                 Get("Job"),
-                contactType
+                contactType,
+                Get("SecretNote")
 
             );
         }

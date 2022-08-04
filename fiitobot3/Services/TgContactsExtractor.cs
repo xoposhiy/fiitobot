@@ -11,11 +11,11 @@ namespace fiitobot.Services
         /// <summary>
         /// Получает всех участников ФИИТочатов, чтобы можно было сохранить соответствие юзернейма и неизменного в будущем userID.
         /// </summary>
-        public async Task<List<User>> ExtractUsersFromChatsAndChannels(string chatTitleSubstring, WTelegram.Client client)
+        public async Task<List<User>> ExtractUsersFromChatsAndChannels(WTelegram.Client client, params string[] chatTitleSubstrings)
         {
             var me = await client.LoginUserIfNeeded();
             Messages_Chats chats = await client.Messages_GetAllChats();
-            var fiitChats = chats.chats.Where(c => c.Value.Title.Contains(chatTitleSubstring)).ToList();
+            var fiitChats = chats.chats.Where(c => chatTitleSubstrings.Any(substr => c.Value.Title.Contains(substr))).ToList();
             var allUsers = new Dictionary<long, User>();
             foreach (var fiitChat in fiitChats)
             {

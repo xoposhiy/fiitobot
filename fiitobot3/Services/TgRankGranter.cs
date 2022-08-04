@@ -34,7 +34,7 @@ namespace fiitobot.Services
             var adminIds = studAdmins.Select(p => p.id).ToHashSet();
             Console.WriteLine($"Found {adminIds.Count} student admins");
 
-            var students = contactsRepository.GetAllContacts().Select(c => c.TgId).ToHashSet();
+            var students = contactsRepository.GetAllContacts().Where(s => s.AdmissionYear < 2022).Select(c => c.TgId).ToHashSet();
             Console.WriteLine($"Loaded {students.Count} students");
 
             Dictionary<long, PeerUser> lastAuthors = new Dictionary<long, PeerUser>();

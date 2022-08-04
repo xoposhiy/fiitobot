@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Telegram.Bot.Exceptions;
@@ -80,7 +81,7 @@ namespace fiitobot.Services
 
         private async Task BotOnCallbackQuery(CallbackQuery callbackQuery)
         {
-            if (!await EnsureHasAdminRights(callbackQuery.From, callbackQuery.Message!.Chat.Id)) return;
+            //if (!await EnsureHasAdminRights(callbackQuery.From, callbackQuery.Message!.Chat.Id)) return;
             await HandlePlainText(callbackQuery.Data!, callbackQuery.Message!.Chat.Id, AccessRight.Staff);
         }
 
@@ -102,6 +103,8 @@ namespace fiitobot.Services
             var silentOnNoResults = message.ReplyToMessage != null;
             var accessRight = GetRights(message.From);
             var inGroupChat = message.From?.Id != message.Chat.Id;
+            if (inGroupChat && accessRight.IsOneOf(AccessRight.Admin, AccessRight.Staff))
+                accessRight = AccessRight.Student; // в групповых чатах не показывать секретную инфу.
             if (message.Type == MessageType.Text)
                 if (message.ForwardFrom != null)
                     await HandleForward(message.ForwardFrom!, message.Chat.Id, accessRight);
@@ -180,7 +183,11 @@ namespace fiitobot.Services
                 await presenter.SayNoRights(fromChatId, accessRight);
                 return;
             }
-
+            if (text.StartsWith("/contacts"))
+            {
+                await HandleDownloadContactsScenario(text, fromChatId, accessRight);
+                return;
+            }
             if (text.StartsWith("/random"))
             {
                 var contact = botData.Students[random.Next(botData.Students.Length)];
@@ -227,7 +234,82 @@ namespace fiitobot.Services
             }
         }
 
-        private async Task<bool> ShowContactsListBy(string text, Func<Contact, string> getProperty, long chatId,
+        private async Task HandleDownloadContactsScenario(string text, long fromChatId, AccessRight accessRight)
+        {
+            var parts = text.Split("_");
+            if (parts.Length == 1)
+                await presenter.ShowDownloadContactsYearSelection(fromChatId);
+            else if (parts.Length == 2)
+            {
+                var year = parts[1];
+                await presenter.ShowDownloadContactsSuffixSelection(fromChatId, year);
+            }
+            else if (parts.Length == 3)
+            {
+                var year = parts[1];
+                var suffix = parts[2];
+                var contacts = botData.Students.Select(p => p.Contact).ToList();
+                if (year != "all")
+                    contacts.RemoveAll(c => c.AdmissionYear.ToString() != year);
+
+                string GetNameWithSuffix(Contact c)
+                {
+                    if (suffix == "ftYY") return c.FirstName + " фт" + (c.AdmissionYear % 100);
+                    if (suffix == "ft") return c.FirstName + " фт";
+                    return c.FirstName;
+                }
+                string GetSecondNameWithSuffix(Contact c)
+                {
+                    if (suffix == "patronymic") return c.LastName + " ФТ" + (c.AdmissionYear % 100);
+                    return c.LastName;
+                }
+
+                var headers = new[]{
+                    "Name",
+                    "Given Name",
+                    "Additional Name",
+                    "Family Name",
+                    "Notes",
+                    "E-mail 1 - Type",
+                    "E-mail 1 - Value",
+                    "IM 1 - Service",
+                    "IM 1 - Value",
+                    "Phone 1 - Type",
+                    "Phone 1 - Value",
+                    "Address 1 - City",
+                    "Organization 1 - Type",
+                    "Organization 1 - Name",
+                    "Organization 2 - Type",
+                    "Organization 2 - Name"};
+                var rows = contacts.Select(c => new[]
+                {
+                    GetNameWithSuffix(c) + " " + c.LastName,
+                    GetNameWithSuffix(c),
+                    suffix == "patronymic" ? c.Patronymic : "",
+                    GetSecondNameWithSuffix(c),
+                    c.Note,
+                    "*",
+                    c.Email,
+                    "Telegram",
+                    c.Telegram,
+                    "Mobile",
+                    c.Phone,
+                    c.City,
+                    "School",
+                    c.School,
+                    "University",
+                    "ФИИТ УрФУ " + c.AdmissionYear
+                })
+                    .Select(row => string.Join(",", row))
+                    .ToList();
+                
+                var contentText = string.Join(",", headers) + "\n" + string.Join("\n", rows);
+                var content = Encoding.UTF8.GetBytes(contentText);
+                await presenter.SendContacts(fromChatId, content, "contacts_" + year + "_" + suffix + ".csv");
+            }
+        }
+
+            private async Task<bool> ShowContactsListBy(string text, Func<Contact, string> getProperty, long chatId,
             AccessRight accessRight)
         {
             var contacts = botData.Students.Select(p => p.Contact).ToList();

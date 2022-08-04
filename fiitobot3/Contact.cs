@@ -6,7 +6,7 @@ namespace fiitobot
     {
         public Contact(int admissionYear, string lastName, string firstName, string patronymic, int groupIndex,
             int subgroupIndex, string city, string school, string concurs, string rating, string telegram, string phone,
-            string email, string note, long tgId, string job, ContactType type)
+            string email, string note, long tgId, string job, ContactType type, string secretNote)
         {
             AdmissionYear = admissionYear;
             LastName = lastName;
@@ -22,6 +22,7 @@ namespace fiitobot
             Phone = phone;
             Email = email;
             Note = note;
+            SecretNote = secretNote;
             TgId = tgId;
             Job = job;
             Type = type;
@@ -41,6 +42,7 @@ namespace fiitobot
         public string Phone;
         public string Email;
         public string Note;
+        public string SecretNote;
         public long TgId;
         public string Job;
         public ContactType Type;
@@ -48,8 +50,10 @@ namespace fiitobot
         public string FormatMnemonicGroup(DateTime now)
         {
             if (AdmissionYear <= 0) return "";
+            if (GroupIndex <= 0) return "";
             var delta = now.Month >= 8 ? 0 : 1;
             var course = now.Year - AdmissionYear + 1 - delta;
+            if (SubgroupIndex <= 0) return $"ФТ-{course}0{GroupIndex}";
             return $"ФТ-{course}0{GroupIndex}-{SubgroupIndex}";
         }
 
