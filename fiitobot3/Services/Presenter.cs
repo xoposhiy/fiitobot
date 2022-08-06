@@ -32,6 +32,9 @@ namespace fiitobot.Services
         Task ShowDownloadContactsYearSelection(long fromChatId);
         Task ShowDownloadContactsSuffixSelection(long fromChatId, string year);
         Task SendContacts(long fromChatId, byte[] content, string filename);
+        Task SayUploadPhotoFirst(long fromChatId);
+        Task ShowPhotoForModeration(long moderatorChatId, Contact contact, Stream contactNewPhoto);
+        Task SayPhotoGoesToModeration(long chatId, Stream photo);
     }
 
     public class Presenter : IPresenter
@@ -157,7 +160,10 @@ namespace fiitobot.Services
 
         public async Task ShowPhoto(Contact contact, PersonPhoto photo, long chatId, AccessRight right)
         {
-             await botClient.SendPhotoAsync(chatId, new InputOnlineFile(photo.RandomPhoto), caption: $"<a href='{photo.PhotosDirectory}'>{photo.DirName}</a>", parseMode:ParseMode.Html);
+            var caption = right.IsOneOf(AccessRight.Admin)
+                ? $"<a href='{photo.PhotosDirectory}'>{photo.Name}</a>"
+                : contact.FirstName + " " + contact.LastName;
+            await botClient.SendPhotoAsync(chatId, new InputOnlineFile(photo.PhotoUri), caption: caption, parseMode:ParseMode.Html);
         }
 
         public async Task SayNoResults(long chatId)
@@ -174,9 +180,9 @@ namespace fiitobot.Services
         public async Task SayNoRights(long chatId, AccessRight userAccessRights)
         {
             if (userAccessRights == AccessRight.External)
-                await botClient.SendTextMessageAsync(chatId, $"Этот бот только для команды ФИИТ", ParseMode.Html);
+                await botClient.SendTextMessageAsync(chatId, $"Этот бот только для студентов и преподавателей ФИИТ", ParseMode.Html);
             else
-                await botClient.SendTextMessageAsync(chatId, $"Это только для админов", ParseMode.Html);
+                await botClient.SendTextMessageAsync(chatId, $"Не трогай, это только для админов!", ParseMode.Html);
         }
 
         public string FormatContactAsHtml(Contact contact, AccessRight right)
@@ -298,6 +304,31 @@ namespace fiitobot.Services
                 fromChatId, 
                 new InputOnlineFile(new MemoryStream(content), filename),
                 caption: caption);
+        }
+
+        public async Task SayUploadPhotoFirst(long chatId)
+        {
+            var text = "Сначала загрузи свою фотку!";
+            await botClient.SendTextMessageAsync(chatId, text, ParseMode.Html);
+        }
+
+        public async Task ShowPhotoForModeration(long moderatorChatId, Contact contact, Stream contactNewPhoto)
+        {
+            await ShowContact(contact, moderatorChatId, AccessRight.Admin);
+            await botClient.SendPhotoAsync(moderatorChatId, 
+                new InputOnlineFile(contactNewPhoto), 
+                caption: $"{contact.FirstName} {contact.LastName} хочет поменять фотку. Одобряешь?",
+                replyMarkup:new InlineKeyboardMarkup(new []{
+                    new InlineKeyboardButton("Одобрить"){CallbackData = "/accept_photo " + contact.TgId},
+                    new InlineKeyboardButton("Отклонить"){CallbackData = "/reject_photo " + contact.TgId}
+                    }
+                    ));
+        }
+
+        public async Task SayPhotoGoesToModeration(long chatId, Stream photo)
+        {
+            var text = "Фото ушло на модерацию. Как только его проверят, бот начнет показывать её другим";
+            await botClient.SendPhotoAsync(chatId, new InputOnlineFile(photo), caption:text, ParseMode.Html);
         }
 
         private static string RenderContactAsListItem(Contact p)

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -76,22 +77,22 @@ public class DialogTests
     }
 
     [TestCase("Мизурова")]
-    public async Task AdminQuery_ShowsPhoto(string query)
+    public async Task StudentQuery_ShowsPhoto(string query)
     {
         var contactsPresenter = A.Fake<IPresenter>();
         var photoRepo = A.Fake<IPhotoRepository>();
         var handleUpdateService = PrepareUpdateService(contactsPresenter, photoRepo);
 
-        await handleUpdateService.HandlePlainText(query, 123, AccessRight.Admin);
+        await handleUpdateService.HandlePlainText(query, 123, AccessRight.Student);
 
-        A.CallTo(() => photoRepo.FindRandomPhoto(A<Contact>.Ignored))
+        A.CallTo(() => photoRepo.FindPhoto(A<Contact>.Ignored))
             .Returns(Task.FromResult(new PersonPhoto(null, null, null)));
         A.CallTo(() => contactsPresenter.ShowContact(
                 A<Contact>.Ignored,
-                123, AccessRight.Admin))
+                123, AccessRight.Student))
             .MustHaveHappenedOnceExactly();
         A.CallTo(() => contactsPresenter.ShowPhoto(
-                A<Contact>.Ignored, A<PersonPhoto>.Ignored, 123, AccessRight.Admin))
+                A<Contact>.Ignored, A<PersonPhoto>.Ignored, 123, AccessRight.Student))
             .MustHaveHappenedOnceExactly();
     }
     
@@ -204,6 +205,15 @@ public class DialogTests
 
     private HandleUpdateService PrepareUpdateService(IPresenter presenter, IPhotoRepository? photoRepository = null)
     {
-        return new HandleUpdateService(null, null, data, photoRepository, presenter);
+        photoRepository ??= A.Fake<IPhotoRepository>();
+        var repo = new MemoryBotDataRepository(data);
+        var commands = new IChatCommandHandler[]
+        {
+            new StartCommandHandler(presenter),
+            new MeCommandHandler(repo, presenter),
+            new ContactsCommandHandler(repo, presenter),
+            new RandomCommandHandler(repo, presenter, new Random()),
+        };
+        return new HandleUpdateService(repo, photoRepository, presenter, commands);
     }
 }

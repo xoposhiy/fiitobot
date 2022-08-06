@@ -84,6 +84,113 @@ namespace fiitobot.GoogleSpreadsheet
                 });
             return this;
         }
+        public GSheetEditsBuilder WriteRangeNoCasts(ValueTuple<int, int> topLeft, List<List<object>> payload)
+        {
+            var (topIndex, leftIndex) = topLeft;
+            var rows = new List<RowData>();
+            foreach (var row in payload)
+            {
+                var cells = new List<CellData>();
+                foreach (var value in row)
+                {
+                    cells.Add(GetCellData(value));
+                }
+
+                rows.Add(
+                    new RowData
+                    {
+                        Values = cells
+                    }
+                );
+            }
+
+            requests.Add(
+                new Request
+                {
+                    UpdateCells = new UpdateCellsRequest
+                    {
+                        Start = new GridCoordinate
+                        {
+                            SheetId = sheetId,
+                            RowIndex = topIndex,
+                            ColumnIndex = leftIndex
+                        },
+                        Rows = rows,
+                        Fields = "*"
+                    }
+                });
+            return this;
+        }
+
+        private static CellData GetCellData(object? value)
+        {
+            if (value is int x)
+                return new CellData
+                {
+                    UserEnteredFormat = new CellFormat
+                    {
+                        NumberFormat = new NumberFormat
+                        {
+                            Type = "NUMBER",
+                            Pattern = "0"
+                        }
+                    },
+                    UserEnteredValue = new ExtendedValue
+                    {
+                        NumberValue = x
+                    }
+                };
+            if (value is double d)
+                return new CellData
+                {
+                    UserEnteredFormat = new CellFormat
+                    {
+                        NumberFormat = new NumberFormat
+                        {
+                            Type = "NUMBER",
+                            Pattern = "0.00"
+                        }
+                    },
+                    UserEnteredValue = new ExtendedValue
+                    {
+                        NumberValue = d
+                    }
+                };
+            if (value is DateTime dt)
+            {
+                //var stringValue = dt.ToString("dd.MM.yyyy HH:mm:ss");
+                return new CellData
+                {
+                    UserEnteredFormat = new CellFormat
+                    {
+                        NumberFormat = new NumberFormat
+                        {
+                            Type = "DATE_TIME",
+                            Pattern = "dd.mm.yyyy hh:mm:ss"
+                        }
+                    },
+                    UserEnteredValue = new ExtendedValue
+                    {
+                        NumberValue = (dt - new DateTime(1899, 12, 30)).TotalDays
+                    }
+                };
+            }
+
+            return new CellData
+            {
+                UserEnteredFormat = new CellFormat
+                {
+                    NumberFormat = new NumberFormat
+                    {
+                        Type = "TEXT",
+                    }
+                },
+                UserEnteredValue = new ExtendedValue
+                {
+                    StringValue = value?.ToString() ?? ""
+                }
+            };
+        }
 
         private static CellData GetCellData(string? value)
         {

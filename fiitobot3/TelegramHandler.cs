@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using AspNetCore.Yandex.ObjectStorage;
-using AspNetCore.Yandex.ObjectStorage.Configuration;
 using fiitobot.GoogleSpreadsheet;
 using fiitobot.Services;
 using Newtonsoft.Json;
@@ -10,7 +6,6 @@ using Newtonsoft.Json.Linq;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
-using Yandex.Cloud;
 using Yandex.Cloud.Functions;
 
 namespace fiitobot
@@ -44,7 +39,16 @@ namespace fiitobot
                 var presenter = new Presenter(client, settings.DevopsChatId, settings.SpreadSheetId);
                 var botDataRepository = new BotDataRepository(settings);
                 var photoRepository = new PhotoRepository(settings.PhotoListPublicKey);
-                var updateService = new HandleUpdateService(contactsRepo, detailsRepo, botDataRepository, photoRepository, presenter);
+                
+                var commands = new IChatCommandHandler[]
+                {
+                    new StartCommandHandler(presenter),
+                    new MeCommandHandler(botDataRepository, presenter),
+                    new ContactsCommandHandler(botDataRepository, presenter),
+                    new RandomCommandHandler(botDataRepository, presenter, new Random()), 
+                    new ReloadCommandHandler(presenter, contactsRepo, detailsRepo, botDataRepository)
+                };
+                var updateService = new HandleUpdateService(botDataRepository, photoRepository, presenter, commands);
                 updateService.Handle(update).Wait();
                 client.SendTextMessageAsync(settings.DevopsChatId, presenter.FormatIncomingUpdate(update), ParseMode.Html);
                 return new Response(200, "ok");

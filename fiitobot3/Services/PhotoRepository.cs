@@ -10,7 +10,7 @@ namespace fiitobot.Services
 {
     public interface IPhotoRepository
     {
-        Task<PersonPhoto> FindRandomPhoto(Contact contact);
+        Task<PersonPhoto> FindPhoto(Contact contact);
     }
 
     public class PhotoRepository : IPhotoRepository
@@ -23,28 +23,19 @@ namespace fiitobot.Services
             this.photoListUrl = photoListUrl;
         }
 
-        public async Task<PersonPhoto> FindRandomPhoto(Contact contact)
+        public async Task<PersonPhoto> FindPhoto(Contact contact)
         {
             using var client = new HttpClient();
-            var json = await client.GetStringAsync($"https://cloud-api.yandex.net/v1/disk/public/resources?public_key={UrlEncoder.Default.Encode(photoListUrl)}&fields=name%2Ctype%2Cpublic_url%2C_embedded.items.name%2C_embedded.items.type%2C_embedded.items.public_url&limit=10000");
+            var json = await client.GetStringAsync(
+                $"https://cloud-api.yandex.net/v1/disk/public/resources?public_key={UrlEncoder.Default.Encode(photoListUrl)}&fields=_embedded.items.name%2C_embedded.items.type%2C_embedded.items.preview&preview_size=800x1200&limit=5000");
             var response = JsonConvert.DeserializeObject<YdResourcesResponse>(json);
-            var people = response.Embedded.Items;
-            var personDirectories = people.Where(p => p.Name.ContainsSameText(contact.LastName) && p.Type == "dir").ToList();
-            if (personDirectories.Count > 1)
-                personDirectories = personDirectories.Where(d => d.Name.ContainsSameText(contact.FirstName)).ToList();
-            if (personDirectories.Count == 1)
+            var people = response.Embedded.Items.Where(item => item.Type == "file" && item.Name.ContainsSameText(contact.LastName)).ToList();
+            if (people.Count > 1)
+                people = people.Where(d => d.Name.ContainsSameText(contact.FirstName)).ToList();
+            if (people.Count == 1)
             {
-                var dir = personDirectories[0];
-                var photoDirUrl = dir.PublicUrl;
-                if (photoDirUrl == null) return null;
-                json = await client.GetStringAsync(
-                    $"https://cloud-api.yandex.net/v1/disk/public/resources?public_key={UrlEncoder.Default.Encode(photoDirUrl)}&fields=_embedded.items.preview&preview_size=800x600");
-                response = JsonConvert.DeserializeObject<YdResourcesResponse>(json);
-                var photos = response.Embedded.Items;
-                if (photos.Count == 0)
-                    return null;
-                var randomPhoto = photos.SelectOne(random);
-                return new PersonPhoto(new Uri(photoDirUrl), new Uri(randomPhoto.Preview), dir.Name);
+                var photo = people.Single();
+                return new PersonPhoto(new Uri(photoListUrl), new Uri(photo.Preview), photo.Name);
             }
             return null;
         }
@@ -52,16 +43,16 @@ namespace fiitobot.Services
 
     public class PersonPhoto
     {
-        public PersonPhoto(Uri photosDirectory, Uri randomPhoto, string dirName)
+        public PersonPhoto(Uri photosDirectory, Uri photoUri, string name)
         {
             PhotosDirectory = photosDirectory;
-            RandomPhoto = randomPhoto;
-            DirName = dirName;
+            PhotoUri = photoUri;
+            Name = name;
         }
 
         public readonly Uri PhotosDirectory;
-        public readonly Uri RandomPhoto;
-        public readonly string DirName;
+        public readonly Uri PhotoUri;
+        public readonly string Name;
     }
 
     public class YdResourcesEmbedded

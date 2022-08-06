@@ -5,14 +5,38 @@ using System.Text;
 using TL;
 using WTelegram;
 
-//await ImportContacts();
+await ImportContacts();
+//await ReportUnknowns("Чат ФИИТ 2022");
 //await ExtractChats();
 //await ExtractStudents();
-await ActualizeContacts(
-    "https://docs.google.com/spreadsheets/d/1VH_pZnYvTgQ-IzFVs5CYQWjbCo6YtUfip4w7K6GTK3U/edit#gid=0");
+//await ActualizeContacts("https://docs.google.com/spreadsheets/d/1VH_pZnYvTgQ-IzFVs5CYQWjbCo6YtUfip4w7K6GTK3U/edit#gid=0", "Чат ФИИТ");
 
 
-async Task ActualizeContacts(string spreadsheetUrl)
+async Task ReportUnknowns(string chatName)
+{
+    var settings = new Settings();
+    var repo = new BotDataRepository(settings);
+    var data = repo.GetData();
+    Console.WriteLine($"Loaded {data.AllContacts.Count()}");
+    using var client = new Client(settings.TgClientConfig);
+    var defaultLogger = Helpers.Log;
+    Helpers.Log = (level, message) =>
+    {
+        if (level >= 3) defaultLogger(level, message);
+    };
+
+    await client.LoginUserIfNeeded();
+    var extractor = new TgContactsExtractor();
+
+    var users = (await extractor.ExtractUsersFromChatsAndChannels(client, chatName));
+    Console.WriteLine($"FOUND {users.Count} users in chat {chatName}");
+    foreach (var user in users)
+    {
+        if (data.AllContacts.Any(c => c.Contact.TgId == user.ID)) continue;
+        Console.WriteLine($"{user.last_name};{user.first_name};;;;{user.phone};;{user.username};{user.ID}");
+    }
+}
+async Task ActualizeContacts(string spreadsheetUrl, params string[] chatSubstrings)
 {
     var settings = new Settings();
     var gsClient = new GSheetClient(settings.GoogleAuthJson);
@@ -32,8 +56,8 @@ async Task ActualizeContacts(string spreadsheetUrl)
         {
             if (level < 3)
             {
-                rollingLog.Enqueue(message);
-                while (rollingLog.Count > 10) rollingLog.Dequeue();
+                //rollingLog.Enqueue(message);
+                //while (rollingLog.Count > 10) rollingLog.Dequeue();
             }
             else
             {
@@ -46,13 +70,13 @@ async Task ActualizeContacts(string spreadsheetUrl)
     
     await tgClient.LoginUserIfNeeded();
     var extractor = new TgContactsExtractor();
-    Dictionary<long, User> users = (await extractor.ExtractUsersFromChatsAndChannels(tgClient, "Чат ФИИТ 2022", "спроси про ФИИТ", "Чат — Матмех, приём!")).ToDictionary(u => u.ID, u => u);
+    Dictionary<long, User> users = (await extractor.ExtractUsersFromChatsAndChannels(tgClient, chatSubstrings)).ToDictionary(u => u.ID, u => u);
 
     Console.WriteLine($"Tg Users Found: {users.Count}");
     Console.WriteLine($"Contacts from Google Sheet: {data.Count - 1}");
     var edit = sheet.Edit();
     var editsCount = 0;
-    for (var rowIndex = 278; rowIndex < data.Count; rowIndex++)
+    for (var rowIndex = 1; rowIndex < data.Count; rowIndex++)
     {
         var row = data[rowIndex];
         while (row.Count <= Math.Max(usernameColIndex, Math.Max(tgIdColIndex, phoneColIndex)))
@@ -60,9 +84,10 @@ async Task ActualizeContacts(string spreadsheetUrl)
         var username = row[usernameColIndex];
         var phone = row[phoneColIndex];
         var tgId = long.TryParse(row[tgIdColIndex], out var v) ? v : -1;
-        Console.WriteLine($"{string.Join(";", row)}...");
-        var user = //await FindByUsername(tgClient, username) ??
-                   await FindByPhone(tgClient, phone) ?? (users.TryGetValue(tgId, out var u) ? u : null);
+        //Console.WriteLine($"{string.Join(";", row)}...");
+        var user = await FindByPhone(tgClient, phone) ?? 
+                   (users.TryGetValue(tgId, out var u) ? u 
+                     : await FindByUsername(tgClient, username));
         if (user == null)
         {
             Console.WriteLine($"  no telegram user found");
@@ -81,13 +106,14 @@ async Task ActualizeContacts(string spreadsheetUrl)
 
                     if (editsCount < 20)
                     {
-                        edit.WriteRange((rowIndex, colIndex), new List<List<string>> { new() { stringValue } });
+                        edit = edit.WriteRangeNoCasts((rowIndex, colIndex), new List<List<object>> { new() { stringValue } });
                         editsCount++;
                     }
                     else
                     {
                         edit.Execute();
                         editsCount = 0;
+                        edit = sheet.Edit();
                     }
                 }
             }
@@ -105,7 +131,9 @@ async Task<User?> FindByUsername(Client client, string username)
     if (string.IsNullOrWhiteSpace(username)) return null;
     try
     {
+        Console.Write("SEARCH BY USERNAME " + username + "... ");
         var res = await client.Contacts_ResolveUsername(username.Replace("@", ""));
+        Console.WriteLine("FOUND!!!");
         return res.User;
     }
     catch (RpcException e)
@@ -116,7 +144,12 @@ async Task<User?> FindByUsername(Client client, string username)
             Thread.Sleep(5000);
             return await FindByUsername(client, username);
         }
+
         return null;
+    }
+    finally
+    {
+        Console.WriteLine();
     }
 }
 
@@ -130,6 +163,7 @@ async Task<User?> FindByPhone(Client client, string phone)
     }
     catch (RpcException e)
     {
+        Console.WriteLine("NO PHONE " + phone);
         if (e.Code == 420)
         {
             Console.WriteLine("Sleep 5 sec...");
@@ -145,27 +179,46 @@ async Task ImportContacts()
 {
     var settings = new Settings();
     var repo = new BotDataRepository(settings);
-    var data = repo.Load();
+    var data = repo.GetData();
     Console.WriteLine($"Loaded {data.AllContacts.Count()}");
     using var client = new Client(settings.TgClientConfig);
-    await client.LoginUserIfNeeded();
-
-    foreach (var person in data.AllContacts.Where(c => c.Contact.AdmissionYear == 2022))
+    var defaultLogger = Helpers.Log;
+    Helpers.Log = (level, message) =>
     {
-        var contact = person.Contact;
-        if (string.IsNullOrWhiteSpace(contact.Phone)) continue;
-        Console.WriteLine($"Phone: {contact.Phone}");
-        try
+        if (level >= 3) defaultLogger(level, message);
+    };
+
+    await client.LoginUserIfNeeded();
+    var extractor = new TgContactsExtractor();
+
+    Dictionary<long, User> users = (await extractor.ExtractUsersFromChatsAndChannels(client, "Чат ФИИТ", "спроси про ФИИТ", "Чат — Матмех, приём!")).ToDictionary(u => u.ID, u => u);
+    var myContacts = await client.Contacts_GetContacts();
+
+    foreach (var contact in data.Students.Where(c => c.Contact.AdmissionYear.IsOneOf(2022)).Select(p => p.Contact))
+    {
+        var suffix = contact.AdmissionYear <= 0 ? "" : (" фт" + contact.AdmissionYear % 100);
+        if (myContacts.users.ContainsKey(contact.TgId))
         {
-            var resolvedPeer = await client.Contacts_ResolvePhone(contact.Phone);
-            Console.WriteLine("ID " + resolvedPeer.User.ID);
-            await client.Contacts_AddContact(resolvedPeer.User, contact.FirstName + " фт22", contact.LastName,
+            var myTgContact = myContacts.users[contact.TgId];
+            if (suffix == "")
+            {
+                if (!myTgContact.first_name.EndsWith(" фт22")) continue;
+            }
+            else
+                if (myTgContact.first_name.EndsWith(suffix)) continue;
+        } 
+        //Console.WriteLine($"{contact}");
+
+        var resolvedPeer = await FindByPhone(client, contact.Phone) ??
+                           (users.TryGetValue(contact.TgId, out var u) ? u
+                               : await FindByUsername(client, contact.Telegram));
+        if (resolvedPeer == null)
+            Console.WriteLine($"NotFound {contact}");
+        else
+        {
+            Console.WriteLine("AddContact " + resolvedPeer.ID + "\t" + contact.FirstName + suffix + " " + contact.LastName + " @" + resolvedPeer.username);
+            await client.Contacts_AddContact(resolvedPeer, contact.FirstName + suffix, contact.LastName,
                 contact.Phone, true);
-            Console.WriteLine($"Resolved: {resolvedPeer.User.username} {contact}");
-        }
-        catch (TL.RpcException)
-        {
-            Console.WriteLine("NotFound");
         }
     }
 }
