@@ -51,6 +51,7 @@ namespace fiitobot
                     new ChangePhotoCommandHandler(presenter, botDataRepository, photoRepo, settings.ModeratorsChatId),
                     new AcceptPhotoCommandHandler(presenter, botDataRepository, photoRepo, settings.ModeratorsChatId),
                     new RejectPhotoCommandHandler(presenter, botDataRepository, photoRepo, settings.ModeratorsChatId),
+                    new TellToContactCommandHandler(presenter, botDataRepository),
                 };
                 var updateService = new HandleUpdateService(botDataRepository, namedPhotoDirectory, photoRepo, downloader, presenter, commands);
                 updateService.Handle(update).Wait();
