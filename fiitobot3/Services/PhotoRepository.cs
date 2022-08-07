@@ -8,17 +8,17 @@ using Newtonsoft.Json;
 
 namespace fiitobot.Services
 {
-    public interface IPhotoRepository
+    public interface INamedPhotoDirectory
     {
         Task<PersonPhoto> FindPhoto(Contact contact);
     }
 
-    public class PhotoRepository : IPhotoRepository
+    public class NamedPhotoDirectory : INamedPhotoDirectory
     {
         private readonly Random random = new Random();
         private readonly string photoListUrl;
 
-        public PhotoRepository(string photoListUrl)
+        public NamedPhotoDirectory(string photoListUrl)
         {
             this.photoListUrl = photoListUrl;
         }
@@ -29,9 +29,7 @@ namespace fiitobot.Services
             var json = await client.GetStringAsync(
                 $"https://cloud-api.yandex.net/v1/disk/public/resources?public_key={UrlEncoder.Default.Encode(photoListUrl)}&fields=_embedded.items.name%2C_embedded.items.type%2C_embedded.items.preview&preview_size=800x1200&limit=5000");
             var response = JsonConvert.DeserializeObject<YdResourcesResponse>(json);
-            var people = response.Embedded.Items.Where(item => item.Type == "file" && item.Name.ContainsSameText(contact.LastName)).ToList();
-            if (people.Count > 1)
-                people = people.Where(d => d.Name.ContainsSameText(contact.FirstName)).ToList();
+            var people = response.Embedded.Items.Where(item => item.Type == "file" && item.Name.ContainsSameText(contact.LastName) && item.Name.ContainsSameText(contact.FirstName)).ToList();
             if (people.Count == 1)
             {
                 var photo = people.Single();

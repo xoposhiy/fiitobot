@@ -23,18 +23,22 @@ namespace fiitobot.Services
         Task SayNoRights(long chatId, AccessRight userAccessRights);
         Task SayBeMoreSpecific(long chatId);
         Task InlineSearchResults(string inlineQueryId, Contact[] foundContacts, AccessRight right);
-        Task ShowDetails(PersonData person, string[] sources, long fromChatId);
+        Task ShowDetails(PersonData person, string[] sources, long chatId);
         Task SayReloadStarted(long chatId);
         Task SayReloaded(int contactsCount, long chatId);
         Task ShowErrorToDevops(Update incomingUpdate, string errorMessage);
-        Task ShowHelp(long fromChatId, AccessRight right);
+        Task ShowHelp(long chatId, AccessRight right);
         Task ShowContactsBy(string criteria, IList<Contact> people, long chatId, AccessRight accessRight);
-        Task ShowDownloadContactsYearSelection(long fromChatId);
-        Task ShowDownloadContactsSuffixSelection(long fromChatId, string year);
-        Task SendContacts(long fromChatId, byte[] content, string filename);
-        Task SayUploadPhotoFirst(long fromChatId);
+        Task ShowDownloadContactsYearSelection(long chatId);
+        Task ShowDownloadContactsSuffixSelection(long chatId, string year);
+        Task SendContacts(long chatId, byte[] content, string filename);
+        Task SayUploadPhotoFirst(long chatId);
         Task ShowPhotoForModeration(long moderatorChatId, Contact contact, Stream contactNewPhoto);
         Task SayPhotoGoesToModeration(long chatId, Stream photo);
+        Task SayPhotoAccepted(Contact photoOwner, long chatId);
+        Task SayPhotoRejected(Contact photoOwner, long chatId);
+        Task ShowPhoto(Contact personContact, byte[] photoBytes, long chatId, AccessRight accessRight);
+        Task PromptChangePhoto(long chatId);
     }
 
     public class Presenter : IPresenter
@@ -78,7 +82,7 @@ namespace fiitobot.Services
                     text.AppendLine($" • {EscapeForHtml(detail.Parameter.TrimEnd('?'))}: {EscapeForHtml(detail.Value)}");
                 text.AppendLine();
             }
-            await botClient.SendTextMessageAsync(chatId, text.ToString().TrimEnd(), ParseMode.Html);
+            //await botClient.SendTextMessageAsync(chatId, text.ToString().TrimEnd(), ParseMode.Html);
         }
 
         public async Task SayReloadStarted(long chatId)
@@ -97,14 +101,16 @@ namespace fiitobot.Services
                 ParseMode.Html);
         }
 
-        public async Task ShowHelp(long fromChatId, AccessRight accessRight)
+        public async Task ShowHelp(long chatId, AccessRight accessRight)
         {
             var b = new StringBuilder("Это бот для команды и студентов ФИИТ УрФУ. Напиши фамилию и/или имя студента ФИИТ и я расскажу всё, что о нём знаю. Но только если ты из ФИИТ.");
+            if (accessRight.IsOneOf(AccessRight.Student, AccessRight.Admin, AccessRight.Staff))
+                b.Append("\n\nМожешь прислать мне свою фотографию, и ее будут видеть все, кто запросит твой контакт у фиитобота");
             if (accessRight.IsOneOf(AccessRight.Admin))
                 b.AppendLine(
                     "\n\nВ любом другом чате напиши @fiitobot и после пробела начни писать фамилию. Я покажу, кого я знаю с такой фамилией, и после выбора конкретного студента, запощу карточку про студента в чат." +
                     $"\n\nВсе данные я беру из <a href='{SpreadsheetUrl}'>гугл-таблицы к контактами</a>");
-            await botClient.SendTextMessageAsync(fromChatId, b.ToString(), ParseMode.Html);
+            await botClient.SendTextMessageAsync(chatId, b.ToString(), ParseMode.Html);
         }
 
         private string FormatErrorHtml(Update incomingUpdate, string errorMessage)
@@ -131,6 +137,7 @@ namespace fiitobot.Services
             return
                 $"<pre>{EscapeForHtml(incoming)}</pre>";
         }
+
         private string EscapeForHtml(string text)
         {
             return text
@@ -156,6 +163,22 @@ namespace fiitobot.Services
                 var htmlText = FormatContactAsHtml(contact, right);
                 await botClient.SendTextMessageAsync(chatId, htmlText, ParseMode.Html);
             }
+        }
+
+        public async Task ShowPhoto(Contact contact, byte[] photoBytes, long chatId, AccessRight accessRight)
+        {
+            var caption = contact.FirstName + " " + contact.LastName;
+            await botClient.SendPhotoAsync(chatId, new InputOnlineFile(new MemoryStream(photoBytes)), caption: caption, parseMode: ParseMode.Html);
+        }
+
+        public async Task PromptChangePhoto(long chatId)
+        {
+            await Say(
+                "/changephoto — установит тебе только что загруженную фотографию. " +
+                "Когда кто-то запросит твой контакт у фиитобота, он будет показывать эту фотографию. " +
+                "Важно, чтобы тебя по ней было легко узнать. " +
+                "Это проверяют модераторы фиитобота — плохие фотки они будут отклонять.",
+                chatId);
         }
 
         public async Task ShowPhoto(Contact contact, PersonPhoto photo, long chatId, AccessRight right)
@@ -295,13 +318,13 @@ namespace fiitobot.Services
                 ParseMode.Html, replyMarkup: inlineKeyboardMarkup);
         }
 
-        public async Task SendContacts(long fromChatId, byte[] content, string filename)
+        public async Task SendContacts(long chatId, byte[] content, string filename)
         {
             var caption = "Зайдите на https://contacts.google.com и импортируйте этот файл. " +
                           "Если у вас на телефоне контакты синхронизируются с Google, а Telegram синхронизируется с контактами телефона, " +
                           "то через некоторое время контакты в Telegram поменяют имена на правильные.";
             await botClient.SendDocumentAsync(
-                fromChatId, 
+                chatId, 
                 new InputOnlineFile(new MemoryStream(content), filename),
                 caption: caption);
         }
@@ -318,17 +341,29 @@ namespace fiitobot.Services
             await botClient.SendPhotoAsync(moderatorChatId, 
                 new InputOnlineFile(contactNewPhoto), 
                 caption: $"{contact.FirstName} {contact.LastName} хочет поменять фотку. Одобряешь?",
+                
                 replyMarkup:new InlineKeyboardMarkup(new []{
                     new InlineKeyboardButton("Одобрить"){CallbackData = "/accept_photo " + contact.TgId},
                     new InlineKeyboardButton("Отклонить"){CallbackData = "/reject_photo " + contact.TgId}
                     }
-                    ));
+                    )
+                );
         }
 
         public async Task SayPhotoGoesToModeration(long chatId, Stream photo)
         {
             var text = "Фото ушло на модерацию. Как только его проверят, бот начнет показывать её другим";
             await botClient.SendPhotoAsync(chatId, new InputOnlineFile(photo), caption:text, ParseMode.Html);
+        }
+
+        public async Task SayPhotoAccepted(Contact photoOwner, long chatId)
+        {
+            await Say($"Новое фото принято ({photoOwner.FirstName} {photoOwner.LastName})", chatId);
+        }
+
+        public async Task SayPhotoRejected(Contact photoOwner, long chatId)
+        {
+            await Say($"Новое фото отклонено ({photoOwner.FirstName} {photoOwner.LastName})", chatId);
         }
 
         private static string RenderContactAsListItem(Contact p)

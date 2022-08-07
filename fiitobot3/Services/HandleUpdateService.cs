@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -22,17 +23,23 @@ namespace fiitobot.Services
     {
         private readonly IPresenter presenter;
         private readonly IBotDataRepository botDataRepo;
-        private readonly IPhotoRepository photoRepository;
+        private readonly INamedPhotoDirectory namedPhotoDirectory;
+        private readonly IPhotoRepository photoRepo;
         private readonly IChatCommandHandler[] commands;
+        private readonly ITelegramFileDownloader fileDownloader;
 
         public HandleUpdateService(IBotDataRepository botDataRepo,
-            IPhotoRepository photoRepository,
+            INamedPhotoDirectory namedPhotoDirectory,
+            IPhotoRepository photoRepo,
+            ITelegramFileDownloader fileDownloader,
             IPresenter presenter, IChatCommandHandler[] commands)
         {
             this.botDataRepo = botDataRepo;
-            this.photoRepository = photoRepository;
+            this.namedPhotoDirectory = namedPhotoDirectory;
+            this.photoRepo = photoRepo;
             this.presenter = presenter;
             this.commands = commands;
+            this.fileDownloader = fileDownloader;
         }
 
         public async Task Handle(Update update)
@@ -95,18 +102,22 @@ namespace fiitobot.Services
                 else
                     await HandlePlainText(message.Text!, fromChatId, accessRight, silentOnNoResults);
             else if (!inGroupChat && message.Type == MessageType.Photo)
+                await HandlePhoto(message, accessRight, fromChatId);
+        }
+
+        private async Task HandlePhoto(Message message, AccessRight accessRight, long fromChatId)
+        {
+            if (accessRight.IsOneOf(AccessRight.Admin, AccessRight.Staff, AccessRight.Student))
             {
-                if (accessRight.IsOneOf(AccessRight.Admin, AccessRight.Staff, AccessRight.Student))
-                {
-                    await presenter.Say("Крутая фотка!", fromChatId);
-                }
-                else
-                {
-                    await presenter.SayNoRights(fromChatId, accessRight);
-                }
+                var fileId = message.Photo!.Last().FileId;
+                byte[] file = await fileDownloader.GetFileAsync(fileId);
+                await photoRepo.SetPhotoForModeration(fromChatId, file);
+                await presenter.PromptChangePhoto(fromChatId);
             }
             else
-                await presenter.Say(message.Type.ToString(), fromChatId);
+            {
+                await presenter.SayNoRights(fromChatId, accessRight);
+            }
         }
 
         private async Task HandleForward(User user, long fromChatId, AccessRight accessRight)
@@ -173,9 +184,17 @@ namespace fiitobot.Services
                 if (person.Contact.TgId == fromChatId)
                     await SayCompliment(person.Contact, fromChatId);
                 await presenter.ShowContact(person.Contact, fromChatId, accessRight);
-	            var photo = await photoRepository.FindPhoto(person.Contact);
-	            if (photo != null)
-	                await presenter.ShowPhoto(person.Contact, photo, fromChatId, accessRight);
+                var selfUploadedPhoto = await photoRepo.TryGetModeratedPhoto(person.Contact.TgId);
+                if (selfUploadedPhoto != null)
+                {
+                    await presenter.ShowPhoto(person.Contact, selfUploadedPhoto, fromChatId, accessRight);
+                }
+                else
+                {
+                    var photo = await namedPhotoDirectory.FindPhoto(person.Contact);
+                    if (photo != null)
+                        await presenter.ShowPhoto(person.Contact, photo, fromChatId, accessRight);
+                }
             }
 
             if (contacts.Length > maxResultsCount)

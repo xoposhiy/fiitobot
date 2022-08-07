@@ -80,7 +80,7 @@ public class DialogTests
     public async Task StudentQuery_ShowsPhoto(string query)
     {
         var contactsPresenter = A.Fake<IPresenter>();
-        var photoRepo = A.Fake<IPhotoRepository>();
+        var photoRepo = A.Fake<INamedPhotoDirectory>();
         var handleUpdateService = PrepareUpdateService(contactsPresenter, photoRepo);
 
         await handleUpdateService.HandlePlainText(query, 123, AccessRight.Student);
@@ -203,9 +203,11 @@ public class DialogTests
         Assert.AreEqual(1, Fake.GetCalls(contactsPresenter).Count());
     }
 
-    private HandleUpdateService PrepareUpdateService(IPresenter presenter, IPhotoRepository? photoRepository = null)
+    private HandleUpdateService PrepareUpdateService(IPresenter presenter, INamedPhotoDirectory? namedPhotoDirectory = null)
     {
-        photoRepository ??= A.Fake<IPhotoRepository>();
+        namedPhotoDirectory ??= A.Fake<INamedPhotoDirectory>();
+        var photoRepo = A.Fake<IPhotoRepository>();
+        var downloader = A.Fake<ITelegramFileDownloader>();
         var repo = new MemoryBotDataRepository(data);
         var commands = new IChatCommandHandler[]
         {
@@ -214,6 +216,6 @@ public class DialogTests
             new ContactsCommandHandler(repo, presenter),
             new RandomCommandHandler(repo, presenter, new Random()),
         };
-        return new HandleUpdateService(repo, photoRepository, presenter, commands);
+        return new HandleUpdateService(repo, namedPhotoDirectory, photoRepo, downloader, presenter, commands);
     }
 }

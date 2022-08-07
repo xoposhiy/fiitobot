@@ -10,7 +10,6 @@ using Yandex.Cloud.Functions;
 
 namespace fiitobot
 {
-
     public class Response
     {
         public Response(int statusCode, string body)
@@ -38,17 +37,23 @@ namespace fiitobot
                 var detailsRepo = new DetailsRepository(sheetClient, contactsRepo);
                 var presenter = new Presenter(client, settings.DevopsChatId, settings.SpreadSheetId);
                 var botDataRepository = new BotDataRepository(settings);
-                var photoRepository = new PhotoRepository(settings.PhotoListPublicKey);
-                
+                var namedPhotoDirectory = new NamedPhotoDirectory(settings.PhotoListPublicKey);
+                var photoRepo = new S3PhotoRepository(settings);
+                var downloader = new TelegramFileDownloader(client);
+
+                var photoModeratorChatId = -777163143;
                 var commands = new IChatCommandHandler[]
                 {
                     new StartCommandHandler(presenter),
                     new MeCommandHandler(botDataRepository, presenter),
                     new ContactsCommandHandler(botDataRepository, presenter),
                     new RandomCommandHandler(botDataRepository, presenter, new Random()), 
-                    new ReloadCommandHandler(presenter, contactsRepo, detailsRepo, botDataRepository)
+                    new ReloadCommandHandler(presenter, contactsRepo, detailsRepo, botDataRepository),
+                    new ChangePhotoCommandHandler(presenter, botDataRepository, photoRepo, photoModeratorChatId),
+                    new AcceptPhotoCommandHandler(presenter, botDataRepository, photoRepo, photoModeratorChatId),
+                    new RejectPhotoCommandHandler(presenter, botDataRepository, photoRepo, photoModeratorChatId),
                 };
-                var updateService = new HandleUpdateService(botDataRepository, photoRepository, presenter, commands);
+                var updateService = new HandleUpdateService(botDataRepository, namedPhotoDirectory, photoRepo, downloader, presenter, commands);
                 updateService.Handle(update).Wait();
                 client.SendTextMessageAsync(settings.DevopsChatId, presenter.FormatIncomingUpdate(update), ParseMode.Html);
                 return new Response(200, "ok");
