@@ -16,6 +16,7 @@ namespace fiitobot
         public string TgClientApiHash;
         public string TgClientPhoneNumber;
         public string PhotoListPublicKey;
+        public long ModeratorsChatId;
 
         public string TgClientConfig(string what)
         {

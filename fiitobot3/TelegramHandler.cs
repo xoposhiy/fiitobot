@@ -41,7 +41,6 @@ namespace fiitobot
                 var photoRepo = new S3PhotoRepository(settings);
                 var downloader = new TelegramFileDownloader(client);
 
-                var photoModeratorChatId = -777163143;
                 var commands = new IChatCommandHandler[]
                 {
                     new StartCommandHandler(presenter),
@@ -49,9 +48,9 @@ namespace fiitobot
                     new ContactsCommandHandler(botDataRepository, presenter),
                     new RandomCommandHandler(botDataRepository, presenter, new Random()), 
                     new ReloadCommandHandler(presenter, contactsRepo, detailsRepo, botDataRepository),
-                    new ChangePhotoCommandHandler(presenter, botDataRepository, photoRepo, photoModeratorChatId),
-                    new AcceptPhotoCommandHandler(presenter, botDataRepository, photoRepo, photoModeratorChatId),
-                    new RejectPhotoCommandHandler(presenter, botDataRepository, photoRepo, photoModeratorChatId),
+                    new ChangePhotoCommandHandler(presenter, botDataRepository, photoRepo, settings.ModeratorsChatId),
+                    new AcceptPhotoCommandHandler(presenter, botDataRepository, photoRepo, settings.ModeratorsChatId),
+                    new RejectPhotoCommandHandler(presenter, botDataRepository, photoRepo, settings.ModeratorsChatId),
                 };
                 var updateService = new HandleUpdateService(botDataRepository, namedPhotoDirectory, photoRepo, downloader, presenter, commands);
                 updateService.Handle(update).Wait();

@@ -194,6 +194,11 @@ namespace fiitobot.Services
                     var photo = await namedPhotoDirectory.FindPhoto(person.Contact);
                     if (photo != null)
                         await presenter.ShowPhoto(person.Contact, photo, fromChatId, accessRight);
+                    else
+                    {
+                        if (fromChatId == person.Contact.TgId)
+                            await presenter.OfferToSetHisPhoto(fromChatId);
+                    }
                 }
             }
 

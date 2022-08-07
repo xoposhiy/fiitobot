@@ -39,6 +39,7 @@ namespace fiitobot.Services
         Task SayPhotoRejected(Contact photoOwner, long chatId);
         Task ShowPhoto(Contact personContact, byte[] photoBytes, long chatId, AccessRight accessRight);
         Task PromptChangePhoto(long chatId);
+        Task OfferToSetHisPhoto(long chatId);
     }
 
     public class Presenter : IPresenter
@@ -179,6 +180,11 @@ namespace fiitobot.Services
                 "Важно, чтобы тебя по ней было легко узнать. " +
                 "Это проверяют модераторы фиитобота — плохие фотки они будут отклонять.",
                 chatId);
+        }
+
+        public async Task OfferToSetHisPhoto(long chatId)
+        {
+            await Say("Тут могла бы быть твоя фотка, но ее нет. Пришли мне свою фотку, чтобы это исправить!", chatId);
         }
 
         public async Task ShowPhoto(Contact contact, PersonPhoto photo, long chatId, AccessRight right)
