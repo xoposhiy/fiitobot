@@ -15,13 +15,13 @@ namespace fiitobot.Services
         }
         public string[] Synonyms => new []{"/me"};
         public AccessRight[] AllowedFor => new[] { AccessRight.Admin, AccessRight.Staff, AccessRight.Student, };
-        public async Task HandlePlainText(string text, long fromChatId, AccessRight accessRight, bool silentOnNoResults = false)
+        public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
         {
             var contact = botDataHolder.GetData().AllContacts.FirstOrDefault(p => p.Contact.TgId == fromChatId);
             if (contact != null)
             {
                 await SayCompliment(contact.Contact, fromChatId);
-                await presenter.ShowContact(contact.Contact, fromChatId, accessRight);
+                await presenter.ShowContact(contact.Contact, fromChatId, contact.Contact.GetDetailsLevelFor(sender));
             }
         }
 

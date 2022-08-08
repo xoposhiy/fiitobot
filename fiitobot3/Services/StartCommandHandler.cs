@@ -14,9 +14,9 @@ namespace fiitobot.Services
 
         public AccessRight[] AllowedFor => new[]
             { AccessRight.Admin, AccessRight.External, AccessRight.Staff, AccessRight.Student, };
-        public async Task HandlePlainText(string text, long fromChatId, AccessRight accessRight, bool silentOnNoResults = false)
+        public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
         {
-            await presenter.ShowHelp(fromChatId, accessRight);
+            await presenter.ShowHelp(fromChatId, sender?.Type ?? ContactType.External);
         }
     }
 }

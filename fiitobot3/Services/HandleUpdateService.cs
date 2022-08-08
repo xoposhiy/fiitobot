@@ -72,7 +72,8 @@ namespace fiitobot.Services
         private async Task BotOnCallbackQuery(CallbackQuery callbackQuery)
         {
             //if (!await EnsureHasAdminRights(callbackQuery.From, callbackQuery.Message!.Chat.Id)) return;
-            await HandlePlainText(callbackQuery.Data!, callbackQuery.Message!.Chat.Id, AccessRight.Staff);
+            var sender = botDataRepo.GetData().FindPersonByTgId(callbackQuery.From.Id)?.Contact;
+            await HandlePlainText(callbackQuery.Data!, callbackQuery.Message!.Chat.Id, sender, AccessRight.Staff);
         }
 
         private async Task BotOnInlineQuery(InlineQuery inlineQuery)
@@ -91,16 +92,19 @@ namespace fiitobot.Services
             //     "Receive message type {messageType}: {text} from {message.From} charId {message.Chat.Id}", message.Type,
             //     message.Text, message.From, message.Chat.Id);
             var silentOnNoResults = message.ReplyToMessage != null;
-            var accessRight = GetRights(message.From);
+            var messageFrom = message.From;
+            if (messageFrom == null) return;
+            var accessRight = GetRights(messageFrom);
+            var sender = botDataRepo.GetData().FindPersonByTgId(messageFrom.Id)?.Contact;
             var fromChatId = message.Chat.Id;
-            var inGroupChat = message.From?.Id != fromChatId;
+            var inGroupChat = messageFrom.Id != fromChatId;
             if (inGroupChat && accessRight.IsOneOf(AccessRight.Admin, AccessRight.Staff))
                 accessRight = AccessRight.Student; // в групповых чатах не показывать секретную инфу.
             if (message.Type == MessageType.Text)
                 if (message.ForwardFrom != null)
                     await HandleForward(message.ForwardFrom!, fromChatId, accessRight);
                 else
-                    await HandlePlainText(message.Text!, fromChatId, accessRight, silentOnNoResults);
+                    await HandlePlainText(message.Text!, fromChatId, sender, accessRight, silentOnNoResults);
             else if (!inGroupChat && message.Type == MessageType.Photo)
                 await HandlePhoto(message, accessRight, fromChatId);
         }
@@ -129,7 +133,13 @@ namespace fiitobot.Services
             }
             var person = botDataRepo.GetData().FindPersonByTgId(user.Id);
             if (person != null)
-                await presenter.ShowContact(person.Contact, fromChatId, accessRight);
+            {
+                var sender = botDataRepo.GetData().FindPersonByTgId(user.Id);
+                if (sender == null) 
+                    await presenter.SayNoRights(fromChatId, AccessRight.External);
+                else
+                    await presenter.ShowContact(person.Contact, fromChatId, person.Contact.GetDetailsLevelFor(sender.Contact));
+            }
             else
                 await presenter.SayNoResults(fromChatId);
         }
@@ -137,21 +147,23 @@ namespace fiitobot.Services
         private AccessRight GetRights(User user)
         {
             var botData = botDataRepo.GetData();
-            if (user.Id == 33598070 || botData.IsAdmin(user.Id) || user.Username != null && botData.IsAdmin(user.Username)) 
+            if (user.Id == 33598070 || botData.IsAdmin(user.Id, user.Username)) 
                 return AccessRight.Admin;
-            if (botData.Teachers.Any(c => c.TgId == user.Id || c.Telegram.Trim('@') == user.Username)) 
+            if (botData.IsTeacher(user.Id, user.Username))
                 return AccessRight.Staff;
-            if (botData.Students.Any(p => p.Contact.TgId == user.Id || p.Contact.Telegram.Trim('@') == user.Username)) 
+            if (botData.IsStudent(user.Id, user.Username)) 
                 return AccessRight.Student;
             return AccessRight.External;
         }
 
-        public async Task HandlePlainText(string text, long fromChatId, AccessRight accessRight, bool silentOnNoResults = false)
+        public async Task HandlePlainText(string text, long fromChatId, Contact sender, AccessRight accessRight,
+            bool silentOnNoResults = false)
         {
-            if (text.StartsWith("asstudent ") && accessRight != AccessRight.External)
+            bool replyAsForStudent = false;
+            if (text.StartsWith("asstudent ") && sender != null)
             {
                 text = text.Replace("asstudent ", "");
-                accessRight = AccessRight.Student;
+                replyAsForStudent = true;
             }
 
             var command = commands.FirstOrDefault(c => c.Synonyms.Any(synonym => text.StartsWith(synonym)));
@@ -159,7 +171,7 @@ namespace fiitobot.Services
             if (command != null)
             {
                 if (accessRight.IsOneOf(command.AllowedFor))
-                    await command.HandlePlainText(text, fromChatId, accessRight, silentOnNoResults);
+                    await command.HandlePlainText(text, fromChatId, sender, silentOnNoResults);
                 else
                     await presenter.SayNoRights(fromChatId, accessRight);
                 return;
@@ -183,7 +195,10 @@ namespace fiitobot.Services
             {
                 if (person.Contact.TgId == fromChatId)
                     await SayCompliment(person.Contact, fromChatId);
-                await presenter.ShowContact(person.Contact, fromChatId, accessRight);
+                ContactDetailsLevel detailsLevel = person.Contact.GetDetailsLevelFor(sender);
+                if (replyAsForStudent && detailsLevel > ContactDetailsLevel.Minimal)
+                    detailsLevel = ContactDetailsLevel.Minimal;
+                await presenter.ShowContact(person.Contact, fromChatId, detailsLevel);
                 var selfUploadedPhoto = await photoRepo.TryGetModeratedPhoto(person.Contact.TgId);
                 if (selfUploadedPhoto != null)
                 {

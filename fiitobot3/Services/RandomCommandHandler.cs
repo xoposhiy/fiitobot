@@ -18,11 +18,11 @@ namespace fiitobot.Services
 
         public string[] Synonyms => new[] { "/random" };
         public AccessRight[] AllowedFor => new[] { AccessRight.Admin, AccessRight.Staff, AccessRight.Student, };
-        public async Task HandlePlainText(string text, long fromChatId, AccessRight accessRight, bool silentOnNoResults = false)
+        public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
         {
             var students = botDataRepo.GetData().Students;
-            var contact = students[random.Next(students.Length)];
-            await presenter.ShowContact(contact.Contact, fromChatId, accessRight);
+            var contact = students[random.Next(students.Length)].Contact;
+            await presenter.ShowContact(contact, fromChatId, contact.GetDetailsLevelFor(sender));
         }
     }
 }

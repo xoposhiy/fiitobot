@@ -39,14 +39,14 @@ async Task ReportMissingInChat(int admissionYear, string chatName)
         if (tgId == -1)
         {
             missing++;
-            Console.WriteLine($"No telegramId for {contact.FirstName} {contact.LastName}");
+            Console.WriteLine($"No telegramId for {contact.FirstName} {contact.LastName} {contact.Concurs}");
         }
         else
         {
             if (!users.TryGetValue(tgId, out var u))
             {
                 missing++;
-                Console.WriteLine($"MISSING {contact.FirstName} {contact.LastName}");
+                Console.WriteLine($"MISSING {contact.FirstName} {contact.LastName} {contact.Concurs}");
             }
         }
     }
@@ -71,10 +71,24 @@ async Task ReportUnknowns(string chatName)
 
     var users = (await extractor.ExtractUsersFromChatsAndChannels(client, chatName));
     Console.WriteLine($"FOUND {users.Count} users in chat {chatName}");
+    var countByYear = new Dictionary<int, int>();
     foreach (var user in users)
     {
-        if (data.AllContacts.Any(c => c.Contact.TgId == user.ID)) continue;
-        Console.WriteLine($"{user.last_name};{user.first_name};;;;{user.phone};;{user.username};{user.ID}");
+        var match = data.AllContacts.FirstOrDefault(c => c.Contact.TgId == user.ID);
+        if (match == null)
+            Console.WriteLine($"{user.last_name};{user.first_name};;;;{user.phone};;{user.username};{user.ID}");
+        else
+        {
+            var admissionYear = match.Contact.AdmissionYear;
+            var newCount = countByYear.GetOrDefault(admissionYear) + 1;
+            countByYear[admissionYear] = newCount;
+        }
+    }
+
+    Console.WriteLine("По годам поступления:");
+    foreach (var kv in countByYear.OrderBy(kv => kv.Key))
+    {
+        Console.WriteLine(kv.Key + "\t" + kv.Value + "\t из " + data.AllContacts.Count(c => c.Contact.AdmissionYear == kv.Key));
     }
 }
 async Task ActualizeContacts(string spreadsheetUrl, params string[] chatSubstrings)

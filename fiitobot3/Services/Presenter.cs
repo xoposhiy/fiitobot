@@ -13,10 +13,23 @@ using Telegram.Bot.Types.ReplyMarkups;
 
 namespace fiitobot.Services
 {
+    [Flags]
+    public enum ContactDetailsLevel
+    {
+        No = 0,
+        Minimal = 1,
+        Contacts = 2,
+        Marks = 4,
+        SecretNote = 8,
+        LinksToFiitTeamFiles = 16,
+        TechnicalInfo = 32,
+        Iddqd = 255,
+    }
+
     public interface IPresenter
     {
         Task Say(string text, long chatId);
-        Task ShowContact(Contact contact, long chatId, AccessRight right);
+        Task ShowContact(Contact contact, long chatId, ContactDetailsLevel detailsLevel);
         Task ShowPhoto(Contact contact, PersonPhoto photo, long chatId, AccessRight right);
         Task ShowOtherResults(Contact[] otherContacts, long chatId);
         Task SayNoResults(long chatId);
@@ -25,9 +38,9 @@ namespace fiitobot.Services
         Task InlineSearchResults(string inlineQueryId, Contact[] foundContacts, AccessRight right);
         Task ShowDetails(PersonData person, string[] sources, long chatId);
         Task SayReloadStarted(long chatId);
-        Task SayReloaded(int contactsCount, long chatId);
+        Task SayReloaded(BotData botData, long chatId);
         Task ShowErrorToDevops(Update incomingUpdate, string errorMessage);
-        Task ShowHelp(long chatId, AccessRight right);
+        Task ShowHelp(long chatId, ContactType senderType);
         Task ShowContactsBy(string criteria, IList<Contact> people, long chatId, AccessRight accessRight);
         Task ShowDownloadContactsYearSelection(long chatId);
         Task ShowDownloadContactsSuffixSelection(long chatId, string year);
@@ -35,8 +48,8 @@ namespace fiitobot.Services
         Task SayUploadPhotoFirst(long chatId);
         Task ShowPhotoForModeration(long moderatorChatId, Contact contact, Stream contactNewPhoto);
         Task SayPhotoGoesToModeration(long chatId, Stream photo);
-        Task SayPhotoAccepted(Contact photoOwner, long chatId);
-        Task SayPhotoRejected(Contact photoOwner, long chatId);
+        Task SayPhotoAccepted(Contact photoOwner, Contact moderator, long chatId);
+        Task SayPhotoRejected(Contact photoOwner, Contact moderator, long chatId);
         Task ShowPhoto(Contact personContact, byte[] photoBytes, long chatId, AccessRight accessRight);
         Task PromptChangePhoto(long chatId);
         Task OfferToSetHisPhoto(long chatId);
@@ -45,21 +58,19 @@ namespace fiitobot.Services
     public class Presenter : IPresenter
     {
         private readonly ITelegramBotClient botClient;
-        private readonly long devopsChatId;
-        private readonly string spreadsheetId;
+        private readonly Settings settings;
 
-        public Presenter(ITelegramBotClient botClient, long devopsChatId, string spreadsheetId)
+        public Presenter(ITelegramBotClient botClient, Settings settings)
         {
             this.botClient = botClient;
-            this.devopsChatId = devopsChatId;
-            this.spreadsheetId = spreadsheetId;
+            this.settings = settings;
         }
 
         public async Task InlineSearchResults(string inlineQueryId, Contact[] foundContacts, AccessRight right)
         {
             var results = foundContacts.Select(c =>
                 new InlineQueryResultArticle(c.GetHashCode().ToString(), $"{c.LastName} {c.FirstName} {c.FormatMnemonicGroup(DateTime.Now)} {c.Telegram}",
-                    new InputTextMessageContent(FormatContactAsHtml(c, right))
+                    new InputTextMessageContent(FormatContactAsHtml(c, ContactDetailsLevel.Minimal))
                     {
                         ParseMode = ParseMode.Html
                     }));
@@ -83,7 +94,7 @@ namespace fiitobot.Services
                     text.AppendLine($" • {EscapeForHtml(detail.Parameter.TrimEnd('?'))}: {EscapeForHtml(detail.Value)}");
                 text.AppendLine();
             }
-            //await botClient.SendTextMessageAsync(chatId, text.ToString().TrimEnd(), ParseMode.Html);
+            await botClient.SendTextMessageAsync(chatId, text.ToString().TrimEnd(), ParseMode.Html);
         }
 
         public async Task SayReloadStarted(long chatId)
@@ -91,26 +102,36 @@ namespace fiitobot.Services
             await botClient.SendTextMessageAsync(chatId, $"Перезагружаю данные из многочисленных гуглтаблиц. Это может занять минуту-другую.", ParseMode.Html);
         }
 
-        public async Task SayReloaded(int contactsCount, long chatId)
+        public async Task SayReloaded(BotData botData, long chatId)
         {
-            await botClient.SendTextMessageAsync(chatId, $"Загружено {contactsCount.Pluralize("контакт|контакта|контактов")}", ParseMode.Html);
+            var count = botData.AllContacts.Count();
+            var studentsCount = botData.Students.Length;
+            var teachersCount = botData.Teachers.Length;
+            var administratorsCount = botData.Administrators.Length;
+            await botClient.SendTextMessageAsync(chatId, $"Загружено {count.Pluralize("контакт|контакта|контактов")}:\n" +
+                                                         $"{studentsCount.Pluralize("студент|студента|студентов")}\n" +
+                                                         $"{teachersCount.Pluralize("преподаватель|преподавателя|преподавателей")}\n" +
+                                                         $"{administratorsCount.Pluralize("администратор|администратора|администраторов")}", 
+                ParseMode.Html);
         }
 
         public async Task ShowErrorToDevops(Update incomingUpdate, string errorMessage)
         {
-            await botClient.SendTextMessageAsync(devopsChatId, FormatErrorHtml(incomingUpdate, errorMessage),
+            await botClient.SendTextMessageAsync(settings.DevopsChatId, FormatErrorHtml(incomingUpdate, errorMessage),
                 ParseMode.Html);
         }
 
-        public async Task ShowHelp(long chatId, AccessRight accessRight)
+        public async Task ShowHelp(long chatId, ContactType senderType)
         {
             var b = new StringBuilder("Это бот для команды и студентов ФИИТ УрФУ. Напиши фамилию и/или имя студента ФИИТ и я расскажу всё, что о нём знаю. Но только если ты из ФИИТ.");
-            if (accessRight.IsOneOf(AccessRight.Student, AccessRight.Admin, AccessRight.Staff))
+            if (senderType.IsOneOf(ContactType.Student, ContactType.Teacher, ContactType.Administration))
                 b.Append("\n\nМожешь прислать мне свою фотографию, и ее будут видеть все, кто запросит твой контакт у фиитобота");
-            if (accessRight.IsOneOf(AccessRight.Admin))
+            if (senderType.IsOneOf(ContactType.Administration))
                 b.AppendLine(
                     "\n\nВ любом другом чате напиши @fiitobot и после пробела начни писать фамилию. Я покажу, кого я знаю с такой фамилией, и после выбора конкретного студента, запощу карточку про студента в чат." +
-                    $"\n\nВсе данные я беру из <a href='{SpreadsheetUrl}'>гугл-таблицы к контактами</a>");
+                    $"\n\nДанные я беру из <a href='{settings.SpreadsheetUrl}'>гугл-таблицы к контактами</a>" +
+                    $"\n\nНекоторые фотки я беру из <a href='{settings.PhotoListUrl}'>Яндекс диска</a>");
+            
             await botClient.SendTextMessageAsync(chatId, b.ToString(), ParseMode.Html);
         }
 
@@ -147,21 +168,21 @@ namespace fiitobot.Services
                 .Replace(">", "&gt;");
         }
 
-        public async Task ShowContact(Contact contact, long chatId, AccessRight right)
+        public async Task ShowContact(Contact contact, long chatId, ContactDetailsLevel detailsLevel)
         {
             if (contact.Type == ContactType.Student)
             {
-                var inlineKeyboardMarkup = right.IsOneOf(AccessRight.Admin, AccessRight.Staff)
+                var inlineKeyboardMarkup = detailsLevel.HasFlag(ContactDetailsLevel.Marks)
                     ? new InlineKeyboardMarkup(new InlineKeyboardButton("Подробнее!")
-                        { CallbackData = $"Досье {contact.LastName} {contact.FirstName}" })
+                    { CallbackData = $"Досье {contact.LastName} {contact.FirstName}" })
                     : null;
-                var htmlText = FormatContactAsHtml(contact, right);
+                var htmlText = FormatContactAsHtml(contact, detailsLevel);
                 await botClient.SendTextMessageAsync(chatId, htmlText, ParseMode.Html,
                     replyMarkup: inlineKeyboardMarkup);
             }
             else
             {
-                var htmlText = FormatContactAsHtml(contact, right);
+                var htmlText = FormatContactAsHtml(contact, detailsLevel);
                 await botClient.SendTextMessageAsync(chatId, htmlText, ParseMode.Html);
             }
         }
@@ -192,7 +213,7 @@ namespace fiitobot.Services
             var caption = right.IsOneOf(AccessRight.Admin)
                 ? $"<a href='{photo.PhotosDirectory}'>{photo.Name}</a>"
                 : contact.FirstName + " " + contact.LastName;
-            await botClient.SendPhotoAsync(chatId, new InputOnlineFile(photo.PhotoUri), caption: caption, parseMode:ParseMode.Html);
+            await botClient.SendPhotoAsync(chatId, new InputOnlineFile(photo.PhotoUri), caption: caption, parseMode: ParseMode.Html);
         }
 
         public async Task SayNoResults(long chatId)
@@ -214,7 +235,7 @@ namespace fiitobot.Services
                 await botClient.SendTextMessageAsync(chatId, $"Не трогай, это только для админов!", ParseMode.Html);
         }
 
-        public string FormatContactAsHtml(Contact contact, AccessRight right)
+        public string FormatContactAsHtml(Contact contact, ContactDetailsLevel detailsLevel)
         {
             var b = new StringBuilder();
             b.AppendLine($"<b>{contact.LastName} {contact.FirstName} {contact.Patronymic}</b>");
@@ -225,9 +246,12 @@ namespace fiitobot.Services
                     b.AppendLine($"🏫 Школа: {contact.School}");
                 if (!string.IsNullOrWhiteSpace(contact.City))
                     b.AppendLine($"🏙️ Город: {contact.City}");
-                if (right.IsOneOf(AccessRight.Admin, AccessRight.Staff))
+                if (detailsLevel.HasFlag(ContactDetailsLevel.Marks))
                 {
                     b.AppendLine($"Поступление {FormatConcurs(contact.Concurs)} c рейтингом {contact.Rating}");
+                }
+                if (detailsLevel.HasFlag(ContactDetailsLevel.SecretNote) && !string.IsNullOrWhiteSpace(contact.SecretNote))
+                {
                     b.AppendLine($"{contact.SecretNote}");
                 }
             }
@@ -249,15 +273,17 @@ namespace fiitobot.Services
             if (!string.IsNullOrWhiteSpace(contact.Telegram))
                 b.AppendLine($"💬 {contact.Telegram}");
             b.AppendLine($"{EscapeForHtml(contact.Note)}");
-            if (right == AccessRight.Admin)
+            if (detailsLevel.HasFlag(ContactDetailsLevel.TechnicalInfo))
+            {
+                b.AppendLine("TelegramId: <code>" + contact.TgId + "</code>");
+            }
+            if (detailsLevel.HasFlag(ContactDetailsLevel.LinksToFiitTeamFiles))
             {
                 b.AppendLine();
-                b.AppendLine($"<a href='{SpreadsheetUrl}'>Все контакты ФИИТ</a>");
+                b.AppendLine($"<a href='{settings.SpreadsheetUrl}'>Все контакты ФИИТ</a>");
             }
             return b.ToString();
         }
-
-        public string SpreadsheetUrl => $"https://docs.google.com/spreadsheets/d/{spreadsheetId}";
 
         private string FormatConcurs(string concurs)
         {
@@ -289,12 +315,12 @@ namespace fiitobot.Services
                     new InlineKeyboardButton("2021"){CallbackData = "/contacts_2021"},
                     new InlineKeyboardButton("2022"){CallbackData = "/contacts_2022"},
                     new InlineKeyboardButton("Все"){CallbackData = "/contacts_all"}
-                }, 
+                },
             });
             await botClient.SendTextMessageAsync(
                 chatId,
                 "Тут можно скачать файл с контактами ФИИТ, подходящий для импорта в Google Contacts (а их телефон может автоматически синхронизировать с контактами Telegram). Выберите год поступления.",
-                ParseMode.Html, replyMarkup:inlineKeyboardMarkup);
+                ParseMode.Html, replyMarkup: inlineKeyboardMarkup);
         }
 
         public async Task ShowDownloadContactsSuffixSelection(long chatId, string year)
@@ -330,7 +356,7 @@ namespace fiitobot.Services
                           "Если у вас на телефоне контакты синхронизируются с Google, а Telegram синхронизируется с контактами телефона, " +
                           "то через некоторое время контакты в Telegram поменяют имена на правильные.";
             await botClient.SendDocumentAsync(
-                chatId, 
+                chatId,
                 new InputOnlineFile(new MemoryStream(content), filename),
                 caption: caption);
         }
@@ -343,12 +369,12 @@ namespace fiitobot.Services
 
         public async Task ShowPhotoForModeration(long moderatorChatId, Contact contact, Stream contactNewPhoto)
         {
-            await ShowContact(contact, moderatorChatId, AccessRight.Admin);
-            await botClient.SendPhotoAsync(moderatorChatId, 
-                new InputOnlineFile(contactNewPhoto), 
+            await ShowContact(contact, moderatorChatId, ContactDetailsLevel.Minimal);
+            await botClient.SendPhotoAsync(moderatorChatId,
+                new InputOnlineFile(contactNewPhoto),
                 caption: $"{contact.FirstName} {contact.LastName} хочет поменять фотку. Одобряешь?",
-                
-                replyMarkup:new InlineKeyboardMarkup(new []{
+
+                replyMarkup: new InlineKeyboardMarkup(new[]{
                     new InlineKeyboardButton("Одобрить"){CallbackData = "/accept_photo " + contact.TgId},
                     new InlineKeyboardButton("Отклонить"){CallbackData = "/reject_photo " + contact.TgId}
                     }
@@ -359,17 +385,25 @@ namespace fiitobot.Services
         public async Task SayPhotoGoesToModeration(long chatId, Stream photo)
         {
             var text = "Фото ушло на модерацию. Как только его проверят, бот начнет показывать её другим";
-            await botClient.SendPhotoAsync(chatId, new InputOnlineFile(photo), caption:text, ParseMode.Html);
+            await botClient.SendPhotoAsync(chatId, new InputOnlineFile(photo), caption: text, ParseMode.Html);
         }
 
-        public async Task SayPhotoAccepted(Contact photoOwner, long chatId)
+        public async Task SayPhotoAccepted(Contact photoOwner, Contact moderator, long chatId)
         {
-            await Say($"Новое фото принято ({photoOwner.FirstName} {photoOwner.LastName})", chatId);
+            var photoOwnerName = photoOwner.TgId == chatId ? "Твоё фото" : $"Фото {photoOwner.FirstName} {photoOwner.LastName}";
+            var message = $"{photoOwnerName} приняли!";
+            if (moderator != null)
+                message += " Модератор " + moderator.FirstLastName();
+            await Say(message, chatId);
         }
 
-        public async Task SayPhotoRejected(Contact photoOwner, long chatId)
+        public async Task SayPhotoRejected(Contact photoOwner, Contact moderator, long chatId)
         {
-            await Say($"Новое фото отклонено ({photoOwner.FirstName} {photoOwner.LastName})", chatId);
+            var photoOwnerName = photoOwner.TgId == chatId ? "Твоё фото" : $"Фото {photoOwner.FirstName} {photoOwner.LastName}";
+            var message = $"{photoOwnerName} отклонили.";
+            if (moderator != null)
+                message += " Модератор " + moderator.FirstLastName();
+            await Say(message, chatId);
         }
 
         private static string RenderContactAsListItem(Contact p)
@@ -380,7 +414,7 @@ namespace fiitobot.Services
                 ContactType.Administration => "Команда ФИИТ. " + p.Job,
                 ContactType.Teacher => "Преподаватель ФИИТ. " + p.Job,
                 _ => p.Type.ToString()
-            }; 
+            };
             return $"<b>{p.LastName} {p.FirstName}</b> {p.Telegram} {who}";
         }
 

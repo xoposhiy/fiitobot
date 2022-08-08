@@ -81,6 +81,10 @@ namespace fiitobot
                 throw new Exception(ToString(), e);
             }
         }
+        public string FirstLastName()
+        {
+            return $"{FirstName} {LastName}";
+        }
 
         public override string ToString()
         {
@@ -91,9 +95,10 @@ namespace fiitobot
 
     public enum ContactType
     {
-        Student,
-        Administration,
-        Teacher
+        External = -1,
+        Student = 0,
+        Administration = 1,
+        Teacher = 2
     }
 
     public static class PluralizeExtensions

@@ -20,7 +20,7 @@ namespace fiitobot.Services
 
         public string[] Synonyms => new[] { "/changephoto" };
         public AccessRight[] AllowedFor => new[] { AccessRight.Admin, AccessRight.Staff, AccessRight.Student, };
-        public async Task HandlePlainText(string text, long fromChatId, AccessRight accessRight, bool silentOnNoResults = false)
+        public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
         {
             var photo = await photoRepository.TryGetPhotoForModeration(fromChatId);
             var person = repo.GetData().FindPersonByTgId(fromChatId);

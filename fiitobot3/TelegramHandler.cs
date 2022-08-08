@@ -35,9 +35,9 @@ namespace fiitobot
                 var sheetClient = new GSheetClient(settings.GoogleAuthJson);
                 var contactsRepo = new SheetContactsRepository(sheetClient, settings.SpreadSheetId);
                 var detailsRepo = new DetailsRepository(sheetClient, contactsRepo);
-                var presenter = new Presenter(client, settings.DevopsChatId, settings.SpreadSheetId);
+                var presenter = new Presenter(client, settings);
                 var botDataRepository = new BotDataRepository(settings);
-                var namedPhotoDirectory = new NamedPhotoDirectory(settings.PhotoListPublicKey);
+                var namedPhotoDirectory = new NamedPhotoDirectory(settings.PhotoListUrl);
                 var photoRepo = new S3PhotoRepository(settings);
                 var downloader = new TelegramFileDownloader(client);
 

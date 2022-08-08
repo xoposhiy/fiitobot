@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Newtonsoft.Json;
 
 namespace fiitobot
 {
@@ -9,6 +10,7 @@ namespace fiitobot
         public Contact[] Administrators;
         public string[] SourceSpreadsheets;
         public PersonData[] Students;
+        [JsonIgnore]
         public IEnumerable<PersonData> AllContacts => Students.Concat(Administrators.Select(PersonData.FromContact)).Concat(Teachers?.Select(PersonData.FromContact) ?? Array.Empty<PersonData>());
         public Contact[] Teachers;
 
@@ -31,15 +33,17 @@ namespace fiitobot
             return query.Canonize().Equals(fn, StringComparison.InvariantCultureIgnoreCase)
                    || query.Equals(tg, StringComparison.InvariantCultureIgnoreCase);
         }
-
-        public bool IsAdmin(string username)
+        public bool IsAdmin(long userId, string username)
         {
-            return Administrators.Any(a => a.Telegram.Trim('@').Equals(username, StringComparison.OrdinalIgnoreCase));
+            return Administrators.Any(a => a.TgId == userId) || username != null && Administrators.Any(a => a.Telegram.Trim('@').Equals(username, StringComparison.OrdinalIgnoreCase));
         }
-
-        public bool IsAdmin(long userId)
+        public bool IsTeacher(long userId, string username)
         {
-            return Administrators.Any(a => a.TgId == userId);
+            return Teachers.Any(a => a.TgId == userId) || username != null && Teachers.Any(a => a.Telegram.Trim('@').Equals(username, StringComparison.OrdinalIgnoreCase));
+        }
+        public bool IsStudent(long userId, string username)
+        {
+            return Students.Any(a => a.Contact.TgId == userId) || username != null && Students.Any(a => a.Contact.Telegram.Trim('@').Equals(username, StringComparison.OrdinalIgnoreCase));
         }
 
         public PersonData FindPersonByTgId(long id)

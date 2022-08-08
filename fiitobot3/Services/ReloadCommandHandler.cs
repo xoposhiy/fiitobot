@@ -21,21 +21,21 @@ namespace fiitobot.Services
 
         public AccessRight[] AllowedFor => new[]
             { AccessRight.Admin };
-        public async Task HandlePlainText(string text, long fromChatId, AccessRight accessRight, bool silentOnNoResults = false)
+        public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
         {
             await presenter.SayReloadStarted(fromChatId);
             ReloadDataFromSpreadsheets();
-            await presenter.SayReloaded(botDataRepo.GetData().AllContacts.Count(), fromChatId);
+            await presenter.SayReloaded(botDataRepo.GetData(), fromChatId);
         }
         private void ReloadDataFromSpreadsheets()
         {
-            var contacts = contactsRepository.GetAllContacts();
+            var contacts = contactsRepository.GetAllContacts().ToArray();
             var students = detailsRepository.EnrichWithDetails(contacts);
             var botData = new BotData
             {
-                Administrators = contactsRepository.GetAllAdmins(),
-                Teachers = contactsRepository.GetAllTeachers(),
-                SourceSpreadsheets = contactsRepository.GetOtherSpreadsheets(),
+                Administrators = contactsRepository.GetAllAdmins().ToArray(),
+                Teachers = contactsRepository.GetAllTeachers().ToArray(),
+                SourceSpreadsheets = contactsRepository.GetOtherSpreadsheets().ToArray(),
                 Students = students
             };
             botDataRepo.Save(botData);

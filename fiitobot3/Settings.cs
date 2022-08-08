@@ -15,8 +15,9 @@ namespace fiitobot
         public string TgClientApiId;
         public string TgClientApiHash;
         public string TgClientPhoneNumber;
-        public string PhotoListPublicKey;
+        public string PhotoListUrl;
         public long ModeratorsChatId;
+        public string SpreadsheetUrl => $"https://docs.google.com/spreadsheets/d/{SpreadSheetId}";
 
         public string TgClientConfig(string what)
         {

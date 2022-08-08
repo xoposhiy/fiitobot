@@ -10,6 +10,7 @@
         "Email": "",
         "Note": "",
         "TgId": 123123123,
+        "Type": "Administration",
         "Job": "Что-то делает"
     }
   ],
@@ -46,6 +47,7 @@
         "Phone": "",
         "Email": "",
         "Note": "",
+        "Type": "Student",
         "TgId": 123123123
       },
       "Details": [
@@ -85,6 +87,7 @@
         "Phone": "",
         "Email": "",
         "Note": "",
+        "Type": "Student",
         "TgId": 123123124
       },
       "Details": [
@@ -124,6 +127,7 @@
         "Phone": "",
         "Email": "",
         "Note": "",
+        "Type": "Student",
         "TgId": 123123125
       },
       "Details": []
@@ -144,7 +148,30 @@
         "Phone": "",
         "Email": "",
         "Note": "",
+        "Type": "Student",
         "TgId": 123123125
+      },
+      "Details": []
+    },
+    {
+      "Contact": {
+        "AdmissionYear": 2022,
+        "LastName": "Петров",
+        "FirstName": "Пётр",
+        "Patronymic": "Петрович",
+        "GroupIndex": 1,
+        "SubgroupIndex": 1,
+        "City": "",
+        "School": "",
+        "Concurs": "О",
+        "Rating": "299",
+        "Telegram": "@petrovi4",
+        "Phone": "",
+        "Email": "",
+        "Note": "",
+        "SecretNote": "Выдуманный персонаж!",
+        "Type": "Student",
+        "TgId": 123123126
       },
       "Details": []
     },

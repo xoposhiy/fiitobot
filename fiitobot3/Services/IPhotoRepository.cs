@@ -71,8 +71,8 @@ namespace fiitobot.Services
         public async Task<bool> RejectPhoto(long tgId)
         {
             var client = CreateYandexStorageService();
-            await client.DeleteObjectAsync($"for-moderation-{tgId}.jpeg");
-            return true;
+            var response = await client.DeleteObjectAsync($"for-moderation-{tgId}.jpeg");
+            return response.IsSuccess;
         }
 
         public async Task<bool> AcceptPhoto(long tgId)

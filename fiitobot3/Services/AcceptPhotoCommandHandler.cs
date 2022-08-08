@@ -20,7 +20,7 @@ namespace fiitobot.Services
 
         public string[] Synonyms => new[] { "/reject_photo" };
         public AccessRight[] AllowedFor => new[] { AccessRight.Admin, AccessRight.Staff, AccessRight.Student, };
-        public async Task HandlePlainText(string text, long fromChatId, AccessRight accessRight, bool silentOnNoResults = false)
+        public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
         {
             if (fromChatId != reviewerChatId) return;
             var parts = text.Split(" ");
@@ -28,9 +28,12 @@ namespace fiitobot.Services
             if (!long.TryParse(parts[1], out var contactTgId)) return;
             var person = repo.GetData().AllContacts.FirstOrDefault(c => c.Contact.TgId == contactTgId);
             if (person == null) return;
-            await photoRepository.RejectPhoto(contactTgId);
-            await presenter.SayPhotoRejected(person.Contact, fromChatId);
-            await presenter.SayPhotoRejected(person.Contact, person.Contact.TgId);
+            var success = await photoRepository.RejectPhoto(contactTgId);
+            if (success)
+            {
+                await presenter.SayPhotoRejected(person.Contact, sender, fromChatId);
+                await presenter.SayPhotoRejected(person.Contact, null, person.Contact.TgId);
+            }
         }
     }
 
@@ -51,7 +54,7 @@ namespace fiitobot.Services
 
         public string[] Synonyms => new[] { "/accept_photo" };
         public AccessRight[] AllowedFor => new[] { AccessRight.Admin, AccessRight.Staff, AccessRight.Student, };
-        public async Task HandlePlainText(string text, long fromChatId, AccessRight accessRight, bool silentOnNoResults = false)
+        public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
         {
             if (fromChatId != reviewerChatId) return;
             var parts = text.Split(" ");
@@ -62,11 +65,9 @@ namespace fiitobot.Services
             var success = await photoRepository.AcceptPhoto(contactTgId);
             if (success)
             {
-                await presenter.SayPhotoAccepted(person.Contact, fromChatId);
-                await presenter.SayPhotoAccepted(person.Contact, person.Contact.TgId);
+                await presenter.SayPhotoAccepted(person.Contact, sender, fromChatId);
+                await presenter.SayPhotoAccepted(person.Contact, null, person.Contact.TgId);
             }
-            else
-                await presenter.SayPhotoRejected(person.Contact, fromChatId);
         }
     }
 }
