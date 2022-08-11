@@ -1,7 +1,7 @@
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace fiitobot.Services
+namespace fiitobot.Services.Commands
 {
     public class TellToContactCommandHandler : IChatCommandHandler
     {
@@ -18,7 +18,7 @@ namespace fiitobot.Services
         public AccessRight[] AllowedFor => new[] { AccessRight.Admin, };
         public async Task HandlePlainText(string text, long fromChatId, Contact contact, bool silentOnNoResults = false)
         {
-            var args = text.Split(new []{' '}, 3);
+            var args = text.Split(new[] { ' ' }, 3);
             var toWhom = args[1];
             var candidates = repo.GetData().Students.Where(s =>
                     toWhom == s.Contact.Telegram || toWhom == s.Contact.Telegram.Trim('@') || toWhom == s.Contact.TgId.ToString() || toWhom == s.Contact.LastName)

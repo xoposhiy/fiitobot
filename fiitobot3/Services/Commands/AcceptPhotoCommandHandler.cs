@@ -1,7 +1,7 @@
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace fiitobot.Services
+namespace fiitobot.Services.Commands
 {
     public class RejectPhotoCommandHandler : IChatCommandHandler
     {

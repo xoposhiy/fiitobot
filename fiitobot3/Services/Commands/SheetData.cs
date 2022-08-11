@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace fiitobot.Services
+namespace fiitobot.Services.Commands
 {
     public class SheetData
     {

@@ -1,7 +1,7 @@
 using System.IO;
 using System.Threading.Tasks;
 
-namespace fiitobot.Services
+namespace fiitobot.Services.Commands
 {
     public class ChangePhotoCommandHandler : IChatCommandHandler
     {
@@ -23,15 +23,12 @@ namespace fiitobot.Services
         public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
         {
             var photo = await photoRepository.TryGetPhotoForModeration(fromChatId);
-            var person = repo.GetData().FindPersonByTgId(fromChatId);
-            if (person == null)
-                return;
             if (photo == null)
             {
                 await presenter.SayUploadPhotoFirst(fromChatId);
                 return;
             }
-            await presenter.ShowPhotoForModeration(reviewerChatId, person.Contact, new MemoryStream(photo));
+            await presenter.ShowPhotoForModeration(reviewerChatId, sender, new MemoryStream(photo));
             await presenter.SayPhotoGoesToModeration(fromChatId, new MemoryStream(photo));
         }
     }

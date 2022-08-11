@@ -1,3 +1,4 @@
+using fiitobot.Services.Commands;
 using System.Threading.Tasks;
 
 namespace fiitobot.Services

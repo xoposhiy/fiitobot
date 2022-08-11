@@ -1,4 +1,4 @@
-﻿{
+{
   "Administrators": [
     {
         "AdmissionYear": 2019,
@@ -42,12 +42,13 @@
         "City": "",
         "School": "Гимназия 9",
         "Concurs": "БЭ",
-        "Rating": "310",
+        "EnrollRating": "310",
         "Telegram": "@username",
         "Phone": "",
         "Email": "",
         "Note": "",
         "Type": "Student",
+        "Status":"Активный",
         "TgId": 123123123
       },
       "Details": [
@@ -88,6 +89,7 @@
         "Email": "",
         "Note": "",
         "Type": "Student",
+        "Status":"Активный",
         "TgId": 123123124
       },
       "Details": [
@@ -128,6 +130,7 @@
         "Email": "",
         "Note": "",
         "Type": "Student",
+        "Status":"Активный",
         "TgId": 123123125
       },
       "Details": []
@@ -149,6 +152,7 @@
         "Email": "",
         "Note": "",
         "Type": "Student",
+        "Status":"Активный",
         "TgId": 123123125
       },
       "Details": []
@@ -171,6 +175,7 @@
         "Note": "",
         "SecretNote": "Выдуманный персонаж!",
         "Type": "Student",
+        "Status":"Активный",
         "TgId": 123123126
       },
       "Details": []

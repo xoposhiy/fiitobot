@@ -5,15 +5,64 @@ using System.Text;
 using TL;
 using WTelegram;
 
-//await ImportContacts();
-//await ReportUnknowns("Чат ФИИТ 2022");
-await ReportMissingInChat(2022, "Чат ФИИТ 2022");
+await ImportContacts();
+//await AnalyzeStudentsChat(2022, "Чат ФИИТ 2022");
+//await AnalyzeStudentsChat(2022, "Чат ФИИТ 2022");
 //await ExtractChats();
 //await ExtractStudents();
 //await ActualizeContacts("https://docs.google.com/spreadsheets/d/1VH_pZnYvTgQ-IzFVs5CYQWjbCo6YtUfip4w7K6GTK3U/edit#gid=0", "Чат ФИИТ");
+//await ActualizeContacts("https://docs.google.com/spreadsheets/d/1VH_pZnYvTgQ-IzFVs5CYQWjbCo6YtUfip4w7K6GTK3U/edit#gid=1835136796", "Преп"); //Teachers
+//await ReportActiveStudents("Чат ФИИТ 2022");
 
 
-async Task ReportMissingInChat(int admissionYear, string chatName)
+async Task ReportActiveStudents(string chatTitle)
+{
+    var settings = new Settings();
+    var repo = new BotDataRepository(settings);
+    var data = repo.GetData();
+    Console.WriteLine($"Loaded {data.AllContacts.Count()}");
+    using var client = new Client(settings.TgClientConfig);
+    var defaultLogger = Helpers.Log;
+    Helpers.Log = (level, message) =>
+    {
+        if (level >= 3) defaultLogger(level, message);
+    };
+
+    await client.LoginUserIfNeeded();
+    Messages_Chats chats = await client.Messages_GetAllChats();
+    var chat = chats.chats.FirstOrDefault(c => c.Value.Title.Contains(chatTitle)).Value;
+    Console.WriteLine($"Found Chat {chat.Title} {chat.ID} {chat.ToInputPeer()} {chat.GetType()}");
+    var channel = (InputPeerChannel)chat.ToInputPeer();
+
+    var lastMessageId = 0;
+    var messagesCount = 0;
+    var activity = new Dictionary<long, int>();
+    while (true)
+    {
+        var history = await client.Messages_GetHistory(channel, offset_id: lastMessageId);
+        if (history.Messages.Length == 0) break;
+        foreach (var m in history.Messages)
+        {
+            if (m.From is PeerUser user)
+            {
+                var id = m.From.ID;
+                activity[id] = activity.GetOrDefault(id) + 1;
+            }
+        }
+        lastMessageId = history.Messages.Last().ID;
+        messagesCount += history.Messages.Length;
+        Console.WriteLine($"Read {messagesCount} messages. Last message date {history.Messages.Last().Date}");
+    }
+
+    var activeStudents = data.Students.Select(p => (p.Contact, MessagesCount: activity.GetOrDefault(p.Contact.TgId)))
+        .OrderByDescending(c => c.MessagesCount).ToList();
+    foreach (var s in activeStudents)
+    {
+        Console.WriteLine($"{s.MessagesCount},{s.Contact.AdmissionYear},{s.Contact.FirstLastName()}");
+    }
+}
+
+async Task AnalyzeStudentsChat(int admissionYear, string chatName)
 {
     var settings = new Settings();
     var repo = new BotDataRepository(settings);
@@ -32,14 +81,31 @@ async Task ReportMissingInChat(int admissionYear, string chatName)
     var users = (await extractor.ExtractUsersFromChatsAndChannels(client, chatName)).ToDictionary(u => u.ID, u => u);
     Console.WriteLine($"FOUND {users.Count} users in chat {chatName}");
     var missing = 0;
-    foreach (var person in data.Students.Where(s => s.Contact.AdmissionYear == admissionYear))
+    var noTgId = 0;
+    var countByYear = new Dictionary<int, int>();
+    Console.WriteLine("# UNKNOWN USERS IN CHAT:");
+    foreach (var user in users.Values)
+    {
+        var match = data.AllContacts.FirstOrDefault(c => c.Contact.TgId == user.ID);
+        if (match == null)
+            Console.WriteLine($"{user.last_name};{user.first_name};;;;{user.phone};;{user.username};{user.ID}");
+        else
+        {
+            var year = match.Contact.AdmissionYear;
+            var newCount = countByYear.GetOrDefault(year) + 1;
+            countByYear[year] = newCount;
+        }
+    }
+    Console.WriteLine();
+    Console.WriteLine("# MISSING USERS IN CHAT:");
+    foreach (var person in data.Students.Where(s => s.Contact.AdmissionYear == admissionYear && s.Contact.Status.IsOneOf("", "Активный")))
     {
         var contact = person.Contact;
         var tgId = contact.TgId;
         if (tgId == -1)
         {
-            missing++;
-            Console.WriteLine($"No telegramId for {contact.FirstName} {contact.LastName} {contact.Concurs}");
+            noTgId++;
+            Console.WriteLine($"NO TGID {contact.FirstName} {contact.LastName} {contact.Concurs}");
         }
         else
         {
@@ -50,47 +116,15 @@ async Task ReportMissingInChat(int admissionYear, string chatName)
             }
         }
     }
-    Console.WriteLine(missing);
-}
-
-async Task ReportUnknowns(string chatName)
-{
-    var settings = new Settings();
-    var repo = new BotDataRepository(settings);
-    var data = repo.GetData();
-    Console.WriteLine($"Loaded {data.AllContacts.Count()}");
-    using var client = new Client(settings.TgClientConfig);
-    var defaultLogger = Helpers.Log;
-    Helpers.Log = (level, message) =>
-    {
-        if (level >= 3) defaultLogger(level, message);
-    };
-
-    await client.LoginUserIfNeeded();
-    var extractor = new TgContactsExtractor();
-
-    var users = (await extractor.ExtractUsersFromChatsAndChannels(client, chatName));
-    Console.WriteLine($"FOUND {users.Count} users in chat {chatName}");
-    var countByYear = new Dictionary<int, int>();
-    foreach (var user in users)
-    {
-        var match = data.AllContacts.FirstOrDefault(c => c.Contact.TgId == user.ID);
-        if (match == null)
-            Console.WriteLine($"{user.last_name};{user.first_name};;;;{user.phone};;{user.username};{user.ID}");
-        else
-        {
-            var admissionYear = match.Contact.AdmissionYear;
-            var newCount = countByYear.GetOrDefault(admissionYear) + 1;
-            countByYear[admissionYear] = newCount;
-        }
-    }
-
-    Console.WriteLine("По годам поступления:");
+    Console.WriteLine("MISSING COUNT: " + missing);
+    Console.WriteLine();
+    Console.WriteLine("# ADMISSION YEAR STATISTICS:");
     foreach (var kv in countByYear.OrderBy(kv => kv.Key))
     {
         Console.WriteLine(kv.Key + "\t" + kv.Value + "\t из " + data.AllContacts.Count(c => c.Contact.AdmissionYear == kv.Key));
     }
 }
+
 async Task ActualizeContacts(string spreadsheetUrl, params string[] chatSubstrings)
 {
     var settings = new Settings();
@@ -131,7 +165,7 @@ async Task ActualizeContacts(string spreadsheetUrl, params string[] chatSubstrin
     Console.WriteLine($"Contacts from Google Sheet: {data.Count - 1}");
     var edit = sheet.Edit();
     var editsCount = 0;
-    for (var rowIndex = 1; rowIndex < data.Count; rowIndex++)
+    for (var rowIndex = 388; rowIndex < data.Count; rowIndex++)
     {
         var row = data[rowIndex];
         while (row.Count <= Math.Max(usernameColIndex, Math.Max(tgIdColIndex, phoneColIndex)))

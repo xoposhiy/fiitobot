@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using FakeItEasy;
 using fiitobot;
 using fiitobot.Services;
+using fiitobot.Services.Commands;
 using NUnit.Framework;
 
 namespace tests;
@@ -18,6 +19,8 @@ public class DialogTests
     {
         data = new BotDataBuilder().Build();
     }
+
+
     
     [TestCase("Мизурова", "Мизуро́ва")]
     [TestCase("Мизуро́ва", "Мизуро́ва")]
@@ -194,13 +197,37 @@ public class DialogTests
     {
         var contactsPresenter = A.Fake<IPresenter>();
         var handleUpdateService = PrepareUpdateService(contactsPresenter);
+        var externalUser = AGuest();
 
-        await handleUpdateService.HandlePlainText(query, 42, null, AccessRight.External);
+        await handleUpdateService.HandlePlainText(query, 42, externalUser, AccessRight.External);
 
         A.CallTo(() => contactsPresenter.SayNoRights(42, AccessRight.External))
             .MustHaveHappenedOnceExactly();
         Assert.AreEqual(1, Fake.GetCalls(contactsPresenter).Count());
     }
+
+    private Contact AGuest()
+    {
+        return new Contact(-1, "Некто", "Нектович", "", -1, -1, "", "", "", "", "@guest", "", "", "", 555, "",
+            ContactType.External, "", "", null);
+
+    }
+
+    [TestCase("Я Гриша!")]
+    public async Task ExternalUsers_CanJoin(string query)
+    {
+        var contactsPresenter = A.Fake<IPresenter>();
+        var handleUpdateService = PrepareUpdateService(contactsPresenter);
+
+        await handleUpdateService.HandlePlainText("/join " + query, 555, AGuest(), AccessRight.External);
+
+        A.CallTo(() => contactsPresenter.Say(A<string>.Ignored, 111)) // Кто-то хочет доступ!
+            .MustHaveHappenedOnceExactly(); 
+        A.CallTo(() => contactsPresenter.Say(A<string>.Ignored, 555)) // Модераторы получили твой запрос
+            .MustHaveHappenedOnceExactly(); 
+        Assert.AreEqual(2, Fake.GetCalls(contactsPresenter).Count());
+    }
+
 
     [TestCase("Гимназия 9")]
     [TestCase("9")]
@@ -237,6 +264,7 @@ public class DialogTests
             new MeCommandHandler(repo, presenter),
             new ContactsCommandHandler(repo, presenter),
             new RandomCommandHandler(repo, presenter, new Random()),
+            new JoinCommandHandler(presenter, repo, 111),
         };
         return new HandleUpdateService(repo, namedPhotoDirectory, photoRepo, downloader, presenter, commands);
     }

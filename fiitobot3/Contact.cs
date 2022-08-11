@@ -5,9 +5,11 @@ namespace fiitobot
     public class Contact
     {
         public Contact(int admissionYear, string lastName, string firstName, string patronymic, int groupIndex,
-            int subgroupIndex, string city, string school, string concurs, string rating, string telegram, string phone,
-            string email, string note, long tgId, string job, ContactType type, string secretNote)
+            int subgroupIndex, string city, string school, string concurs, string enrollRating, string telegram, string phone,
+            string email, string note, long tgId, string job, ContactType type, string secretNote, string status, double? currentRating)
         {
+            Status = status;
+            CurrentRating = currentRating;
             AdmissionYear = admissionYear;
             LastName = lastName;
             FirstName = firstName;
@@ -17,7 +19,7 @@ namespace fiitobot
             City = city;
             School = school;
             Concurs = concurs;
-            Rating = rating;
+            EnrollRating = enrollRating;
             Telegram = telegram;
             Phone = phone;
             Email = email;
@@ -37,7 +39,7 @@ namespace fiitobot
         public string City;
         public string School;
         public string Concurs;
-        public string Rating;
+        public string EnrollRating;
         public string Telegram;
         public string Phone;
         public string Email;
@@ -46,7 +48,9 @@ namespace fiitobot
         public long TgId;
         public string Job;
         public ContactType Type;
-        
+        public string Status;
+        public double? CurrentRating;
+
         public string FormatMnemonicGroup(DateTime now)
         {
             if (AdmissionYear <= 0) return "";
@@ -62,7 +66,9 @@ namespace fiitobot
             if (AdmissionYear <= 0) return "";
             var delta = now.Month >= 8 ? 0 : 1;
             var course = now.Year - AdmissionYear + 1 - delta;
-            var id = new[] { "0801", "0802", "0809", "0810" }[GroupIndex - 1];
+            var id = AdmissionYear == 2019 
+                ? new[] { "0809", "0810" }[GroupIndex - 1]
+                : new[] { "0801", "0802", "0809", "0810" }[GroupIndex - 1];
             return $"МЕН-{course}{AdmissionYear % 10}{id}";
         }
 

@@ -1,7 +1,7 @@
 ﻿using System.Linq;
 using System.Threading.Tasks;
 
-namespace fiitobot.Services
+namespace fiitobot.Services.Commands
 {
     public class MeCommandHandler : IChatCommandHandler
     {
@@ -13,7 +13,7 @@ namespace fiitobot.Services
             this.botDataHolder = botDataHolder;
             this.presenter = presenter;
         }
-        public string[] Synonyms => new []{"/me"};
+        public string[] Synonyms => new[] { "/me" };
         public AccessRight[] AllowedFor => new[] { AccessRight.Admin, AccessRight.Staff, AccessRight.Student, };
         public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
         {

@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using fiitobot.GoogleSpreadsheet;
 using fiitobot.Services;
+using fiitobot.Services.Commands;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Telegram.Bot;
@@ -40,6 +41,7 @@ namespace fiitobot
                 var namedPhotoDirectory = new NamedPhotoDirectory(settings.PhotoListUrl);
                 var photoRepo = new S3PhotoRepository(settings);
                 var downloader = new TelegramFileDownloader(client);
+                var studentsDownloader = new UrfuStudentsDownloader(settings);
 
                 var commands = new IChatCommandHandler[]
                 {
@@ -52,6 +54,8 @@ namespace fiitobot
                     new AcceptPhotoCommandHandler(presenter, botDataRepository, photoRepo, settings.ModeratorsChatId),
                     new RejectPhotoCommandHandler(presenter, botDataRepository, photoRepo, settings.ModeratorsChatId),
                     new TellToContactCommandHandler(presenter, botDataRepository),
+                    new UpdateStudentStatusesFromItsCommandHandler(presenter, studentsDownloader, botDataRepository, contactsRepo),
+                    new JoinCommandHandler(presenter, botDataRepository, settings.ModeratorsChatId)
                 };
                 var updateService = new HandleUpdateService(botDataRepository, namedPhotoDirectory, photoRepo, downloader, presenter, commands);
                 updateService.Handle(update).Wait();

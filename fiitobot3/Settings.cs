@@ -18,6 +18,8 @@ namespace fiitobot
         public string PhotoListUrl;
         public long ModeratorsChatId;
         public string SpreadsheetUrl => $"https://docs.google.com/spreadsheets/d/{SpreadSheetId}";
+        public string ItsLogin;
+        public string ItsPassword;
 
         public string TgClientConfig(string what)
         {

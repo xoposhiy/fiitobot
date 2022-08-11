@@ -14,8 +14,8 @@ public class BotDataRepoTests
     public void Test()
     {
         var data = new BotDataRepository(new Settings()).GetData();
-        var me = data.AllContacts.Where(s => s.Contact.LastName == "≈„ÓÓ‚").ToList();
-        Console.WriteLine(me[0].Contact.Type);
+        var students = data.Students.Where(s => s.Contact.Status.IsOneOf("–ê–∫—Ç–∏–≤–Ω—ã–π", "")).ToList();
+        Console.WriteLine(students.Count);
     }
 
 }

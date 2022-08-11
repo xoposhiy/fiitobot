@@ -1,6 +1,10 @@
-﻿using System.Threading.Tasks;
+﻿using System.Net;
+using System.Net.Http.Headers;
+using System.Threading.Tasks;
+using fiitobot.GoogleSpreadsheet;
+using WTelegram;
 
-namespace fiitobot.Services
+namespace fiitobot.Services.Commands
 {
     public interface IChatCommandHandler
     {

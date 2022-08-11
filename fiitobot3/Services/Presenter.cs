@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -230,9 +230,9 @@ namespace fiitobot.Services
         public async Task SayNoRights(long chatId, AccessRight userAccessRights)
         {
             if (userAccessRights == AccessRight.External)
-                await botClient.SendTextMessageAsync(chatId, $"Этот бот только для студентов и преподавателей ФИИТ", ParseMode.Html);
+                await botClient.SendTextMessageAsync(chatId, $"Этот бот только для студентов и преподавателей ФИИТ УрФУ. Если вы студент или преподаватель, и вам нужен доступ к контактам студентов, выполните команду /join и модераторы отреагируют на ваш запрос", ParseMode.Html);
             else
-                await botClient.SendTextMessageAsync(chatId, $"Не трогай, это только для админов!", ParseMode.Html);
+                await botClient.SendTextMessageAsync(chatId, "Простите, эта команда не для вас.", ParseMode.Html);
         }
 
         public string FormatContactAsHtml(Contact contact, ContactDetailsLevel detailsLevel)
@@ -243,17 +243,15 @@ namespace fiitobot.Services
             {
                 b.AppendLine($"{contact.FormatMnemonicGroup(DateTime.Now)} (год поступления: {contact.AdmissionYear})");
                 if (!string.IsNullOrWhiteSpace(contact.School))
-                    b.AppendLine($"🏫 Школа: {contact.School}");
+                    b.AppendLine($"🏫 Школа: <code>{contact.School}</code>");
                 if (!string.IsNullOrWhiteSpace(contact.City))
-                    b.AppendLine($"🏙️ Город: {contact.City}");
+                    b.AppendLine($"🏙️ Город: <code>{contact.City}</code>");
                 if (detailsLevel.HasFlag(ContactDetailsLevel.Marks))
                 {
-                    b.AppendLine($"Поступление {FormatConcurs(contact.Concurs)} c рейтингом {contact.Rating}");
+                    b.AppendLine($"Поступление {FormatConcurs(contact.Concurs)} c рейтингом {contact.EnrollRating}");
                 }
-                if (detailsLevel.HasFlag(ContactDetailsLevel.SecretNote) && !string.IsNullOrWhiteSpace(contact.SecretNote))
-                {
-                    b.AppendLine($"{contact.SecretNote}");
-                }
+                if (!string.IsNullOrWhiteSpace(contact.Status) && contact.Status != "Активный")
+                    b.AppendLine(contact.Status);
             }
             else if (contact.Type == ContactType.Administration)
             {
@@ -265,16 +263,28 @@ namespace fiitobot.Services
                 b.AppendLine($"Преподаватель ФИИТ");
                 b.AppendLine($"Чем занимается: {contact.Job}");
             }
+
             b.AppendLine();
-            if (!string.IsNullOrWhiteSpace(contact.Email))
-                b.AppendLine($"📧 {contact.Email}");
-            if (!string.IsNullOrWhiteSpace(contact.Phone))
-                b.AppendLine($"📞 {contact.Phone}");
+            if (detailsLevel.HasFlag(ContactDetailsLevel.Contacts))
+            {
+                if (!string.IsNullOrWhiteSpace(contact.Email))
+                    b.AppendLine($"📧 {contact.Email}");
+                if (!string.IsNullOrWhiteSpace(contact.Phone))
+                    b.AppendLine($"📞 {contact.Phone}");
+            }
             if (!string.IsNullOrWhiteSpace(contact.Telegram))
                 b.AppendLine($"💬 {contact.Telegram}");
             b.AppendLine($"{EscapeForHtml(contact.Note)}");
+
+            if (detailsLevel.HasFlag(ContactDetailsLevel.SecretNote) && !string.IsNullOrWhiteSpace(contact.SecretNote))
+            {
+                b.AppendLine($"{contact.SecretNote}");
+            }
             if (detailsLevel.HasFlag(ContactDetailsLevel.TechnicalInfo))
             {
+                b.AppendLine();
+                if (contact.CurrentRating.HasValue)
+                    b.AppendLine($"Неведомый рейтинг: {contact.CurrentRating:0.00}");
                 b.AppendLine("TelegramId: <code>" + contact.TgId + "</code>");
             }
             if (detailsLevel.HasFlag(ContactDetailsLevel.LinksToFiitTeamFiles))
@@ -415,7 +425,7 @@ namespace fiitobot.Services
                 ContactType.Teacher => "Преподаватель ФИИТ. " + p.Job,
                 _ => p.Type.ToString()
             };
-            return $"<b>{p.LastName} {p.FirstName}</b> {p.Telegram} {who}";
+            return $"<code>{p.LastName} {p.FirstName}</code> {p.Telegram} {who}";
         }
 
         public async Task ShowOtherResults(Contact[] otherContacts, long chatId)

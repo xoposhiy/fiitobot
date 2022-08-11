@@ -2,7 +2,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace fiitobot.Services
+namespace fiitobot.Services.Commands
 {
     public class ContactsCommandHandler : IChatCommandHandler
     {
@@ -37,13 +37,13 @@ namespace fiitobot.Services
 
                 string GetNameWithSuffix(Contact c)
                 {
-                    if (suffix == "ftYY") return c.FirstName + " פע" + (c.AdmissionYear % 100);
+                    if (suffix == "ftYY") return c.FirstName + " פע" + c.AdmissionYear % 100;
                     if (suffix == "ft") return c.FirstName + " פע";
                     return c.FirstName;
                 }
                 string GetSecondNameWithSuffix(Contact c)
                 {
-                    if (suffix == "patronymic") return c.LastName + " װׂ" + (c.AdmissionYear % 100);
+                    if (suffix == "patronymic") return c.LastName + " װׂ" + c.AdmissionYear % 100;
                     return c.LastName;
                 }
 

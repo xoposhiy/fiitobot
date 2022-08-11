@@ -25,16 +25,29 @@ namespace fiitobot.Services
 
         public async Task<PersonPhoto> FindPhoto(Contact contact)
         {
+            var firstName = contact.FirstName;
+            var lastName = contact.LastName;
+            return await FindPhoto(lastName, firstName);
+        }
+
+        public async Task<PersonPhoto> FindPhoto(string lastName, string firstName)
+        {
             using var client = new HttpClient();
+            var requestUri = $"https://cloud-api.yandex.net/v1/disk/public/resources?public_key={UrlEncoder.Default.Encode(photoListUrl)}&fields=_embedded.items.name%2C_embedded.items.type%2C_embedded.items.preview&preview_size=800x1200&limit=5000";
+            Console.WriteLine(requestUri);
             var json = await client.GetStringAsync(
-                $"https://cloud-api.yandex.net/v1/disk/public/resources?public_key={UrlEncoder.Default.Encode(photoListUrl)}&fields=_embedded.items.name%2C_embedded.items.type%2C_embedded.items.preview&preview_size=800x1200&limit=5000");
+                requestUri);
+            
             var response = JsonConvert.DeserializeObject<YdResourcesResponse>(json);
-            var people = response.Embedded.Items.Where(item => item.Type == "file" && item.Name.ContainsSameText(contact.LastName) && item.Name.ContainsSameText(contact.FirstName)).ToList();
-            if (people.Count == 1)
+            var people = response.Embedded.Items.Where(item =>
+                item.Name != null && item.Type == "file" && item.Name.ContainsSameText(lastName) &&
+                item.Name.ContainsSameText(firstName)).ToList();
+            if (people.Count > 0)
             {
-                var photo = people.Single();
+                var photo = people.SelectOne(new Random());
                 return new PersonPhoto(new Uri(photoListUrl), new Uri(photo.Preview), photo.Name);
             }
+
             return null;
         }
     }
@@ -70,7 +83,7 @@ namespace fiitobot.Services
         [JsonProperty("type")]
         public string Type { get; set; }
 
-        [JsonProperty("name")]
+        [JsonProperty("Name")]
         public string Name { get; set; }
 
         [JsonProperty("preview")]
@@ -88,7 +101,7 @@ namespace fiitobot.Services
         [JsonProperty("_embedded")]
         public YdResourcesEmbedded Embedded { get; set; }
 
-        [JsonProperty("name")]
+        [JsonProperty("Name")]
         public string Name { get; set; }
     }
 }

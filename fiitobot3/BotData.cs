@@ -50,6 +50,11 @@ namespace fiitobot
         {
             return AllContacts.FirstOrDefault(p => p.Contact.TgId == id);
         }
+
+        public PersonData FindPersonByTelegramName(string username)
+        {
+            return AllContacts.FirstOrDefault(p => p.Contact.Telegram.Trim('@').Equals(username.Trim('@'), StringComparison.OrdinalIgnoreCase));
+        }
     }
 
     public class PersonData
