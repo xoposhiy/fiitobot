@@ -4,6 +4,7 @@ using fiitobot.Services;
 using System.Text;
 using TL;
 using WTelegram;
+using System.Diagnostics.CodeAnalysis;
 
 await ImportContacts();
 //await AnalyzeStudentsChat(2022, "Чат ФИИТ 2022");
@@ -15,6 +16,7 @@ await ImportContacts();
 //await ReportActiveStudents("Чат ФИИТ 2022");
 
 
+#pragma warning disable CS8321 // Local function is declared but never used
 async Task ReportActiveStudents(string chatTitle)
 {
     var settings = new Settings();

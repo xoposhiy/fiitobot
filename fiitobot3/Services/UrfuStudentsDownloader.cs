@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -28,6 +28,7 @@ namespace fiitobot.Services
 
     public class UrfuStudentsDownloader : IUrfuStudentsDownloader
     {
+        #pragma warning disable CS0649
         private class UrfuStudentsData
         {
             public UrfuStudent[] Data;
@@ -44,6 +45,8 @@ namespace fiitobot.Services
                 this.value = value;
             }
         }
+        #pragma warning restore CS0649
+
         private readonly HttpClient client;
         private readonly HttpClientHandler messageHandler;
         private readonly Settings settings;

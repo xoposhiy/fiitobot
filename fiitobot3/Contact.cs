@@ -2,53 +2,45 @@
 
 namespace fiitobot
 {
+    public enum ContactType
+    {
+        External = -1,
+        Student = 0,
+        Administration = 1,
+        Staff = 2,
+    }
+
     public class Contact
     {
-        public Contact(int admissionYear, string lastName, string firstName, string patronymic, int groupIndex,
-            int subgroupIndex, string city, string school, string concurs, string enrollRating, string telegram, string phone,
-            string email, string note, long tgId, string job, ContactType type, string secretNote, string status, double? currentRating)
+        public Contact(ContactType type, long tgId, string lastName, string firstName, string patronymic = "")
         {
-            Status = status;
-            CurrentRating = currentRating;
-            AdmissionYear = admissionYear;
+            Type = type;
+            TgId = tgId;
             LastName = lastName;
             FirstName = firstName;
             Patronymic = patronymic;
-            GroupIndex = groupIndex;
-            SubgroupIndex = subgroupIndex;
-            City = city;
-            School = school;
-            Concurs = concurs;
-            EnrollRating = enrollRating;
-            Telegram = telegram;
-            Phone = phone;
-            Email = email;
-            Note = note;
-            SecretNote = secretNote;
-            TgId = tgId;
-            Job = job;
-            Type = type;
         }
 
-        public int AdmissionYear;
+        public ContactType Type;
+        public long TgId;
         public string LastName;
         public string FirstName;
         public string Patronymic;
-        public int GroupIndex;
-        public int SubgroupIndex;
-        public string City;
-        public string School;
-        public string Concurs;
-        public string EnrollRating;
+        public int AdmissionYear = -1;
+        public int GroupIndex = -1;
+        public int SubgroupIndex = -1;
+        public string City = "";
+        public string School = "";
+        public string Concurs = "";
+        public string EnrollRating = "";
         public string Telegram;
-        public string Phone;
-        public string Email;
-        public string Note;
-        public string SecretNote;
-        public long TgId;
-        public string Job;
-        public ContactType Type;
-        public string Status;
+        public string Phone = "";
+        public string Email = "";
+        public string Note = "";
+        public string SecretNote = "";
+        public string FiitJob = "";
+        public string MainCompany = "";
+        public string Status = "";
         public double? CurrentRating;
 
         public string FormatMnemonicGroup(DateTime now)
@@ -97,14 +89,6 @@ namespace fiitobot
             return $"{FirstName} {LastName} {Telegram} {TgId}";
         }
 
-    }
-
-    public enum ContactType
-    {
-        External = -1,
-        Student = 0,
-        Administration = 1,
-        Staff = 2,
     }
 
     public static class ContactTypes

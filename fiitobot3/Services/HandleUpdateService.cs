@@ -115,11 +115,10 @@ namespace fiitobot.Services
 
         private Contact GetSenderContact(Chat chat, User user)
         {
-            return 
+            return
                 botDataRepo.GetData().FindPersonByTgId(user.Id)?.Contact
                 ?? botDataRepo.GetData().FindPersonByTelegramName(user.Username)?.Contact
-                ?? new Contact(-1, user.LastName, user.FirstName, "", -1, -1, "", "", "", "", user.Username, "", "",
-                    chat?.Bio + "\n" + chat?.Description, user.Id, "", ContactType.External, "", "", null);
+                ?? new Contact(ContactType.External, user.Id, user.LastName, user.FirstName, "") { Telegram = user.Username };
         }
 
         private async Task HandleForward(User forwardFrom, Contact sender, long fromChatId)
@@ -205,11 +204,15 @@ namespace fiitobot.Services
                 await presenter.ShowOtherResults(contacts.Skip(1).Select(p => p.Contact).ToArray(), fromChatId);
             if (contacts.Length == 0)
             {
+                if (await ShowContactsListBy(text, c => c.MainCompany, fromChatId))
+                    return;
+                if (await ShowContactsListBy(text, c => c.FiitJob, fromChatId))
+                    return;
                 if (await ShowContactsListBy(text, c => c.School, fromChatId))
                     return;
                 if (await ShowContactsListBy(text, c => c.City, fromChatId))
                     return;
-                if (await ShowContactsListBy(text, c => c.Job, fromChatId))
+                if (await ShowContactsListBy(text, c => c.Note, fromChatId))
                     return;
                 if (!silentOnNoResults)
                     await presenter.SayNoResults(fromChatId);
@@ -224,7 +227,7 @@ namespace fiitobot.Services
                 .ToList();
             if (res.Count == 0) return false;
             var bestGroup = res.GroupBy(getProperty).MaxBy(g => g.Count());
-            await presenter.ShowContactsBy(bestGroup.Key, bestGroup.ToList(), chatId);
+            await presenter.ShowContactsBy(bestGroup.Key, res, chatId);
             return true;
         }
 

@@ -201,9 +201,10 @@ public class DialogTests
 
     private Contact AGuest()
     {
-        return new Contact(-1, "Некто", "Нектович", "", -1, -1, "", "", "", "", "@guest", "", "", "", 555, "",
-            ContactType.External, "", "", null);
-
+        return new Contact(ContactType.External, 555, "Некто", "Нектович")
+        {
+            Telegram = "@guest"
+        };
     }
 
     [TestCase("Я Гриша!")]

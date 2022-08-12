@@ -256,12 +256,13 @@ namespace fiitobot.Services
             else if (contact.Type == ContactType.Administration)
             {
                 b.AppendLine($"Команда ФИИТ");
-                b.AppendLine($"Чем занимается: {contact.Job}");
+                b.AppendLine($"Чем занимается: {contact.FiitJob}");
             }
             else if (contact.Type == ContactType.Staff)
             {
-                b.AppendLine($"Преподаватель ФИИТ");
-                b.AppendLine($"Чем занимается: {contact.Job}");
+                b.AppendLine($"{contact.FiitJob}");
+                if (!string.IsNullOrWhiteSpace(contact.MainCompany))
+                    b.AppendLine($"Основное место работы: {contact.MainCompany}");
             }
 
             b.AppendLine();
@@ -274,6 +275,7 @@ namespace fiitobot.Services
             }
             if (!string.IsNullOrWhiteSpace(contact.Telegram))
                 b.AppendLine($"💬 {contact.Telegram}");
+
             b.AppendLine($"{EscapeForHtml(contact.Note)}");
 
             if (detailsLevel.HasFlag(ContactDetailsLevel.SecretNote) && !string.IsNullOrWhiteSpace(contact.SecretNote))
@@ -309,7 +311,7 @@ namespace fiitobot.Services
         {
             people = people.OrderByDescending(p => p.AdmissionYear).ThenBy(p => p.LastName).ThenBy(p => p.FirstName).ToList();
             var listCount = people.Count > 20 ? 15 : people.Count;
-            var list = string.Join("\n", people.Select(RenderContactAsListItem).Take(20));
+            var list = string.Join("\n", people.Select(FormatContactAsListItem).Take(20));
             var ending = listCount < people.Count ? $"\n\nЕсть ещё {people.Count - listCount} подходящих человек" : "";
             if (listCount == 0)
                 await botClient.SendTextMessageAsync(chatId, list, ParseMode.Html);
@@ -419,13 +421,13 @@ namespace fiitobot.Services
             await Say(message, chatId);
         }
 
-        private static string RenderContactAsListItem(Contact p)
+        private static string FormatContactAsListItem(Contact p)
         {
             var who = p.Type switch
             {
                 ContactType.Student => p.FormatMnemonicGroup(DateTime.Now),
-                ContactType.Administration => "Команда ФИИТ. " + p.Job,
-                ContactType.Staff => "Преподаватель ФИИТ. " + p.Job,
+                ContactType.Administration => "Команда ФИИТ. " + p.FiitJob,
+                ContactType.Staff => p.FiitJob,
                 _ => p.Type.ToString()
             };
             return $"<code>{p.LastName} {p.FirstName}</code> {p.Telegram} {who}";
