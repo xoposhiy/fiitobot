@@ -1,4 +1,4 @@
-using System.Linq;
+ï»¿using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -15,8 +15,8 @@ namespace fiitobot.Services.Commands
             this.presenter = presenter;
         }
 
-        public string[] Synonyms => new[] { "/contacts" };
-        public AccessRight[] AllowedFor => new[] { AccessRight.Admin, AccessRight.Staff, AccessRight.Student, };
+        public string Command => "/contacts";
+        public ContactType[] AllowedFor => ContactTypes.AllNotExternal;
         public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
         {
             var parts = text.Split("_");
@@ -37,13 +37,13 @@ namespace fiitobot.Services.Commands
 
                 string GetNameWithSuffix(Contact c)
                 {
-                    if (suffix == "ftYY") return c.FirstName + " ôò" + c.AdmissionYear % 100;
-                    if (suffix == "ft") return c.FirstName + " ôò";
+                    if (suffix == "ftYY") return c.FirstName + " Ñ„Ñ‚" + c.AdmissionYear % 100;
+                    if (suffix == "ft") return c.FirstName + " Ñ„Ñ‚";
                     return c.FirstName;
                 }
                 string GetSecondNameWithSuffix(Contact c)
                 {
-                    if (suffix == "patronymic") return c.LastName + " ÔÒ" + c.AdmissionYear % 100;
+                    if (suffix == "patronymic") return c.LastName + " Ð¤Ð¢" + c.AdmissionYear % 100;
                     return c.LastName;
                 }
 
@@ -81,7 +81,7 @@ namespace fiitobot.Services.Commands
                         "School",
                         c.School,
                         "University",
-                        "ÔÈÈÒ ÓðÔÓ " + c.AdmissionYear
+                        "Ð¤Ð˜Ð˜Ð¢ Ð£Ñ€Ð¤Ð£ " + c.AdmissionYear
                     })
                     .Select(row => string.Join(",", row))
                     .ToList();

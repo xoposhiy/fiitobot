@@ -17,8 +17,8 @@ namespace fiitobot.Services.Commands
             this.random = random;
         }
 
-        public string[] Synonyms => new[] { "/random" };
-        public AccessRight[] AllowedFor => new[] { AccessRight.Admin, AccessRight.Staff, AccessRight.Student, };
+        public string Command => "/random";
+        public ContactType[] AllowedFor => ContactTypes.AllNotExternal;
         public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
         {
             var students = botDataRepo.GetData().Students.Where(s => s.Contact.Status.IsOneOf("Активный", "")).ToList();

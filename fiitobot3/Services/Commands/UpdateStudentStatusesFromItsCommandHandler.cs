@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -20,8 +20,8 @@ namespace fiitobot.Services.Commands
             this.repo = repo;
             this.sheetsRepo = sheetsRepo;
         }
-        public string[] Synonyms => new[] { "/its" };
-        public AccessRight[] AllowedFor => new[] { AccessRight.Admin, };
+        public string Command => "/its";
+        public ContactType[] AllowedFor => new[] { ContactType.Administration, };
         public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
         {
             await presenter.Say($"Получаю рейтинги и статусы студентов из ИТС УрФУ...", fromChatId);

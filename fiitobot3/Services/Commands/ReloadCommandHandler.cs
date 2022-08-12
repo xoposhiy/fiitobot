@@ -1,4 +1,4 @@
-using System.Linq;
+﻿using System.Linq;
 using System.Threading.Tasks;
 
 namespace fiitobot.Services.Commands
@@ -17,10 +17,9 @@ namespace fiitobot.Services.Commands
             this.contactsRepository = contactsRepository;
             this.detailsRepository = detailsRepository;
         }
-        public string[] Synonyms => new[] { "/reload" };
+        public string Command => "/reload";
 
-        public AccessRight[] AllowedFor => new[]
-            { AccessRight.Admin };
+        public ContactType[] AllowedFor => new[] { ContactType.Administration };
         public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
         {
             await presenter.SayReloadStarted(fromChatId);

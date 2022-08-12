@@ -1,4 +1,4 @@
-using System.Linq;
+п»їusing System.Linq;
 using System.Threading.Tasks;
 
 namespace fiitobot.Services.Commands
@@ -14,8 +14,8 @@ namespace fiitobot.Services.Commands
             this.repo = repo;
         }
 
-        public string[] Synonyms => new[] { "/tell" };
-        public AccessRight[] AllowedFor => new[] { AccessRight.Admin, };
+        public string Command => "/tell";
+        public ContactType[] AllowedFor => new[] { ContactType.Administration, };
         public async Task HandlePlainText(string text, long fromChatId, Contact contact, bool silentOnNoResults = false)
         {
             var args = text.Split(new[] { ' ' }, 3);
@@ -24,9 +24,9 @@ namespace fiitobot.Services.Commands
                     toWhom == s.Contact.Telegram || toWhom == s.Contact.Telegram.Trim('@') || toWhom == s.Contact.TgId.ToString() || toWhom == s.Contact.LastName)
                 .ToList();
             if (candidates.Count > 1)
-                await presenter.Say("Не понял кому... Слишком много кандидатов", fromChatId);
+                await presenter.Say("РќРµ РїРѕРЅСЏР» РєРѕРјСѓ... РЎР»РёС€РєРѕРј РјРЅРѕРіРѕ РєР°РЅРґРёРґР°С‚РѕРІ", fromChatId);
             else if (candidates.Count == 0)
-                await presenter.Say("Не понял кому... Никого не нашел", fromChatId);
+                await presenter.Say("РќРµ РїРѕРЅСЏР» РєРѕРјСѓ... РќРёРєРѕРіРѕ РЅРµ РЅР°С€РµР»", fromChatId);
             else
             {
                 var message = args[2];

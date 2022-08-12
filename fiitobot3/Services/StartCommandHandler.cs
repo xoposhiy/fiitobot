@@ -1,4 +1,4 @@
-using fiitobot.Services.Commands;
+﻿using fiitobot.Services.Commands;
 using System.Threading.Tasks;
 
 namespace fiitobot.Services
@@ -11,13 +11,20 @@ namespace fiitobot.Services
         {
             this.presenter = presenter;
         }
-        public string[] Synonyms => new[] { "/start", "/help" };
+        public virtual string Command => "/start";
 
-        public AccessRight[] AllowedFor => new[]
-            { AccessRight.Admin, AccessRight.External, AccessRight.Staff, AccessRight.Student, };
+        public ContactType[] AllowedFor => ContactTypes.All;
         public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
         {
             await presenter.ShowHelp(fromChatId, sender?.Type ?? ContactType.External);
         }
+    }
+
+    public class HelpCommandHandler : StartCommandHandler
+    {
+        public HelpCommandHandler(IPresenter presenter) : base(presenter)
+        {
+        }
+        public override string Command => "/help";
     }
 }

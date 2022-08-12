@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using fiitobot.GoogleSpreadsheet;
 using fiitobot.Services;
 using fiitobot.Services.Commands;
@@ -46,7 +46,7 @@ namespace fiitobot
                 var commands = new IChatCommandHandler[]
                 {
                     new StartCommandHandler(presenter),
-                    new MeCommandHandler(botDataRepository, presenter),
+                    new HelpCommandHandler(presenter),
                     new ContactsCommandHandler(botDataRepository, presenter),
                     new RandomCommandHandler(botDataRepository, presenter, new Random()), 
                     new ReloadCommandHandler(presenter, contactsRepo, detailsRepo, botDataRepository),
@@ -55,7 +55,8 @@ namespace fiitobot
                     new RejectPhotoCommandHandler(presenter, botDataRepository, photoRepo, settings.ModeratorsChatId),
                     new TellToContactCommandHandler(presenter, botDataRepository),
                     new UpdateStudentStatusesFromItsCommandHandler(presenter, studentsDownloader, botDataRepository, contactsRepo),
-                    new JoinCommandHandler(presenter, botDataRepository, settings.ModeratorsChatId)
+                    new JoinCommandHandler(presenter, botDataRepository, settings.ModeratorsChatId),
+                    new DetailsCommandHandler(presenter, botDataRepository)
                 };
                 var updateService = new HandleUpdateService(botDataRepository, namedPhotoDirectory, photoRepo, downloader, presenter, commands);
                 updateService.Handle(update).Wait();

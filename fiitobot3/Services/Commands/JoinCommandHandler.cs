@@ -15,9 +15,9 @@ namespace fiitobot.Services.Commands
             this.repo = repo;
             this.reviewerChatId = reviewerChatId;
         }
-        
-        public string[] Synonyms => new[] { "/join" };
-        public AccessRight[] AllowedFor => new[] { AccessRight.External };
+
+        public string Command => "/join";
+        public ContactType[] AllowedFor => new[] { ContactType.External };
         public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
         {
             if (sender.Type != ContactType.External)

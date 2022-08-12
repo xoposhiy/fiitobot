@@ -38,7 +38,7 @@ namespace fiitobot.Services
                 if (DateTime.Now - lastUpdateTime <= TimeSpan.FromMinutes(1) && !force) return;
                 contacts = LoadContacts(ContactType.Student, StudentsSheetName);
                 admins = LoadContacts(ContactType.Administration, "Administrators");
-                teachers = LoadContacts(ContactType.Teacher, "Teachers");
+                teachers = LoadContacts(ContactType.Staff, "Teachers");
                 otherSpreadsheets = LoadDetailSourceSpreadsheets();
                 lastUpdateTime = DateTime.Now;
             }

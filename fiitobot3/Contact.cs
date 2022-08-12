@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace fiitobot
 {
@@ -104,7 +104,16 @@ namespace fiitobot
         External = -1,
         Student = 0,
         Administration = 1,
-        Teacher = 2
+        Staff = 2,
+    }
+
+    public static class ContactTypes
+    {
+        public static ContactType[] All = new ContactType[]
+            { ContactType.Administration, ContactType.Staff, ContactType.Student, ContactType.External };
+
+        public static ContactType[] AllNotExternal => new[]
+            { ContactType.Administration, ContactType.Staff, ContactType.Student };
     }
 
     public static class PluralizeExtensions

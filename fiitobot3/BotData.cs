@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
@@ -24,6 +24,18 @@ namespace fiitobot
                 return exactResults;
             return allSearchable.Where(c => c.Contact.SameContact(query)).ToArray();
         }
+
+        public PersonData[] SearchPeople(string query)
+        {
+            var res = FindPerson(query);
+            if (res.Length > 0) return res;
+            var parts = query.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            return parts.Select(FindPerson)
+                       .Where(g => g.Length > 0)
+                       .MinBy(g => g.Length)
+                   ?? Array.Empty<PersonData>();
+        }
+
 
         public static bool ExactSameContact(Contact contact, string query)
         {

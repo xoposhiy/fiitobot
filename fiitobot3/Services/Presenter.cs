@@ -30,18 +30,18 @@ namespace fiitobot.Services
     {
         Task Say(string text, long chatId);
         Task ShowContact(Contact contact, long chatId, ContactDetailsLevel detailsLevel);
-        Task ShowPhoto(Contact contact, PersonPhoto photo, long chatId, AccessRight right);
+        Task ShowPhoto(Contact contact, PersonPhoto photo, long chatId, ContactType senderType);
         Task ShowOtherResults(Contact[] otherContacts, long chatId);
         Task SayNoResults(long chatId);
-        Task SayNoRights(long chatId, AccessRight userAccessRights);
+        Task SayNoRights(long chatId, ContactType senderType);
         Task SayBeMoreSpecific(long chatId);
-        Task InlineSearchResults(string inlineQueryId, Contact[] foundContacts, AccessRight right);
+        Task InlineSearchResults(string inlineQueryId, Contact[] foundContacts);
         Task ShowDetails(PersonData person, string[] sources, long chatId);
         Task SayReloadStarted(long chatId);
         Task SayReloaded(BotData botData, long chatId);
         Task ShowErrorToDevops(Update incomingUpdate, string errorMessage);
         Task ShowHelp(long chatId, ContactType senderType);
-        Task ShowContactsBy(string criteria, IList<Contact> people, long chatId, AccessRight accessRight);
+        Task ShowContactsBy(string criteria, IList<Contact> people, long chatId);
         Task ShowDownloadContactsYearSelection(long chatId);
         Task ShowDownloadContactsSuffixSelection(long chatId, string year);
         Task SendContacts(long chatId, byte[] content, string filename);
@@ -50,7 +50,7 @@ namespace fiitobot.Services
         Task SayPhotoGoesToModeration(long chatId, Stream photo);
         Task SayPhotoAccepted(Contact photoOwner, Contact moderator, long chatId);
         Task SayPhotoRejected(Contact photoOwner, Contact moderator, long chatId);
-        Task ShowPhoto(Contact personContact, byte[] photoBytes, long chatId, AccessRight accessRight);
+        Task ShowPhoto(Contact personContact, byte[] photoBytes, long chatId);
         Task PromptChangePhoto(long chatId);
         Task OfferToSetHisPhoto(long chatId);
     }
@@ -66,7 +66,7 @@ namespace fiitobot.Services
             this.settings = settings;
         }
 
-        public async Task InlineSearchResults(string inlineQueryId, Contact[] foundContacts, AccessRight right)
+        public async Task InlineSearchResults(string inlineQueryId, Contact[] foundContacts)
         {
             var results = foundContacts.Select(c =>
                 new InlineQueryResultArticle(c.GetHashCode().ToString(), $"{c.LastName} {c.FirstName} {c.FormatMnemonicGroup(DateTime.Now)} {c.Telegram}",
@@ -124,7 +124,7 @@ namespace fiitobot.Services
         public async Task ShowHelp(long chatId, ContactType senderType)
         {
             var b = new StringBuilder("Это бот для команды и студентов ФИИТ УрФУ. Напиши фамилию и/или имя студента ФИИТ и я расскажу всё, что о нём знаю. Но только если ты из ФИИТ.");
-            if (senderType.IsOneOf(ContactType.Student, ContactType.Teacher, ContactType.Administration))
+            if (senderType.IsOneOf(ContactType.Student, ContactType.Staff, ContactType.Administration))
                 b.Append("\n\nМожешь прислать мне свою фотографию, и ее будут видеть все, кто запросит твой контакт у фиитобота");
             if (senderType.IsOneOf(ContactType.Administration))
                 b.AppendLine(
@@ -174,7 +174,7 @@ namespace fiitobot.Services
             {
                 var inlineKeyboardMarkup = detailsLevel.HasFlag(ContactDetailsLevel.Marks)
                     ? new InlineKeyboardMarkup(new InlineKeyboardButton("Подробнее!")
-                    { CallbackData = $"Досье {contact.LastName} {contact.FirstName}" })
+                    { CallbackData = $"/details {contact.LastName} {contact.FirstName}" })
                     : null;
                 var htmlText = FormatContactAsHtml(contact, detailsLevel);
                 await botClient.SendTextMessageAsync(chatId, htmlText, ParseMode.Html,
@@ -187,7 +187,7 @@ namespace fiitobot.Services
             }
         }
 
-        public async Task ShowPhoto(Contact contact, byte[] photoBytes, long chatId, AccessRight accessRight)
+        public async Task ShowPhoto(Contact contact, byte[] photoBytes, long chatId)
         {
             var caption = contact.FirstName + " " + contact.LastName;
             await botClient.SendPhotoAsync(chatId, new InputOnlineFile(new MemoryStream(photoBytes)), caption: caption, parseMode: ParseMode.Html);
@@ -208,9 +208,9 @@ namespace fiitobot.Services
             await Say("Тут могла бы быть твоя фотка, но ее нет. Пришли мне свою фотку, чтобы это исправить!", chatId);
         }
 
-        public async Task ShowPhoto(Contact contact, PersonPhoto photo, long chatId, AccessRight right)
+        public async Task ShowPhoto(Contact contact, PersonPhoto photo, long chatId, ContactType senderType)
         {
-            var caption = right.IsOneOf(AccessRight.Admin)
+            var caption = senderType.IsOneOf(ContactType.Administration)
                 ? $"<a href='{photo.PhotosDirectory}'>{photo.Name}</a>"
                 : contact.FirstName + " " + contact.LastName;
             await botClient.SendPhotoAsync(chatId, new InputOnlineFile(photo.PhotoUri), caption: caption, parseMode: ParseMode.Html);
@@ -227,9 +227,9 @@ namespace fiitobot.Services
             await botClient.SendTextMessageAsync(chatId, $"Уточните свой запрос", ParseMode.Html);
         }
 
-        public async Task SayNoRights(long chatId, AccessRight userAccessRights)
+        public async Task SayNoRights(long chatId, ContactType senderType)
         {
-            if (userAccessRights == AccessRight.External)
+            if (senderType == ContactType.External)
                 await botClient.SendTextMessageAsync(chatId, $"Этот бот только для студентов и преподавателей ФИИТ УрФУ. Если вы студент или преподаватель, и вам нужен доступ к контактам студентов, выполните команду /join и модераторы отреагируют на ваш запрос", ParseMode.Html);
             else
                 await botClient.SendTextMessageAsync(chatId, "Простите, эта команда не для вас.", ParseMode.Html);
@@ -258,7 +258,7 @@ namespace fiitobot.Services
                 b.AppendLine($"Команда ФИИТ");
                 b.AppendLine($"Чем занимается: {contact.Job}");
             }
-            else if (contact.Type == ContactType.Teacher)
+            else if (contact.Type == ContactType.Staff)
             {
                 b.AppendLine($"Преподаватель ФИИТ");
                 b.AppendLine($"Чем занимается: {contact.Job}");
@@ -305,13 +305,16 @@ namespace fiitobot.Services
             else return "неизвестно как 🤷‍";
         }
 
-        public async Task ShowContactsBy(string criteria, IList<Contact> people, long chatId, AccessRight accessRight)
+        public async Task ShowContactsBy(string criteria, IList<Contact> people, long chatId)
         {
             people = people.OrderByDescending(p => p.AdmissionYear).ThenBy(p => p.LastName).ThenBy(p => p.FirstName).ToList();
             var listCount = people.Count > 20 ? 15 : people.Count;
             var list = string.Join("\n", people.Select(RenderContactAsListItem).Take(20));
             var ending = listCount < people.Count ? $"\n\nЕсть ещё {people.Count - listCount} подходящих человек" : "";
-            await botClient.SendTextMessageAsync(chatId, $"{criteria}:\n\n{list}{ending}", ParseMode.Html);
+            if (listCount == 0)
+                await botClient.SendTextMessageAsync(chatId, list, ParseMode.Html);
+            else
+                await botClient.SendTextMessageAsync(chatId, $"{criteria}:\n\n{list}{ending}", ParseMode.Html);
         }
 
         public async Task ShowDownloadContactsYearSelection(long chatId)
@@ -422,7 +425,7 @@ namespace fiitobot.Services
             {
                 ContactType.Student => p.FormatMnemonicGroup(DateTime.Now),
                 ContactType.Administration => "Команда ФИИТ. " + p.Job,
-                ContactType.Teacher => "Преподаватель ФИИТ. " + p.Job,
+                ContactType.Staff => "Преподаватель ФИИТ. " + p.Job,
                 _ => p.Type.ToString()
             };
             return $"<code>{p.LastName} {p.FirstName}</code> {p.Telegram} {who}";
@@ -430,7 +433,7 @@ namespace fiitobot.Services
 
         public async Task ShowOtherResults(Contact[] otherContacts, long chatId)
         {
-            await ShowContactsBy("Ещё результаты", otherContacts, chatId, AccessRight.Student);
+            await ShowContactsBy("Ещё результаты", otherContacts, chatId);
         }
 
         public async Task Say(string text, long chatId)

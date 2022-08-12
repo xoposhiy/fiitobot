@@ -19,8 +19,6 @@ public class DialogTests
     {
         data = new BotDataBuilder().Build();
     }
-
-
     
     [TestCase("Мизурова", "Мизуро́ва")]
     [TestCase("Мизуро́ва", "Мизуро́ва")]
@@ -38,7 +36,7 @@ public class DialogTests
         var sender = AStudent();
         var handleUpdateService = PrepareUpdateService(contactsPresenter);
         
-        await handleUpdateService.HandlePlainText(query, 123, sender, AccessRight.Student);
+        await handleUpdateService.HandlePlainText(query, 123, sender);
         
         A.CallTo(() => contactsPresenter.ShowContact(
                 A<Contact>.That.Matches(c => c.LastName == expectedLastNameOfSingleResult), 
@@ -56,31 +54,13 @@ public class DialogTests
         var sender = AStudent();
         var handleUpdateService = PrepareUpdateService(contactsPresenter);
 
-        await handleUpdateService.HandlePlainText(query, 123, sender, AccessRight.Student);
+        await handleUpdateService.HandlePlainText(query, 123, sender);
         //TODO Проверить, что НЕ одногруппник НЕ видит контакты
         A.CallTo(() => contactsPresenter.ShowContact(
                 A<Contact>.Ignored,
                 123, A<ContactDetailsLevel>.Ignored))
             .MustHaveHappenedOnceExactly();
         Assert.AreEqual(1, Fake.GetCalls(contactsPresenter).Count());
-    }
-
-    [TestCase("/me")]
-    public async Task Me_ShowsSingleContact(string query)
-    {
-        var contactsPresenter = A.Fake<IPresenter>();
-        var sender = AStudent();
-        sender.TgId = 123123123;
-        var handleUpdateService = PrepareUpdateService(contactsPresenter);
-
-        await handleUpdateService.HandlePlainText(query, 123123123, sender, AccessRight.Student);
-
-        A.CallTo(() => contactsPresenter.ShowContact(
-                A<Contact>.That.Matches(c => c.ToString() == "Иван Иванов @username 123123123"),
-                123123123, ContactDetailsLevel.Contacts | ContactDetailsLevel.Minimal))
-            .MustHaveHappenedOnceExactly();
-        A.CallTo(() => contactsPresenter.Say(A<string>.Ignored, 123123123)).MustHaveHappenedOnceExactly();
-        Assert.AreEqual(2, Fake.GetCalls(contactsPresenter).Count());
     }
 
     [TestCase("Мизурова", ContactDetailsLevel.Minimal | ContactDetailsLevel.Contacts)]
@@ -92,7 +72,7 @@ public class DialogTests
         var photoRepo = A.Fake<INamedPhotoDirectory>();
         var handleUpdateService = PrepareUpdateService(contactsPresenter, photoRepo);
 
-        await handleUpdateService.HandlePlainText(query, 123, sender, AccessRight.Student);
+        await handleUpdateService.HandlePlainText(query, 123, sender);
 
         A.CallTo(() => photoRepo.FindPhoto(A<Contact>.Ignored))
             .Returns(Task.FromResult(new PersonPhoto(null, null, null)));
@@ -101,32 +81,45 @@ public class DialogTests
                 123, expectedDetailsLevel))
             .MustHaveHappenedOnceExactly();
         A.CallTo(() => contactsPresenter.ShowPhoto(
-                A<Contact>.Ignored, A<byte[]>.Ignored, 123, AccessRight.Student))
+                A<Contact>.Ignored, A<byte[]>.Ignored, 123))
             .MustHaveHappenedOnceExactly();
     }
     
-    [TestCase("Досье Мизурова")]
+    [TestCase("/details Мизурова")]
     public async Task AdminDetailsQuery_ShowsDetails(string query)
     {
         var contactsPresenter = A.Fake<IPresenter>();
-        var sender = AStudent();
+        var sender = AnAdmin();
         var handleUpdateService = PrepareUpdateService(contactsPresenter);
 
-        await handleUpdateService.HandlePlainText(query, 123, sender, AccessRight.Admin);
+        await handleUpdateService.HandlePlainText(query, 123, sender);
 
         A.CallTo(() => contactsPresenter.ShowDetails(
             A<PersonData>.Ignored, data!.SourceSpreadsheets, 123))
             .MustHaveHappenedOnceExactly();
     }
 
-    [TestCase("Досье Мизурова")]
+    [TestCase("/details Мизурова")]
+    public async Task StudentDetailsQuery_NoRights(string query)
+    {
+        var contactsPresenter = A.Fake<IPresenter>();
+        var sender = AStudent();
+        var handleUpdateService = PrepareUpdateService(contactsPresenter);
+
+        await handleUpdateService.HandlePlainText(query, 123, sender);
+
+        A.CallTo(() => contactsPresenter.SayNoRights(123, ContactType.Student))
+            .MustHaveHappenedOnceExactly();
+    }
+
+    [TestCase("/details Мизурова")]
     public async Task DoNotShowDetailsToStudents(string query)
     {
         var contactsPresenter = A.Fake<IPresenter>();
         var sender = AStudent();
         var handleUpdateService = PrepareUpdateService(contactsPresenter);
 
-        await handleUpdateService.HandlePlainText(query, 123, sender, AccessRight.Student);
+        await handleUpdateService.HandlePlainText(query, 123, sender);
 
         A.CallTo(() => contactsPresenter.ShowDetails(
                 null, null, 123))
@@ -141,7 +134,7 @@ public class DialogTests
         var sender = AnAdmin();
         var handleUpdateService = PrepareUpdateService(contactsPresenter);
 
-        await handleUpdateService.HandlePlainText(query, 123, sender, AccessRight.Admin);
+        await handleUpdateService.HandlePlainText(query, 123, sender);
 
         A.CallTo(() => contactsPresenter.ShowContact(
                 A<Contact>.Ignored,
@@ -166,7 +159,7 @@ public class DialogTests
         var sender = AStudent();
         var handleUpdateService = PrepareUpdateService(contactsPresenter);
         
-        await handleUpdateService.HandlePlainText(firstName, 42, sender, AccessRight.Student);
+        await handleUpdateService.HandlePlainText(firstName, 42, sender);
         
         A.CallTo(() => contactsPresenter.ShowContact(
                 A<Contact>.That.Matches(c => c.FirstName == firstName), 
@@ -185,7 +178,7 @@ public class DialogTests
         var sender = AStudent();
         var handleUpdateService = PrepareUpdateService(contactsPresenter);
 
-        await handleUpdateService.HandlePlainText(query, 42, sender, AccessRight.Student);
+        await handleUpdateService.HandlePlainText(query, 42, sender);
 
         A.CallTo(() => contactsPresenter.SayNoResults(42))
             .MustHaveHappenedOnceExactly();
@@ -199,9 +192,9 @@ public class DialogTests
         var handleUpdateService = PrepareUpdateService(contactsPresenter);
         var externalUser = AGuest();
 
-        await handleUpdateService.HandlePlainText(query, 42, externalUser, AccessRight.External);
+        await handleUpdateService.HandlePlainText(query, 42, externalUser);
 
-        A.CallTo(() => contactsPresenter.SayNoRights(42, AccessRight.External))
+        A.CallTo(() => contactsPresenter.SayNoRights(42, ContactType.External))
             .MustHaveHappenedOnceExactly();
         Assert.AreEqual(1, Fake.GetCalls(contactsPresenter).Count());
     }
@@ -219,7 +212,7 @@ public class DialogTests
         var contactsPresenter = A.Fake<IPresenter>();
         var handleUpdateService = PrepareUpdateService(contactsPresenter);
 
-        await handleUpdateService.HandlePlainText("/join " + query, 555, AGuest(), AccessRight.External);
+        await handleUpdateService.HandlePlainText("/join " + query, 555, AGuest());
 
         A.CallTo(() => contactsPresenter.Say(A<string>.Ignored, 111)) // Кто-то хочет доступ!
             .MustHaveHappenedOnceExactly(); 
@@ -240,14 +233,13 @@ public class DialogTests
         var sender = AStudent();
         var handleUpdateService = PrepareUpdateService(contactsPresenter);
 
-        await handleUpdateService.HandlePlainText(query, 42, sender, AccessRight.Student);
+        await handleUpdateService.HandlePlainText(query, 42, sender);
 
         A.CallTo(() => 
                 contactsPresenter.ShowContactsBy(
                     A<string>.Ignored, 
                     A<IList<Contact>>.That.Matches(p => p.Count == 1), 
-                    42, 
-                    AccessRight.Student))
+                    42))
             .MustHaveHappenedOnceExactly();
         Assert.AreEqual(1, Fake.GetCalls(contactsPresenter).Count());
     }
@@ -261,7 +253,8 @@ public class DialogTests
         var commands = new IChatCommandHandler[]
         {
             new StartCommandHandler(presenter),
-            new MeCommandHandler(repo, presenter),
+            new HelpCommandHandler(presenter),
+            new DetailsCommandHandler(presenter, repo),
             new ContactsCommandHandler(repo, presenter),
             new RandomCommandHandler(repo, presenter, new Random()),
             new JoinCommandHandler(presenter, repo, 111),

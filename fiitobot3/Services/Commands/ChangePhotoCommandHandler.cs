@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Threading.Tasks;
 
 namespace fiitobot.Services.Commands
@@ -18,8 +18,8 @@ namespace fiitobot.Services.Commands
             this.reviewerChatId = reviewerChatId;
         }
 
-        public string[] Synonyms => new[] { "/changephoto" };
-        public AccessRight[] AllowedFor => new[] { AccessRight.Admin, AccessRight.Staff, AccessRight.Student, };
+        public string Command => "/changephoto";
+        public ContactType[] AllowedFor => ContactTypes.AllNotExternal;
         public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
         {
             var photo = await photoRepository.TryGetPhotoForModeration(fromChatId);

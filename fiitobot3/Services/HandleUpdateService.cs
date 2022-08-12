@@ -1,4 +1,4 @@
-using fiitobot.Services.Commands;
+﻿using fiitobot.Services.Commands;
 using System;
 using System.IO;
 using System.Linq;
@@ -11,15 +11,6 @@ using Telegram.Bot.Types.Enums;
 
 namespace fiitobot.Services
 {
-    public enum AccessRight
-    {
-        Admin, // Can reload data
-        Staff, // Can see all data about students. Can't reload.
-        Student, // Can see short info about students.
-        External // Can't see anything.
-    }
-
-
     public class HandleUpdateService
     {
         private readonly IPresenter presenter;
@@ -74,17 +65,17 @@ namespace fiitobot.Services
         {
             //if (!await EnsureHasAdminRights(callbackQuery.From, callbackQuery.Message!.Chat.Id)) return;
             var sender = GetSenderContact(null, callbackQuery.From);
-            await HandlePlainText(callbackQuery.Data!, callbackQuery.Message!.Chat.Id, sender, AccessRight.Staff);
+            await HandlePlainText(callbackQuery.Data!, callbackQuery.Message!.Chat.Id, sender);
         }
 
         private async Task BotOnInlineQuery(InlineQuery inlineQuery)
         {
             if (inlineQuery.Query.Length < 2) return;
-            var right = GetRights(inlineQuery.From);
-            if (!right.IsOneOf(AccessRight.Admin, AccessRight.Staff, AccessRight.Student)) return;
-            var foundPeople = SearchPeople(inlineQuery.Query);
+            var sender = GetSenderContact(null, inlineQuery.From);
+            if (!sender.Type.IsOneOf(ContactTypes.AllNotExternal)) return;
+            var foundPeople = botDataRepo.GetData().SearchPeople(inlineQuery.Query);
             if (foundPeople.Length > 10) return;
-            await presenter.InlineSearchResults(inlineQuery.Id, foundPeople.Select(c => c.Contact).ToArray(), right);
+            await presenter.InlineSearchResults(inlineQuery.Id, foundPeople.Select(c => c.Contact).ToArray());
         }
 
         private async Task BotOnMessageReceived(Message message)
@@ -95,24 +86,21 @@ namespace fiitobot.Services
             var silentOnNoResults = message.ReplyToMessage != null;
             var messageFrom = message.From;
             if (messageFrom == null) return;
-            var accessRight = GetRights(messageFrom);
             var sender = GetSenderContact(message.Chat, message.From);
             var fromChatId = message.Chat.Id;
             var inGroupChat = messageFrom.Id != fromChatId;
-            if (inGroupChat && accessRight.IsOneOf(AccessRight.Admin, AccessRight.Staff))
-                accessRight = AccessRight.Student; // в групповых чатах не показывать секретную инфу.
             if (message.Type == MessageType.Text)
                 if (message.ForwardFrom != null)
-                    await HandleForward(message.ForwardFrom!, sender, fromChatId, accessRight);
+                    await HandleForward(message.ForwardFrom!, sender, fromChatId);
                 else
-                    await HandlePlainText(message.Text!, fromChatId, sender, accessRight, silentOnNoResults);
+                    await HandlePlainText(message.Text!, fromChatId, sender, silentOnNoResults);
             else if (!inGroupChat && message.Type == MessageType.Photo)
-                await HandlePhoto(message, accessRight, fromChatId);
+                await HandlePhoto(message, sender, fromChatId);
         }
 
-        private async Task HandlePhoto(Message message, AccessRight accessRight, long fromChatId)
+        private async Task HandlePhoto(Message message, Contact sender, long fromChatId)
         {
-            if (accessRight.IsOneOf(AccessRight.Admin, AccessRight.Staff, AccessRight.Student))
+            if (sender.Type != ContactType.External)
             {
                 var fileId = message.Photo!.Last().FileId;
                 byte[] file = await fileDownloader.GetFileAsync(fileId);
@@ -121,7 +109,7 @@ namespace fiitobot.Services
             }
             else
             {
-                await presenter.SayNoRights(fromChatId, accessRight);
+                await presenter.SayNoRights(fromChatId, sender.Type);
             }
         }
 
@@ -134,11 +122,11 @@ namespace fiitobot.Services
                     chat?.Bio + "\n" + chat?.Description, user.Id, "", ContactType.External, "", "", null);
         }
 
-        private async Task HandleForward(User forwardFrom, Contact sender, long fromChatId, AccessRight accessRight)
+        private async Task HandleForward(User forwardFrom, Contact sender, long fromChatId)
         {
-            if (accessRight == AccessRight.External || sender.Type == ContactType.External)
+            if (sender.Type == ContactType.External)
             {
-                await presenter.SayNoRights(fromChatId, accessRight);
+                await presenter.SayNoRights(fromChatId, sender.Type);
                 return;
             }
             var person = GetSenderContact(null, forwardFrom);
@@ -148,71 +136,63 @@ namespace fiitobot.Services
                 await presenter.SayNoResults(fromChatId);
         }
 
-        private AccessRight GetRights(User user)
+        public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
         {
-            var botData = botDataRepo.GetData();
-            if (user.Id == 33598070 || botData.IsAdmin(user.Id, user.Username)) 
-                return AccessRight.Admin;
-            if (botData.IsTeacher(user.Id, user.Username))
-                return AccessRight.Staff;
-            if (botData.IsStudent(user.Id, user.Username)) 
-                return AccessRight.Student;
-            return AccessRight.External;
-        }
-
-        public async Task HandlePlainText(string text, long fromChatId, Contact sender, AccessRight accessRight,
-            bool silentOnNoResults = false)
-        {
-            bool replyAsForStudent = false;
-            if (text.StartsWith("asstudent ") && sender.Type != ContactType.External)
+            if (sender.Type == ContactType.Administration)
             {
-                text = text.Replace("asstudent ", "");
-                replyAsForStudent = true;
+                if (text.StartsWith("/as_staff "))
+                {
+                    text = text.Replace("/as_staff ", "");
+                    sender.Type = ContactType.Staff;
+                }
+                if (text.StartsWith("/as_student "))
+                {
+                    text = text.Replace("/as_student ", "");
+                    sender.Type = ContactType.Student;
+                }
+                if (text.StartsWith("/as_external "))
+                {
+                    text = text.Replace("/as_external ", "");
+                    sender.Type = ContactType.External;
+                }
             }
 
-            var command = commands.FirstOrDefault(c => c.Synonyms.Any(synonym => text.StartsWith(synonym)));
+            var command = commands.FirstOrDefault(c => text.StartsWith(c.Command));
 
             if (command != null)
             {
-                if (accessRight.IsOneOf(command.AllowedFor))
+                if (sender.Type.IsOneOf(command.AllowedFor))
                     await command.HandlePlainText(text, fromChatId, sender, silentOnNoResults);
                 else
-                    await presenter.SayNoRights(fromChatId, accessRight);
+                    await presenter.SayNoRights(fromChatId, sender.Type);
                 return;
             }
 
-            if (accessRight == AccessRight.External)
+            if (sender.Type == ContactType.External)
             {
-                await presenter.SayNoRights(fromChatId, accessRight);
-                return;
-            }
-            if (text.StartsWith("Досье") && accessRight.IsOneOf(AccessRight.Admin, AccessRight.Staff))
-            {
-                await ShowDetails(text.Split(" ").Skip(1).StrJoin(" "), fromChatId);
+                await presenter.SayNoRights(fromChatId, sender.Type);
                 return;
             }
             if (text.StartsWith("/"))
                 return;
-            var contacts = SearchPeople(text);
+            var contacts = botDataRepo.GetData().SearchPeople(text);
             const int maxResultsCount = 1;
             foreach (var person in contacts.Take(maxResultsCount))
             {
                 if (person.Contact.TgId == fromChatId)
                     await SayCompliment(person.Contact, fromChatId);
                 ContactDetailsLevel detailsLevel = person.Contact.GetDetailsLevelFor(sender);
-                if (replyAsForStudent && detailsLevel > ContactDetailsLevel.Minimal)
-                    detailsLevel = ContactDetailsLevel.Minimal;
                 await presenter.ShowContact(person.Contact, fromChatId, detailsLevel);
                 var selfUploadedPhoto = await photoRepo.TryGetModeratedPhoto(person.Contact.TgId);
                 if (selfUploadedPhoto != null)
                 {
-                    await presenter.ShowPhoto(person.Contact, selfUploadedPhoto, fromChatId, accessRight);
+                    await presenter.ShowPhoto(person.Contact, selfUploadedPhoto, fromChatId);
                 }
                 else
                 {
                     var photo = await namedPhotoDirectory.FindPhoto(person.Contact);
                     if (photo != null)
-                        await presenter.ShowPhoto(person.Contact, photo, fromChatId, accessRight);
+                        await presenter.ShowPhoto(person.Contact, photo, fromChatId, sender.Type);
                     else
                     {
                         if (fromChatId == person.Contact.TgId)
@@ -225,25 +205,26 @@ namespace fiitobot.Services
                 await presenter.ShowOtherResults(contacts.Skip(1).Select(p => p.Contact).ToArray(), fromChatId);
             if (contacts.Length == 0)
             {
-                if (await ShowContactsListBy(text, c => c.School, fromChatId, accessRight))
+                if (await ShowContactsListBy(text, c => c.School, fromChatId))
                     return;
-                if (await ShowContactsListBy(text, c => c.City, fromChatId, accessRight))
+                if (await ShowContactsListBy(text, c => c.City, fromChatId))
+                    return;
+                if (await ShowContactsListBy(text, c => c.Job, fromChatId))
                     return;
                 if (!silentOnNoResults)
                     await presenter.SayNoResults(fromChatId);
             }
         }
 
-        private async Task<bool> ShowContactsListBy(string text, Func<Contact, string> getProperty, long chatId,
-            AccessRight accessRight)
+        private async Task<bool> ShowContactsListBy(string text, Func<Contact, string> getProperty, long chatId)
         {
             var botData = botDataRepo.GetData();
-            var contacts = botData.Students.Select(p => p.Contact).ToList();
-            var res = contacts.Where(c => SmartContains(getProperty(c), text))
+            var contacts = botData.AllContacts.Select(p => p.Contact).ToList();
+            var res = contacts.Where(c => SmartContains(getProperty(c) ?? "", text))
                 .ToList();
             if (res.Count == 0) return false;
             var bestGroup = res.GroupBy(getProperty).MaxBy(g => g.Count());
-            await presenter.ShowContactsBy(bestGroup.Key, bestGroup.ToList(), chatId, accessRight);
+            await presenter.ShowContactsBy(bestGroup.Key, bestGroup.ToList(), chatId);
             return true;
         }
 
@@ -258,28 +239,6 @@ namespace fiitobot.Services
                 await presenter.Say("Ты прекрасна, спору нет! ❤", fromChatId);
             else
                 await presenter.Say("Ты прекрасен, спору нет! ✨", fromChatId);
-        }
-
-        private async Task ShowDetails(string query, long fromChatId)
-        {
-            var botData = botDataRepo.GetData();
-            var contacts = SearchPeople(query);
-            if (contacts.Length == 1)
-                await presenter.ShowDetails(contacts[0], botData.SourceSpreadsheets, fromChatId);
-            else
-                await presenter.SayBeMoreSpecific(fromChatId);
-        }
-
-        private PersonData[] SearchPeople(string text)
-        {
-            var botData = botDataRepo.GetData();
-            var res = botData.FindPerson(text);
-            if (res.Length > 0) return res;
-            var parts = text.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-            return parts.Select(part => botData.FindPerson(part))
-                       .Where(g => g.Length > 0)
-                       .MinBy(g => g.Length)
-                   ?? Array.Empty<PersonData>();
         }
 
         private Task UnknownUpdateHandlerAsync(Update update)

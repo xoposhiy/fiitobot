@@ -1,4 +1,4 @@
-using System.Linq;
+﻿using System.Linq;
 using System.Threading.Tasks;
 
 namespace fiitobot.Services.Commands
@@ -18,8 +18,8 @@ namespace fiitobot.Services.Commands
             this.reviewerChatId = reviewerChatId;
         }
 
-        public string[] Synonyms => new[] { "/reject_photo" };
-        public AccessRight[] AllowedFor => new[] { AccessRight.Admin, AccessRight.Staff, AccessRight.Student, };
+        public string Command => "/reject_photo";
+        public ContactType[] AllowedFor => ContactTypes.AllNotExternal;
         public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
         {
             if (fromChatId != reviewerChatId) return;
@@ -52,8 +52,8 @@ namespace fiitobot.Services.Commands
             this.reviewerChatId = reviewerChatId;
         }
 
-        public string[] Synonyms => new[] { "/accept_photo" };
-        public AccessRight[] AllowedFor => new[] { AccessRight.Admin, AccessRight.Staff, AccessRight.Student, };
+        public string Command => "/accept_photo";
+        public ContactType[] AllowedFor => ContactTypes.AllNotExternal;
         public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
         {
             if (fromChatId != reviewerChatId) return;
