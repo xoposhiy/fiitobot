@@ -1,13 +1,12 @@
-﻿using fiitobot.Services.Commands;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 
-namespace fiitobot.Services
+namespace fiitobot.Services.Commands
 {
-    public class StartCommandHandler : IChatCommandHandler
+    public class HelpCommandHandler : IChatCommandHandler
     {
         private readonly IPresenter presenter;
 
-        public StartCommandHandler(IPresenter presenter)
+        public HelpCommandHandler(IPresenter presenter)
         {
             this.presenter = presenter;
         }
@@ -18,13 +17,5 @@ namespace fiitobot.Services
         {
             await presenter.ShowHelp(fromChatId, sender?.Type ?? ContactType.External);
         }
-    }
-
-    public class HelpCommandHandler : StartCommandHandler
-    {
-        public HelpCommandHandler(IPresenter presenter) : base(presenter)
-        {
-        }
-        public override string Command => "/help";
     }
 }

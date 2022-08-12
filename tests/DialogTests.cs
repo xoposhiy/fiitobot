@@ -253,7 +253,7 @@ public class DialogTests
         var repo = new MemoryBotDataRepository(data);
         var commands = new IChatCommandHandler[]
         {
-            new StartCommandHandler(presenter),
+            new StartCommandHandler(presenter, repo),
             new HelpCommandHandler(presenter),
             new DetailsCommandHandler(presenter, repo),
             new ContactsCommandHandler(repo, presenter),

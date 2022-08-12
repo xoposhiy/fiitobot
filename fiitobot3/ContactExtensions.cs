@@ -1,4 +1,4 @@
-using fiitobot.Services;
+﻿using fiitobot.Services;
 
 namespace fiitobot
 {
@@ -9,7 +9,7 @@ namespace fiitobot
             return contactViewer.Type switch
             {
                 _ when contactViewer.TgId == 33598070 => ContactDetailsLevel.Iddqd, // @xoposhiy id
-                ContactType.Administration => ContactDetailsLevel.Minimal | ContactDetailsLevel.Contacts | ContactDetailsLevel.LinksToFiitTeamFiles | ContactDetailsLevel.Marks | ContactDetailsLevel.SecretNote,
+                ContactType.Administration => ContactDetailsLevel.Minimal | ContactDetailsLevel.Contacts | ContactDetailsLevel.LinksToFiitTeamFiles | ContactDetailsLevel.Marks | ContactDetailsLevel.SecretNote | ContactDetailsLevel.TechnicalInfo,
                 ContactType.Staff => ContactDetailsLevel.Minimal | ContactDetailsLevel.Contacts | ContactDetailsLevel.Marks,
                 ContactType.Student when contactViewer.AdmissionYear == contact.AdmissionYear => ContactDetailsLevel.Minimal | ContactDetailsLevel.Contacts,
                 ContactType.Student => ContactDetailsLevel.Minimal,

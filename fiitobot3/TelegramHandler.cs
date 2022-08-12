@@ -45,7 +45,7 @@ namespace fiitobot
 
                 var commands = new IChatCommandHandler[]
                 {
-                    new StartCommandHandler(presenter),
+                    new StartCommandHandler(presenter, botDataRepository),
                     new HelpCommandHandler(presenter),
                     new ContactsCommandHandler(botDataRepository, presenter),
                     new RandomCommandHandler(botDataRepository, presenter, new Random()), 
