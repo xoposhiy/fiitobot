@@ -123,18 +123,29 @@ namespace fiitobot.Services
 
         public async Task ShowHelp(long chatId, ContactType senderType)
         {
-            var b = new StringBuilder("Это бот для команды и студентов ФИИТ УрФУ. Напиши фамилию и/или имя студента ФИИТ и я расскажу всё, что о нём знаю. Но только если ты из ФИИТ.");
-            if (senderType.IsOneOf(ContactType.Student, ContactType.Staff, ContactType.Administration))
-                b.Append("\n\nМожешь прислать мне свою фотографию, и ее будут видеть все, кто запросит твой контакт у фиитобота");
-            if (senderType.IsOneOf(ContactType.Administration))
-                b.AppendLine(
-                    "\n\nВ любом другом чате напиши @fiitobot и после пробела начни писать фамилию. Я покажу, кого я знаю с такой фамилией, и после выбора конкретного студента, запощу карточку про студента в чат." +
-                    $"\n\nДанные я беру из <a href='{settings.SpreadsheetUrl}'>гугл-таблицы к контактами</a>" +
-                    $"\n\nНекоторые фотки я беру из <a href='{settings.PhotoListUrl}'>Яндекс диска</a>");
-            
-            await botClient.SendTextMessageAsync(chatId, b.ToString(), ParseMode.Html);
-        }
+            if (senderType == ContactType.External)
+                await SayNoRights(chatId, senderType);
+            else
+            {
+                var b = new StringBuilder("Напиши что-нибудь и я найду кого-нибудь из ФИИТ :)\nЯ понимаю имена, фамилии, юзернеймы Telegram, школы, города, компании и всякое.");
+                b.Append("\n\nЕщё можешь прислать мне свою фотографию, и её будут видеть все, кто запросит твой контакт у фиитобота.");
+                if (senderType.IsOneOf(ContactType.Administration))
+                    b.AppendLine(
+                        "\n\nВ любом другом чате напиши @fiitobot и после пробела начни писать фамилию. Я покажу, кого я знаю с такой фамилией, и после выбора конкретного студента, запощу карточку про студента в чат." +
+                        $"\n\nДанные я беру из <a href='{settings.SpreadsheetUrl}'>гугл-таблицы к контактами</a>." +
+                        $"\nНекоторые фотки я беру из <a href='{settings.PhotoListUrl}'>Яндекс диска</a>." +
+                        $"\n\n<b>Секретные админские команды:</b>")
+                        .AppendLine("/reload — перезагружает данные из гугл-таблиц.")
+                        .AppendLine("/its — обновляет статусы студентов из ИТС УрФУ.")
+                        .AppendLine("/tell @user message — отправляет message @user-у от имени фиитобота.")
+                        .AppendLine("/as_student ... — как это выглядит для студента.")
+                        .AppendLine("/as_staff ... — как это выглядит для препода.")
+                        .AppendLine("/as_external ... —  как это выглядит для внешних.");
 
+                await botClient.SendTextMessageAsync(chatId, b.ToString(), ParseMode.Html);
+            }
+        }
+        
         private string FormatErrorHtml(Update incomingUpdate, string errorMessage)
         {
             var formattedUpdate = FormatIncomingUpdate(incomingUpdate);

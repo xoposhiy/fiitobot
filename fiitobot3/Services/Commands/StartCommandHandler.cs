@@ -18,7 +18,10 @@ namespace fiitobot.Services.Commands
         public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
         {
             if (text == "/start")
-                await presenter.ShowHelp(fromChatId, sender?.Type ?? ContactType.External);
+            {
+                await presenter.ShowHelp(fromChatId, sender.Type);
+                return;
+            }
             var rest = text.Split(new[] { ' ' }, 2)[1].Trim();
             if (long.TryParse(rest, out var tgId))
             {

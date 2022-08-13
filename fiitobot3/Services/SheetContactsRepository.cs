@@ -158,6 +158,7 @@ namespace fiitobot.Services
                 Get("FirstName"),
                 Get("Patronymic"))
             {
+                AdmissionYear = int.TryParse(Get("AdmissionYear"), out var year) ? year : -1,
                 Status = Get("Status"),
                 GroupIndex = int.TryParse(Get("GroupIndex"), out var groupIndex) ? groupIndex : -1,
                 SubgroupIndex = int.TryParse(Get("SubgroupIndex"), out var subgroupIndex) ? subgroupIndex : -1,

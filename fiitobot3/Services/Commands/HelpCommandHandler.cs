@@ -10,12 +10,12 @@ namespace fiitobot.Services.Commands
         {
             this.presenter = presenter;
         }
-        public virtual string Command => "/start";
+        public virtual string Command => "/help";
 
         public ContactType[] AllowedFor => ContactTypes.All;
         public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
         {
-            await presenter.ShowHelp(fromChatId, sender?.Type ?? ContactType.External);
+            await presenter.ShowHelp(fromChatId, sender.Type);
         }
     }
 }
