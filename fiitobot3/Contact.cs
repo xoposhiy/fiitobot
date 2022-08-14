@@ -12,6 +12,8 @@ namespace fiitobot
 
     public class Contact
     {
+        public const string ActiveStatus = "Активный";
+
         public Contact(ContactType type, long tgId, string lastName, string firstName, string patronymic = "")
         {
             Type = type;

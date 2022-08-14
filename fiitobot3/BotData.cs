@@ -16,7 +16,15 @@ namespace fiitobot
 
         public PersonData[] FindPerson(string query)
         {
-            var allSearchable = AllContacts.ToList();
+            var res = FindPersonIn(query, AllContacts.Where(c => c.Contact.Status == Contact.ActiveStatus));
+            if (res.Length == 0)
+                res = FindPersonIn(query, AllContacts.Where(c => c.Contact.Status != Contact.ActiveStatus));
+            return res;
+        }
+
+        private static PersonData[] FindPersonIn(string query, IEnumerable<PersonData> contacts)
+        {
+            var allSearchable = contacts.ToList();
             var exactResults = allSearchable
                 .Where(c => ExactSameContact(c.Contact, query))
                 .ToArray();
