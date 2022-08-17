@@ -1,4 +1,5 @@
 ﻿using System;
+using TL;
 
 namespace fiitobot
 {
@@ -44,6 +45,13 @@ namespace fiitobot
         public string MainCompany = "";
         public string Status = "";
         public double? CurrentRating;
+
+        public bool SameTelegramUsername(string tgUsername)
+        {
+            if (string.IsNullOrWhiteSpace(tgUsername)) return false;
+            return Telegram != null &&
+                   Telegram.Trim('@').Equals(tgUsername.Trim('@'), StringComparison.OrdinalIgnoreCase);
+        }
 
         public string FormatMnemonicGroup(DateTime now)
         {

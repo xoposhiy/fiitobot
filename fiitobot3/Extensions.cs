@@ -10,7 +10,7 @@ namespace fiitobot
     {
         public static string Canonize(this string text)
         {
-            return text.ToLower().Replace("ё", "е").Replace("́", "");
+            return text.ToLower().Replace("ë", "е").Replace("ё", "е").Replace("́", "");
         }
 
         public static bool ContainsSameText(this string text, string substr)

@@ -44,26 +44,14 @@ namespace fiitobot
                    ?? Array.Empty<PersonData>();
         }
 
-
         public static bool ExactSameContact(Contact contact, string query)
         {
             var fullName = contact.LastName + " " + contact.FirstName;
             var tg = contact.Telegram?.TrimStart('@') ?? "";
             var fn = fullName.Canonize();
             return query.Canonize().Equals(fn, StringComparison.InvariantCultureIgnoreCase)
-                   || query.Equals(tg, StringComparison.InvariantCultureIgnoreCase);
-        }
-        public bool IsAdmin(long userId, string username)
-        {
-            return Administrators.Any(a => a.TgId == userId) || username != null && Administrators.Any(a => a.Telegram.Trim('@').Equals(username, StringComparison.OrdinalIgnoreCase));
-        }
-        public bool IsTeacher(long userId, string username)
-        {
-            return Teachers.Any(a => a.TgId == userId) || username != null && Teachers.Any(a => a.Telegram.Trim('@').Equals(username, StringComparison.OrdinalIgnoreCase));
-        }
-        public bool IsStudent(long userId, string username)
-        {
-            return Students.Any(a => a.Contact.TgId == userId) || username != null && Students.Any(a => a.Contact.Telegram.Trim('@').Equals(username, StringComparison.OrdinalIgnoreCase));
+                   || query.Equals(tg, StringComparison.InvariantCultureIgnoreCase)
+                   || query.Equals(""+contact.TgId);
         }
 
         public PersonData FindPersonByTgId(long id)
@@ -73,7 +61,7 @@ namespace fiitobot
 
         public PersonData FindPersonByTelegramName(string username)
         {
-            return AllContacts.FirstOrDefault(p => p.Contact.Telegram.Trim('@').Equals(username.Trim('@'), StringComparison.OrdinalIgnoreCase));
+            return AllContacts.FirstOrDefault(p => p.Contact.SameTelegramUsername(username));
         }
     }
 
