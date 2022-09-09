@@ -23,6 +23,7 @@ namespace fiitobot.Services
         SecretNote = 8,
         LinksToFiitTeamFiles = 16,
         TechnicalInfo = 32,
+        Details = 64,
         Iddqd = 255,
     }
 
@@ -183,7 +184,7 @@ namespace fiitobot.Services
         {
             if (contact.Type == ContactType.Student)
             {
-                var inlineKeyboardMarkup = detailsLevel.HasFlag(ContactDetailsLevel.Marks)
+                var inlineKeyboardMarkup = detailsLevel.HasFlag(ContactDetailsLevel.Details)
                     ? new InlineKeyboardMarkup(new InlineKeyboardButton("Подробнее!")
                     { CallbackData = $"/details {contact.LastName} {contact.FirstName}" })
                     : null;
@@ -293,11 +294,15 @@ namespace fiitobot.Services
             {
                 b.AppendLine($"{contact.SecretNote}");
             }
-            if (detailsLevel.HasFlag(ContactDetailsLevel.TechnicalInfo))
+            if (detailsLevel.HasFlag(ContactDetailsLevel.Marks))
             {
                 b.AppendLine();
                 if (contact.CurrentRating.HasValue)
-                    b.AppendLine($"Неведомый рейтинг: {contact.CurrentRating:0.00}");
+                    b.AppendLine($"Рейтинг: {contact.CurrentRating:0.00}");
+            }
+            if (detailsLevel.HasFlag(ContactDetailsLevel.TechnicalInfo))
+            {
+                b.AppendLine();
                 b.AppendLine("TelegramId: <code>" + contact.TgId + "</code>");
             }
             if (detailsLevel.HasFlag(ContactDetailsLevel.LinksToFiitTeamFiles))

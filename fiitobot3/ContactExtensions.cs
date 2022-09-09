@@ -8,11 +8,11 @@ namespace fiitobot
         {
             return contactViewer.Type switch
             {
-                ContactType.Administration when contactViewer.TgId == 33598070 => ContactDetailsLevel.Iddqd, // @xoposhiy id
-                ContactType.Administration => ContactDetailsLevel.Minimal | ContactDetailsLevel.Contacts | ContactDetailsLevel.LinksToFiitTeamFiles | ContactDetailsLevel.Marks | ContactDetailsLevel.SecretNote | ContactDetailsLevel.TechnicalInfo,
+                ContactType.Administration => ContactDetailsLevel.Iddqd,
                 ContactType.Staff => ContactDetailsLevel.Minimal | ContactDetailsLevel.Contacts | ContactDetailsLevel.Marks,
-                ContactType.Student when contactViewer.AdmissionYear == contact.AdmissionYear => ContactDetailsLevel.Minimal | ContactDetailsLevel.Contacts,
-                ContactType.Student => ContactDetailsLevel.Minimal,
+                ContactType.Student when contact.TgId == contactViewer.TgId => ContactDetailsLevel.Minimal | ContactDetailsLevel.Contacts | ContactDetailsLevel.Marks, // что видит про себя
+                ContactType.Student when contactViewer.AdmissionYear == contact.AdmissionYear => ContactDetailsLevel.Minimal | ContactDetailsLevel.Contacts, // что видит про однопоточников
+                ContactType.Student => ContactDetailsLevel.Minimal, // что видит про остальных
                 _ => ContactDetailsLevel.No
             };
         }

@@ -137,8 +137,14 @@ namespace fiitobot.Services
 
         public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
         {
+            bool asSelf = false;
             if (sender.Type == ContactType.Administration)
             {
+                if (text.StartsWith("/as_self "))
+                {
+                    text = text.Replace("/as_self ", "");
+                    asSelf = true;
+                }
                 if (text.StartsWith("/as_staff "))
                 {
                     text = text.Replace("/as_staff ", "");
@@ -178,9 +184,9 @@ namespace fiitobot.Services
             const int maxResultsCount = 1;
             foreach (var person in contacts.Take(maxResultsCount))
             {
-                if (person.Contact.TgId == fromChatId)
+                if (person.Contact.TgId == fromChatId || asSelf)
                     await SayCompliment(person.Contact, fromChatId);
-                ContactDetailsLevel detailsLevel = person.Contact.GetDetailsLevelFor(sender);
+                ContactDetailsLevel detailsLevel = person.Contact.GetDetailsLevelFor(asSelf ? person.Contact : sender);
                 await presenter.ShowContact(person.Contact, fromChatId, detailsLevel);
                 var selfUploadedPhoto = await photoRepo.TryGetModeratedPhoto(person.Contact.TgId);
                 if (selfUploadedPhoto != null)
