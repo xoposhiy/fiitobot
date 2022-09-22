@@ -112,7 +112,7 @@ namespace fiitobot.Services
             await botClient.SendTextMessageAsync(chatId, $"Загружено {count.Pluralize("контакт|контакта|контактов")}:\n" +
                                                          $"{studentsCount.Pluralize("студент|студента|студентов")}\n" +
                                                          $"{teachersCount.Pluralize("преподаватель|преподавателя|преподавателей")}\n" +
-                                                         $"{administratorsCount.Pluralize("администратор|администратора|администраторов")}", 
+                                                         $"{administratorsCount.Pluralize("администратор|администратора|администраторов")}",
                 ParseMode.Html);
         }
 
@@ -146,7 +146,7 @@ namespace fiitobot.Services
                 await botClient.SendTextMessageAsync(chatId, b.ToString(), ParseMode.Html);
             }
         }
-        
+
         private string FormatErrorHtml(Update incomingUpdate, string errorMessage)
         {
             var formattedUpdate = FormatIncomingUpdate(incomingUpdate);
@@ -257,10 +257,12 @@ namespace fiitobot.Services
                 if (!string.IsNullOrWhiteSpace(contact.School))
                     b.AppendLine($"🏫 Школа: <code>{contact.School}</code>");
                 if (!string.IsNullOrWhiteSpace(contact.City))
-                    b.AppendLine($"🏙️ Город: <code>{contact.City}</code>");
+                    b.AppendLine($"🏙️ Откуда: <code>{contact.City}</code>");
                 if (detailsLevel.HasFlag(ContactDetailsLevel.Marks))
                 {
-                    b.AppendLine($"Поступление {FormatConcurs(contact.Concurs)} c рейтингом {contact.EnrollRating}");
+                    b.Append($"Поступление {FormatConcurs(contact.Concurs)}");
+                    if (!string.IsNullOrWhiteSpace(contact.EnrollRating))
+                        b.Append($" c рейтингом {contact.EnrollRating}");
                 }
                 if (!string.IsNullOrWhiteSpace(contact.Status) && contact.Status != "Активный")
                     b.AppendLine(contact.Status);

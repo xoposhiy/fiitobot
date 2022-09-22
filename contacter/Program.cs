@@ -6,12 +6,12 @@ using TL;
 using WTelegram;
 using System.Diagnostics.CodeAnalysis;
 
-await ImportContacts();
+//await ImportContacts();
 //await AnalyzeStudentsChat(2022, "Чат ФИИТ 2022");
 //await AnalyzeStudentsChat(2022, "Чат ФИИТ 2022");
 //await ExtractChats();
 //await ExtractStudents();
-//await ActualizeContacts("https://docs.google.com/spreadsheets/d/1VH_pZnYvTgQ-IzFVs5CYQWjbCo6YtUfip4w7K6GTK3U/edit#gid=0", "Чат ФИИТ");
+await ActualizeContacts("https://docs.google.com/spreadsheets/d/1VH_pZnYvTgQ-IzFVs5CYQWjbCo6YtUfip4w7K6GTK3U/edit#gid=0", "Чат ФИИТ");
 //await ActualizeContacts("https://docs.google.com/spreadsheets/d/1VH_pZnYvTgQ-IzFVs5CYQWjbCo6YtUfip4w7K6GTK3U/edit#gid=1835136796", "Преп"); //Teachers
 //await ReportActiveStudents("Чат ФИИТ 2022");
 
@@ -167,7 +167,7 @@ async Task ActualizeContacts(string spreadsheetUrl, params string[] chatSubstrin
     Console.WriteLine($"Contacts from Google Sheet: {data.Count - 1}");
     var edit = sheet.Edit();
     var editsCount = 0;
-    for (var rowIndex = 388; rowIndex < data.Count; rowIndex++)
+    for (var rowIndex = 390; rowIndex < data.Count; rowIndex++)
     {
         var row = data[rowIndex];
         while (row.Count <= Math.Max(usernameColIndex, Math.Max(tgIdColIndex, phoneColIndex)))
