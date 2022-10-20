@@ -10,6 +10,8 @@ namespace fiitobot.Services.Commands
         private readonly IPresenter presenter;
         private readonly Random random;
 
+        private const double ShowSenderChance = 1.0 / 10.0;
+
         public RandomCommandHandler(IBotDataRepository botDataRepo, IPresenter presenter, Random random)
         {
             this.botDataRepo = botDataRepo;
@@ -19,11 +21,26 @@ namespace fiitobot.Services.Commands
 
         public string Command => "/random";
         public ContactType[] AllowedFor => ContactTypes.AllNotExternal;
+
         public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
         {
-            var students = botDataRepo.GetData().Students.Where(s => s.Contact.Status.IsOneOf("Активный", "")).ToList();
-            var contact = students[random.Next(students.Count)].Contact;
+            var contact = GetPresentedContact(sender);
             await presenter.ShowContact(contact, fromChatId, contact.GetDetailsLevelFor(sender));
         }
+
+        private Contact GetPresentedContact(Contact sender)
+        {
+            if (ShouldShowSender())
+            {
+                return sender;
+            }
+
+            var students = botDataRepo.GetData().Students.Where(s =>
+                    s.Contact.Status.IsOneOf("Активный", ""))
+                .ToList();
+            return students[random.Next(students.Count)].Contact;
+        }
+
+        private bool ShouldShowSender() => random.NextDouble() < ShowSenderChance;
     }
 }
