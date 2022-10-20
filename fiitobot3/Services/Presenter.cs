@@ -264,8 +264,12 @@ namespace fiitobot.Services
                     if (!string.IsNullOrWhiteSpace(contact.EnrollRating))
                         b.Append($" c рейтингом {contact.EnrollRating}");
                 }
+
                 if (!string.IsNullOrWhiteSpace(contact.Status) && contact.Status != "Активный")
-                    b.AppendLine(contact.Status);
+                {
+                    b.AppendLine();
+                    b.AppendLine($"<b>{contact.Status}</b>");
+                }
             }
             else if (contact.Type == ContactType.Administration)
             {
