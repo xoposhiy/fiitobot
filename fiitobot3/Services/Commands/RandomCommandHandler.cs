@@ -31,12 +31,9 @@ namespace fiitobot.Services.Commands
         private Contact GetPresentedContact(Contact sender)
         {
             if (ShouldShowSender())
-            {
                 return sender;
-            }
-
-            var students = botDataRepo.GetData().Students.Where(s =>
-                    s.Contact.Status.IsOneOf("Активный", ""))
+            var students = botDataRepo.GetData().Students
+                .Where(s => s.Contact.Status.IsOneOf("Активный", ""))
                 .ToList();
             return students[random.Next(students.Count)].Contact;
         }
