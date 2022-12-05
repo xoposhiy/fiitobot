@@ -69,7 +69,7 @@
           "Parameter": "Алгебра1",
           "Value": "61",
           "SourceId": 8
-        },
+        }
       ]
     },
     {
@@ -110,7 +110,7 @@
           "Parameter": "Алгебра2",
           "Value": "61",
           "SourceId": 8
-        },
+        }
       ]
     },
     {
@@ -180,5 +180,28 @@
       },
       "Details": []
     },
+    {
+      "Contact": {
+        "AdmissionYear": 2019,
+        "LastName": "Мавунгу Иса Исмагил",
+        "FirstName": "Пётр Василий",
+        "Patronymic": "Петрович Александрович",
+        "GroupIndex": 1,
+        "SubgroupIndex": 1,
+        "City": "",
+        "School": "",
+        "Concurs": "О",
+        "Rating": "299",
+        "Telegram": "@issa_mavungu",
+        "Phone": "",
+        "Email": "",
+        "Note": "",
+        "SecretNote": "Сложное имя :(",
+        "Type": "Student",
+        "Status":"Активный",
+        "TgId": 12312111
+      },
+      "Details": []
+    }
   ]
 }

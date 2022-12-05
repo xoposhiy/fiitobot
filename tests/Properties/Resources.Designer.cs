@@ -59,28 +59,5 @@ namespace tests.Properties {
                 resourceCulture = value;
             }
         }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to {
-        ///  &quot;Administrators&quot;: [
-        ///    &quot;@chanterelle_n&quot;,
-        ///    &quot;@lerybinskaya&quot;,
-        ///    &quot;@ryzhaya_chebupelya&quot;,
-        ///    &quot;@tramakarov&quot;,
-        ///    &quot;@disturm&quot;,
-        ///    &quot;@voka_ekb&quot;,
-        ///    &quot;@Youlia_Pozdnyakova&quot;,
-        ///    &quot;@xoposhiy&quot;
-        ///  ],
-        ///  &quot;SourceSpreadsheets&quot;: [
-        ///    &quot;https://docs.google.com/spreadsheets/d/1XFKrFCScUD5APkZFALQp0XXgAuifHVxmwMSt1J2TqE8/edit#gid=419729714&quot;,
-        ///    &quot;https://docs.google.com/spreadsheets/d/1XFKrFCScUD5APkZFALQp0XXgAuifHVxmwMSt1J2TqE8/edit#gid=887797695&quot;,
-        ///    &quot;https://docs.google.com/spreadsheets/d/1XFKrFCScUD5APkZFALQp0 [rest of string was truncated]&quot;;.
-        /// </summary>
-        internal static string botData {
-            get {
-                return ResourceManager.GetString("botData", resourceCulture);
-            }
-        }
     }
 }

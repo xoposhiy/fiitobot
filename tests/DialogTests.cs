@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 using FakeItEasy;
 using fiitobot;
@@ -27,9 +28,8 @@ public class DialogTests
     [TestCase("username42", "Мизуро́ва")]
     [TestCase("@username42", "Мизуро́ва")]
     [TestCase("Мизурова Анастасия Лишние Слова", "Мизуро́ва")]
-    [TestCase("Егоров Павел", "Егоров")]
     [TestCase("Семёнов Иван", "Семёнов")]
-    [TestCase("Иванов", "Иванов")]
+    [TestCase("Мавунгу", "Мавунгу Иса Исмагил")]
     public async Task SearchesStudent(string query, string expectedLastNameOfSingleResult)
     {
         var contactsPresenter = A.Fake<IPresenter>();
@@ -37,7 +37,7 @@ public class DialogTests
         var handleUpdateService = PrepareUpdateService(contactsPresenter);
         
         await handleUpdateService.HandlePlainText(query, 123, sender);
-        
+        Console.WriteLine(expectedLastNameOfSingleResult);
         A.CallTo(() => contactsPresenter.ShowContact(
                 A<Contact>.That.Matches(c => c.LastName == expectedLastNameOfSingleResult), 
                 123, ContactDetailsLevel.Minimal | ContactDetailsLevel.Contacts))
@@ -64,7 +64,9 @@ public class DialogTests
     }
 
     [TestCase("Мизурова", ContactDetailsLevel.Minimal | ContactDetailsLevel.Contacts)]
+    [TestCase("Егоров Павел", ContactDetailsLevel.Minimal | ContactDetailsLevel.Contacts | ContactDetailsLevel.Marks)]
     [TestCase("Петров Пётр", ContactDetailsLevel.Minimal)]
+    [TestCase("Иванов", ContactDetailsLevel.Minimal | ContactDetailsLevel.Contacts | ContactDetailsLevel.Marks)]
     public async Task StudentQuery_ShowsPhotoAndContacts_IfSameYear(string query, ContactDetailsLevel expectedDetailsLevel)
     {
         var contactsPresenter = A.Fake<IPresenter>();
@@ -127,7 +129,7 @@ public class DialogTests
             .MustNotHaveHappened();
     }
 
-    [TestCase("asstudent Мизурова")]
+    [TestCase("/as_student Мизурова")]
     public async Task AsStudent_DowngradeAdminRights(string query)
     {
         var contactsPresenter = A.Fake<IPresenter>();
@@ -138,7 +140,7 @@ public class DialogTests
 
         A.CallTo(() => contactsPresenter.ShowContact(
                 A<Contact>.Ignored,
-                123, ContactDetailsLevel.Minimal))
+                123, ContactDetailsLevel.Minimal | ContactDetailsLevel.Contacts))
             .MustHaveHappenedOnceExactly();
     }
 
@@ -162,8 +164,8 @@ public class DialogTests
         await handleUpdateService.HandlePlainText(firstName, 42, sender);
         
         A.CallTo(() => contactsPresenter.ShowContact(
-                A<Contact>.That.Matches(c => c.FirstName == firstName), 
-                42, ContactDetailsLevel.Minimal | ContactDetailsLevel.Contacts))
+                A<Contact>.That.Matches(c => c.FirstName == firstName),
+                42, A<ContactDetailsLevel>.Ignored))
             .MustHaveHappenedOnceExactly();
         A.CallTo(() => contactsPresenter.ShowOtherResults(
                 A<Contact[]>.That.Matches(c => c.Length == 1),

@@ -186,7 +186,7 @@ namespace fiitobot.Services
             {
                 var inlineKeyboardMarkup = detailsLevel.HasFlag(ContactDetailsLevel.Details)
                     ? new InlineKeyboardMarkup(new InlineKeyboardButton("Подробнее!")
-                    { CallbackData = $"/details {contact.LastName} {contact.FirstName}" })
+                    { CallbackData = GetButtonCallbackData(contact) })
                     : null;
                 var htmlText = FormatContactAsHtml(contact, detailsLevel);
                 await botClient.SendTextMessageAsync(chatId, htmlText, ParseMode.Html,
@@ -197,6 +197,23 @@ namespace fiitobot.Services
                 var htmlText = FormatContactAsHtml(contact, detailsLevel);
                 await botClient.SendTextMessageAsync(chatId, htmlText, ParseMode.Html);
             }
+        }
+
+        private string GetButtonCallbackData(Contact contact)
+        {
+            var data = $"{contact.LastName} {contact.FirstName}";
+            var parts = data.Split(" ");
+            var result = "/details " + parts[0];
+            var i = 1;
+            while (i < parts.Length)
+            {
+                var mores = result + " " + parts[i];
+                if (Encoding.UTF8.GetByteCount(mores) >= 60)
+                    break;
+                result = mores;
+                i++;
+            }
+            return result;
         }
 
         public async Task ShowPhoto(Contact contact, byte[] photoBytes, long chatId)

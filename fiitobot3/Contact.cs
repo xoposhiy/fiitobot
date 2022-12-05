@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text.RegularExpressions;
 using TL;
 
 namespace fiitobot
@@ -81,8 +82,9 @@ namespace fiitobot
             {
                 var first = FirstName.Canonize();
                 var last = LastName.Canonize();
-                return first == query || last == query || last + ' ' + first == query || first + ' ' + last == query ||
-                       query == Telegram.ToLower() || ('@' + query) == Telegram.ToLower();
+                var queryRegex = new Regex(@$" {Regex.Escape(query)} ");
+                var contact = " " + first + " " + last + " " + first + " " + Telegram.ToLower() + " " + Telegram.ToLower().TrimStart('@') + " ";
+                return queryRegex.IsMatch(contact);
             }
             catch (Exception e)
             {

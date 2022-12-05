@@ -137,30 +137,8 @@ namespace fiitobot.Services
 
         public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
         {
-            bool asSelf = false;
-            if (sender.Type == ContactType.Administration)
-            {
-                if (text.StartsWith("/as_self "))
-                {
-                    text = text.Replace("/as_self ", "");
-                    asSelf = true;
-                }
-                if (text.StartsWith("/as_staff "))
-                {
-                    text = text.Replace("/as_staff ", "");
-                    sender.Type = ContactType.Staff;
-                }
-                if (text.StartsWith("/as_student "))
-                {
-                    text = text.Replace("/as_student ", "");
-                    sender.Type = ContactType.Student;
-                }
-                if (text.StartsWith("/as_external "))
-                {
-                    text = text.Replace("/as_external ", "");
-                    sender.Type = ContactType.External;
-                }
-            }
+            bool asSelf = text.Contains("/as_self");
+            (sender.Type, text) = OverrideSenderType(text, sender.Type);
 
             var command = commands.FirstOrDefault(c => text.StartsWith(c.Command));
 
@@ -223,6 +201,23 @@ namespace fiitobot.Services
                 if (!silentOnNoResults)
                     await presenter.SayNoResults(fromChatId);
             }
+        }
+
+        private (ContactType newSenderType, string restText) OverrideSenderType(string text, ContactType senderType)
+        {
+            if (senderType != ContactType.Administration) return (senderType, text);
+
+            (ContactType newSenderType, string restText)? TryHandle(string command, ContactType newSenderType) =>
+                text.StartsWith(command)
+                    ? (newSenderType, text.Replace(command, ""))
+                    : ((ContactType newSenderType, string restText)?)null;
+
+            return
+                TryHandle("/as_staff ", ContactType.Staff)
+                ?? TryHandle("/as_student ", ContactType.Student)
+                ?? TryHandle("/as_external ", ContactType.External)
+                ?? TryHandle("/as_self ", senderType)
+                ?? (senderType, text);
         }
 
         private async Task<bool> ShowContactsListBy(string text, Func<Contact, string> getProperty, long chatId)

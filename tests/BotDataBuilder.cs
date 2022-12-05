@@ -1,3 +1,4 @@
+using System.IO;
 using fiitobot;
 using Newtonsoft.Json;
 using tests.Properties;
@@ -8,6 +9,6 @@ public class BotDataBuilder
 {
     public BotData Build()
     {
-        return JsonConvert.DeserializeObject<BotData>(Resources.botData);
+        return JsonConvert.DeserializeObject<BotData>(File.ReadAllText("botData.json"));
     }
 }

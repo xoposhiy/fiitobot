@@ -167,7 +167,7 @@ async Task ActualizeContacts(string spreadsheetUrl, params string[] chatSubstrin
     Console.WriteLine($"Contacts from Google Sheet: {data.Count - 1}");
     var edit = sheet.Edit();
     var editsCount = 0;
-    for (var rowIndex = 390; rowIndex < data.Count; rowIndex++)
+    for (var rowIndex = 1; rowIndex < data.Count; rowIndex++)
     {
         var row = data[rowIndex];
         while (row.Count <= Math.Max(usernameColIndex, Math.Max(tgIdColIndex, phoneColIndex)))
