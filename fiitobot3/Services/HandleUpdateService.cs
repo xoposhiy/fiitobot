@@ -1,10 +1,10 @@
-﻿using fiitobot.Services.Commands;
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using fiitobot.Services.Commands;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;

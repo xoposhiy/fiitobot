@@ -9,6 +9,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\fiitobot3\fiitobot3.csproj" />
+      <ProjectReference Include="..\tgnames\tgnames.csproj" />
     </ItemGroup>
 
 </Project>

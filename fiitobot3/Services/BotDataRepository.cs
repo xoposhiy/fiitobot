@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Text;
 using System.Threading.Channels;
@@ -21,7 +21,7 @@ namespace fiitobot.Services
         public BotData GetData()
         {
             if (botData != null) return botData;
-            var objectStorage = CreateYandexStorageService();
+            var objectStorage = settings.CreateYandexStorageService();
             var res = objectStorage.GetAsByteArrayAsync("data.json").Result!;
             var s = Encoding.UTF8.GetString(res);
             return JsonConvert.DeserializeObject<BotData>(s);
@@ -29,27 +29,13 @@ namespace fiitobot.Services
 
         public void Save(BotData newBotData)
         {
-            var objectStorage = CreateYandexStorageService();
+            var objectStorage = settings.CreateYandexStorageService();
             var s = JsonConvert.SerializeObject(newBotData);
             var data = Encoding.UTF8.GetBytes(s);
             var res = objectStorage.PutObjectAsync(data, "data.json").Result!;
             if (!res.IsSuccessStatusCode)
                 throw new Exception(res.StatusCode + " " + res.Result);
             botData = newBotData;
-        }
-
-        private YandexStorageService CreateYandexStorageService()
-        {
-            var objectStorage = new YandexStorageService(new YandexStorageOptions
-            {
-                AccessKey = settings.YandexCloudStaticKeyId,
-                SecretKey = settings.YandexCloudStaticKey,
-                BucketName = "fiitobot-storage",
-                Endpoint = "storage.yandexcloud.net",
-                Location = "ru-central1-a",
-                Protocol = "https"
-            });
-            return objectStorage;
         }
     }
 

@@ -1,0 +1,2 @@
+rmdir /S /Q tgnames\bin
+yc serverless function version create --function-name tgnames --entrypoint tgnames.Function --runtime dotnetcore31 --service-account-id ajet10dfncm9rjmfdets --execution-timeout 60s --source-path tgnames
