@@ -23,19 +23,18 @@ namespace fiitobot.Services.Commands
         public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
         {
             await presenter.SayReloadStarted(fromChatId);
-            ReloadDataFromSpreadsheets();
+            ReloadContactsFromSpreadsheet();
             await presenter.SayReloaded(botDataRepo.GetData(), fromChatId);
         }
-        private void ReloadDataFromSpreadsheets()
+        private void ReloadContactsFromSpreadsheet()
         {
             var contacts = contactsRepository.GetAllContacts().ToArray();
-            var students = detailsRepository.EnrichWithDetails(contacts);
             var botData = new BotData
             {
                 Administrators = contactsRepository.GetAllAdmins().ToArray(),
                 Teachers = contactsRepository.GetAllTeachers().ToArray(),
                 SourceSpreadsheets = contactsRepository.GetOtherSpreadsheets().ToArray(),
-                Students = students
+                Students = contacts
             };
             botDataRepo.Save(botData);
         }

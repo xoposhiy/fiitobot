@@ -24,9 +24,12 @@ namespace fiitobot.Services.Commands
         private async Task ShowDetails(string query, long fromChatId)
         {
             var botData = botDataRepo.GetData();
-            var contacts = botData.SearchPeople(query);
+            var contacts = botData.SearchContacts(query);
             if (contacts.Length == 1)
-                await presenter.ShowDetails(contacts[0], botData.SourceSpreadsheets, fromChatId);
+            {
+                var contactWithDetails = botDataRepo.GetDetails(contacts[0]);
+                await presenter.ShowDetails(contactWithDetails, botData.SourceSpreadsheets, fromChatId);
+            }
             else
                 await presenter.SayBeMoreSpecific(fromChatId);
         }

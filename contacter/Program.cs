@@ -5,6 +5,7 @@ using System.Text;
 using TL;
 using WTelegram;
 using System.Diagnostics.CodeAnalysis;
+using Contact = fiitobot.Contact;
 
 //await ImportContacts();
 //await AnalyzeStudentsChat(2022, "Чат ФИИТ 2022");
@@ -56,7 +57,7 @@ async Task ReportActiveStudents(string chatTitle)
         Console.WriteLine($"Read {messagesCount} messages. Last message date {history.Messages.Last().Date}");
     }
 
-    var activeStudents = data.Students.Select(p => (p.Contact, MessagesCount: activity.GetOrDefault(p.Contact.TgId)))
+    var activeStudents = data.Students.Select(p => (Contact: (Contact)p, MessagesCount: activity.GetOrDefault(((Contact)p).TgId)))
         .OrderByDescending(c => c.MessagesCount).ToList();
     foreach (var s in activeStudents)
     {
@@ -88,21 +89,21 @@ async Task AnalyzeStudentsChat(int admissionYear, string chatName)
     Console.WriteLine("# UNKNOWN USERS IN CHAT:");
     foreach (var user in users.Values)
     {
-        var match = data.AllContacts.FirstOrDefault(c => c.Contact.TgId == user.ID);
+        var match = data.AllContacts.FirstOrDefault(c => ((Contact)c).TgId == user.ID);
         if (match == null)
             Console.WriteLine($"{user.last_name};{user.first_name};;;;{user.phone};;{user.username};{user.ID}");
         else
         {
-            var year = match.Contact.AdmissionYear;
+            var year = ((Contact)match).AdmissionYear;
             var newCount = countByYear.GetOrDefault(year) + 1;
             countByYear[year] = newCount;
         }
     }
     Console.WriteLine();
     Console.WriteLine("# MISSING USERS IN CHAT:");
-    foreach (var person in data.Students.Where(s => s.Contact.AdmissionYear == admissionYear && s.Contact.Status.IsOneOf("", "Активный")))
+    foreach (var person in data.Students.Where(s => ((Contact)s).AdmissionYear == admissionYear && ((Contact)s).Status.IsOneOf("", "Активный")))
     {
-        var contact = person.Contact;
+        var contact = (Contact)person;
         var tgId = contact.TgId;
         if (tgId == -1)
         {
@@ -123,7 +124,7 @@ async Task AnalyzeStudentsChat(int admissionYear, string chatName)
     Console.WriteLine("# ADMISSION YEAR STATISTICS:");
     foreach (var kv in countByYear.OrderBy(kv => kv.Key))
     {
-        Console.WriteLine(kv.Key + "\t" + kv.Value + "\t из " + data.AllContacts.Count(c => c.Contact.AdmissionYear == kv.Key));
+        Console.WriteLine(kv.Key + "\t" + kv.Value + "\t из " + data.AllContacts.Count(c => ((Contact)c).AdmissionYear == kv.Key));
     }
 }
 
@@ -285,7 +286,7 @@ async Task ImportContacts()
     Dictionary<long, User> users = (await extractor.ExtractUsersFromChatsAndChannels(client, "Чат ФИИТ", "спроси про ФИИТ", "Чат — Матмех, приём!")).ToDictionary(u => u.ID, u => u);
     var myContacts = await client.Contacts_GetContacts();
 
-    foreach (var contact in data.Students.Where(c => c.Contact.AdmissionYear.IsOneOf(2022)).Select(p => p.Contact))
+    foreach (var contact in data.Students.Where(c => ((Contact)c).AdmissionYear.IsOneOf(2022)).Select(p => (Contact)p))
     {
         var suffix = contact.AdmissionYear <= 0 ? "" : (" фт" + contact.AdmissionYear % 100);
         if (myContacts.users.ContainsKey(contact.TgId))

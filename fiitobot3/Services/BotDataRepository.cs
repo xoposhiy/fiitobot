@@ -1,9 +1,7 @@
 ﻿using System;
-using System.IO;
+using System.Collections.Generic;
 using System.Text;
-using System.Threading.Channels;
 using AspNetCore.Yandex.ObjectStorage;
-using AspNetCore.Yandex.ObjectStorage.Configuration;
 using Newtonsoft.Json;
 
 namespace fiitobot.Services
@@ -12,30 +10,39 @@ namespace fiitobot.Services
     {
         private readonly Settings settings;
         private BotData botData;
+        private readonly Lazy<YandexStorageService> objectStorage;
 
         public BotDataRepository(Settings settings)
         {
             this.settings = settings;
+            objectStorage = new Lazy<YandexStorageService>(settings.CreateYandexStorageService);
         }
 
         public BotData GetData()
         {
             if (botData != null) return botData;
-            var objectStorage = settings.CreateYandexStorageService();
-            var res = objectStorage.GetAsByteArrayAsync("data.json").Result!;
+            var res = objectStorage.Value.GetAsByteArrayAsync("data.json").Result!;
             var s = Encoding.UTF8.GetString(res);
             return JsonConvert.DeserializeObject<BotData>(s);
         }
 
         public void Save(BotData newBotData)
         {
-            var objectStorage = settings.CreateYandexStorageService();
             var s = JsonConvert.SerializeObject(newBotData);
             var data = Encoding.UTF8.GetBytes(s);
-            var res = objectStorage.PutObjectAsync(data, "data.json").Result!;
+            var res = objectStorage.Value.PutObjectAsync(data, "data.json").Result!;
             if (!res.IsSuccessStatusCode)
                 throw new Exception(res.StatusCode + " " + res.Result);
             botData = newBotData;
+        }
+
+        public ContactWithDetails GetDetails(Contact contact)
+        {
+            return new ContactWithDetails(contact);
+        }
+
+        public void SaveDetails(Contact contact, IReadOnlyCollection<ContactDetail> details)
+        {
         }
     }
 
@@ -43,6 +50,8 @@ namespace fiitobot.Services
     {
         BotData GetData();
         void Save(BotData newBotData);
+        ContactWithDetails GetDetails(Contact contact);
+        void SaveDetails(Contact contact, IReadOnlyCollection<ContactDetail> details);
     }
 
     public class MemoryBotDataRepository : IBotDataRepository
@@ -62,6 +71,15 @@ namespace fiitobot.Services
         public void Save(BotData newBotData)
         {
             botData = newBotData;
+        }
+
+        public ContactWithDetails GetDetails(Contact contact)
+        {
+            return new ContactWithDetails(contact);
+        }
+
+        public void SaveDetails(Contact contact, IReadOnlyCollection<ContactDetail> details)
+        {
         }
     }
 }

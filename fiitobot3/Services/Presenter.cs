@@ -37,7 +37,7 @@ namespace fiitobot.Services
         Task SayNoRights(long chatId, ContactType senderType);
         Task SayBeMoreSpecific(long chatId);
         Task InlineSearchResults(string inlineQueryId, Contact[] foundContacts);
-        Task ShowDetails(PersonData person, string[] sources, long chatId);
+        Task ShowDetails(ContactWithDetails contact, string[] sources, long chatId);
         Task SayReloadStarted(long chatId);
         Task SayReloaded(BotData botData, long chatId);
         Task ShowErrorToDevops(Update incomingUpdate, string errorMessage);
@@ -78,7 +78,7 @@ namespace fiitobot.Services
             await botClient.AnswerInlineQueryAsync(inlineQueryId, results, 60);
         }
 
-        public async Task ShowDetails(PersonData person, string[] sources, long chatId)
+        public async Task ShowDetails(ContactWithDetails person, string[] sources, long chatId)
         {
             var text = new StringBuilder();
             var contact = person.Contact;
@@ -270,6 +270,7 @@ namespace fiitobot.Services
             b.AppendLine($"<b>{contact.LastName} {contact.FirstName} {contact.Patronymic}</b>");
             if (contact.Type == ContactType.Student)
             {
+                b.AppendLine($"{contact.FormatOfficialGroup(DateTime.Now)}");
                 b.AppendLine($"{contact.FormatMnemonicGroup(DateTime.Now)} (год поступления: {contact.AdmissionYear})");
                 if (!string.IsNullOrWhiteSpace(contact.School))
                     b.AppendLine($"🏫 Школа: <code>{contact.School}</code>");

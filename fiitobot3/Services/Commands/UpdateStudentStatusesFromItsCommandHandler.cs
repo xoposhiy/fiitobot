@@ -25,8 +25,8 @@ namespace fiitobot.Services.Commands
         public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
         {
             await presenter.Say($"Получаю рейтинги и статусы студентов из ИТС УрФУ...", fromChatId);
-            var groups = repo.GetData().Students.Where(s => s.Contact.GroupIndex > 0)
-                .Select(s => s.Contact.FormatOfficialGroup(DateTime.Now).Substring(0, 8)).Distinct();
+            var groups = repo.GetData().Students.Where(s => s.GroupIndex > 0)
+                .Select(s => s.FormatOfficialGroup(DateTime.Now).Substring(0, 8)).Distinct();
             var students = new List<UrfuStudent>();
             foreach (var group in groups)
             {

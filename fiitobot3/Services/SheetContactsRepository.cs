@@ -16,7 +16,7 @@ namespace fiitobot.Services
         private volatile Contact[] contacts;
         private DateTime lastUpdateTime = DateTime.MinValue;
         private volatile string[] otherSpreadsheets;
-        private readonly string Range = "A1:R";
+        private readonly string Range = "A1:T";
         private volatile Contact[] staff;
         private readonly string StaffSheetName = "Staff";
         private readonly string StudentsSheetName = "Students";
@@ -80,13 +80,36 @@ namespace fiitobot.Services
                    query == contact.Telegram.ToLower() || '@' + query == contact.Telegram.ToLower();
         }
 
+        /// <summary>
+        /// Загружает контакты из гугл-таблицы.
+        /// Для всех контактов, у которых нет идентификатора (столбец Id), присваивает новые идентификаторы и
+        /// сохраняет их в гугл-таблице.
+        /// </summary>
         public Contact[] LoadContacts(ContactType contactType, string sheetName)
         {
             var spreadsheet = sheetClient.GetSpreadsheet(spreadsheetId);
             var studentsSheet = spreadsheet.GetSheetByName(sheetName);
             var data = studentsSheet.ReadRange(Range);
             var headers = data[0].TakeWhile(s => !string.IsNullOrWhiteSpace(s)).ToList();
-            return data.Skip(1).Select(row => ParseContactFromRow(row, headers, contactType)).ToArray();
+            var loadContacts = data.Skip(1).Select(row => ParseContactFromRow(row, headers, contactType)).ToArray();
+            var newContacts = loadContacts.Where(c => c.Id == -1).ToList();
+            if (newContacts.Any())
+            {
+                var now = DateTime.Now;
+                var timeId = long.Parse((int)contactType + now.ToString("yyMMddhhmmssfff"));
+                var prevId = Math.Max(timeId, loadContacts.Max(c => c.Id));
+                var edit = studentsSheet.Edit();
+                var idColumnIndex = headers.IndexOf("Id");
+                foreach (var contact in newContacts)
+                {
+                    contact.Id = ++prevId;
+                    var row = new List<object> { contact.Id };
+                    var contactIndex = loadContacts.IndexOf(contact);
+                    edit.WriteRangeNoCasts((contactIndex+1, idColumnIndex), new List<List<object>> { row });
+                }
+                edit.Execute();
+            }
+            return loadContacts;
         }
 
         public (IList<UrfuStudent> newStudents, IList<UrfuStudent> updatedStudents) UpdateStudentsActivity(
@@ -151,14 +174,18 @@ namespace fiitobot.Services
                 }
             }
 
+            long GetId() => long.TryParse(Get("Id"), out var id) ? id : -1;
+
             return new Contact(
+                GetId(),
                 contactType,
                 long.TryParse(Get("TgId"), out var tgId) ? tgId : -1,
                 Get("LastName"),
                 Get("FirstName"),
                 Get("Patronymic"))
             {
-                AdmissionYear = int.TryParse(Get("AdmissionYear"), out var year) ? year : -1,
+                AdmissionYear = int.TryParse(Get("AdmissionYear"), out var admYear) ? admYear : -1,
+                GraduationYear = int.TryParse(Get("GraduationYear"), out var gradYear) ? gradYear : -1,
                 Status = Get("Status"),
                 GroupIndex = int.TryParse(Get("GroupIndex"), out var groupIndex) ? groupIndex : -1,
                 SubgroupIndex = int.TryParse(Get("SubgroupIndex"), out var subgroupIndex) ? subgroupIndex : -1,

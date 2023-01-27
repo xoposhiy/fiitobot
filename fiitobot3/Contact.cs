@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Text.RegularExpressions;
-using TL;
 
 namespace fiitobot
 {
@@ -16,8 +15,9 @@ namespace fiitobot
     {
         public const string ActiveStatus = "Активный";
 
-        public Contact(ContactType type, long tgId, string lastName, string firstName, string patronymic = "")
+        public Contact(long id, ContactType type, long tgId, string lastName, string firstName, string patronymic = "")
         {
+            Id = id;
             Type = type;
             TgId = tgId;
             LastName = lastName;
@@ -26,11 +26,13 @@ namespace fiitobot
         }
 
         public ContactType Type;
+        public long Id;
         public long TgId;
         public string LastName;
         public string FirstName;
         public string Patronymic;
         public int AdmissionYear = -1;
+        public int GraduationYear = -1;
         public int GroupIndex = -1;
         public int SubgroupIndex = -1;
         public string City = "";
@@ -56,23 +58,23 @@ namespace fiitobot
 
         public string FormatMnemonicGroup(DateTime now)
         {
-            if (AdmissionYear <= 0) return "";
+            if (GraduationYear <= 0) return "";
             if (GroupIndex <= 0) return "";
             var delta = now.Month >= 8 ? 0 : 1;
-            var course = now.Year - AdmissionYear + 1 - delta;
+            var course = now.Year - GraduationYear - 3 - delta;
             if (SubgroupIndex <= 0) return $"ФТ-{course}0{GroupIndex}";
             return $"ФТ-{course}0{GroupIndex}-{SubgroupIndex}";
         }
 
         public string FormatOfficialGroup(DateTime now)
         {
-            if (AdmissionYear <= 0) return "";
+            if (GraduationYear <= 0) return "";
             var delta = now.Month >= 8 ? 0 : 1;
-            var course = now.Year - AdmissionYear + 1 - delta;
-            var id = AdmissionYear == 2019 
+            var course = now.Year - GraduationYear - 3 - delta;
+            var id = GraduationYear == 2023 
                 ? new[] { "0809", "0810" }[GroupIndex - 1]
                 : new[] { "0801", "0802", "0809", "0810" }[GroupIndex - 1];
-            return $"МЕН-{course}{AdmissionYear % 10}{id}";
+            return $"МЕН-{course}{(GraduationYear-4) % 10}{id}";
         }
 
         public bool SameContact(string query)

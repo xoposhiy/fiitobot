@@ -31,9 +31,9 @@ namespace fiitobot.Services.Commands
             {
                 var year = parts[1];
                 var suffix = parts[2];
-                var contacts = botDataRepo.GetData().Students.Select(p => p.Contact).ToList();
+                var contacts = botDataRepo.GetData().Students.Select(p => p).ToList();
                 if (year != "all")
-                    contacts.RemoveAll(c => c.AdmissionYear.ToString() != year);
+                    contacts.RemoveAll(c => (c.GraduationYear-4).ToString() != year);
 
                 string GetNameWithSuffix(Contact c)
                 {

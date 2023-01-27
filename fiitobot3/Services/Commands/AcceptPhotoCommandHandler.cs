@@ -26,13 +26,13 @@ namespace fiitobot.Services.Commands
             var parts = text.Split(" ");
             if (parts.Length != 2) return;
             if (!long.TryParse(parts[1], out var contactTgId)) return;
-            var person = repo.GetData().AllContacts.FirstOrDefault(c => c.Contact.TgId == contactTgId);
+            var person = repo.GetData().AllContacts.FirstOrDefault(c => c.TgId == contactTgId);
             if (person == null) return;
             var success = await photoRepository.RejectPhoto(contactTgId);
             if (success)
             {
-                await presenter.SayPhotoRejected(person.Contact, sender, fromChatId);
-                await presenter.SayPhotoRejected(person.Contact, null, person.Contact.TgId);
+                await presenter.SayPhotoRejected(person, sender, fromChatId);
+                await presenter.SayPhotoRejected(person, null, person.TgId);
             }
         }
     }
@@ -60,13 +60,13 @@ namespace fiitobot.Services.Commands
             var parts = text.Split(" ");
             if (parts.Length != 2) return;
             if (!long.TryParse(parts[1], out var contactTgId)) return;
-            var person = repo.GetData().AllContacts.FirstOrDefault(c => c.Contact.TgId == contactTgId);
+            var person = repo.GetData().AllContacts.FirstOrDefault(c => c.TgId == contactTgId);
             if (person == null) return;
             var success = await photoRepository.AcceptPhoto(contactTgId);
             if (success)
             {
-                await presenter.SayPhotoAccepted(person.Contact, sender, fromChatId);
-                await presenter.SayPhotoAccepted(person.Contact, null, person.Contact.TgId);
+                await presenter.SayPhotoAccepted(person, sender, fromChatId);
+                await presenter.SayPhotoAccepted(person, null, person.TgId);
             }
         }
     }

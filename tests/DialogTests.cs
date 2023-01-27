@@ -97,7 +97,7 @@ public class DialogTests
         await handleUpdateService.HandlePlainText(query, 123, sender);
 
         A.CallTo(() => contactsPresenter.ShowDetails(
-            A<PersonData>.Ignored, data!.SourceSpreadsheets, 123))
+            A<ContactWithDetails>.Ignored, data!.SourceSpreadsheets, 123))
             .MustHaveHappenedOnceExactly();
     }
 
@@ -146,7 +146,7 @@ public class DialogTests
 
     private Contact AStudent(long tgId = 123123123)
     {
-        return data!.Students.First(c => c.Contact.TgId == tgId).Contact;
+        return data!.Students.First(c => c.TgId == tgId);
     }
 
     private Contact AnAdmin()
@@ -203,7 +203,7 @@ public class DialogTests
 
     private Contact AGuest()
     {
-        return new Contact(ContactType.External, 555, "Некто", "Нектович")
+        return new Contact(1, ContactType.External, 555, "Некто", "Нектович")
         {
             Telegram = "@guest"
         };

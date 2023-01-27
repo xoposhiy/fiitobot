@@ -37,14 +37,10 @@ namespace fiitobot.Services
             }
         }
 
-        public PersonData[] EnrichWithDetails(Contact[] contacts)
+        public ContactWithDetails[] EnrichWithDetails(Contact[] contacts)
         {
             ReloadIfNeeded();
-            var people = contacts.Select(c => new PersonData()
-            {
-                Contact = c,
-                Details = new List<Detail>()
-            }).ToArray();
+            var people = contacts.Select(c => new ContactWithDetails(c, new List<ContactDetail>())).ToArray();
             var index = CreatePeopleIndex(people);
 
             foreach (var (rubric, sourceId, url, values) in data)
@@ -85,7 +81,7 @@ namespace fiitobot.Services
                                 if (person.Details.Any(res =>
                                         res.Parameter.Equals(headers[i], StringComparison.OrdinalIgnoreCase)))
                                     continue;
-                                var detail = new Detail(rubric, headers[i].Replace("\n", " ").Replace("\r", " "), value,
+                                var detail = new ContactDetail(rubric, headers[i].Replace("\n", " ").Replace("\r", " "), value,
                                     sourceId);
                                 person.Details.Add(detail);
                             }
@@ -102,7 +98,7 @@ namespace fiitobot.Services
             return people;
         }
 
-        private PersonData FindPerson(List<string> row, Dictionary<string, HashSet<PersonData>> peopleIndex)
+        private ContactWithDetails FindPerson(List<string> row, Dictionary<string, HashSet<ContactWithDetails>> peopleIndex)
         {
             string prevCellValue = null;
             foreach (var cell in row)
@@ -122,7 +118,7 @@ namespace fiitobot.Services
             return null;
         }
 
-        private static PersonData GetExactPerson(Dictionary<string, HashSet<PersonData>> peopleIndex, string part1, string cell)
+        private static ContactWithDetails GetExactPerson(Dictionary<string, HashSet<ContactWithDetails>> peopleIndex, string part1, string cell)
         {
             var candidates = peopleIndex.GetOrDefault(part1);
             if (candidates == null || candidates.Count == 0) return null;
@@ -132,13 +128,13 @@ namespace fiitobot.Services
             return exactCandidates.Count == 1 ? candidates.First() : null;
         }
 
-        private static Dictionary<string, HashSet<PersonData>> CreatePeopleIndex(PersonData[] people)
+        private static Dictionary<string, HashSet<ContactWithDetails>> CreatePeopleIndex(ContactWithDetails[] people)
         {
-            var index = new Dictionary<string, HashSet<PersonData>>(StringComparer.OrdinalIgnoreCase);
+            var index = new Dictionary<string, HashSet<ContactWithDetails>>(StringComparer.OrdinalIgnoreCase);
 
-            void Add(string token, PersonData person)
+            void Add(string token, ContactWithDetails person)
             {
-                var bucket = index.GetOrCreate(token, t => new HashSet<PersonData>());
+                var bucket = index.GetOrCreate(token, t => new HashSet<ContactWithDetails>());
                 bucket.Add(person);
             }
 
@@ -153,10 +149,10 @@ namespace fiitobot.Services
             return index;
         }
 
-        public Detail[] GetPersonDetails(Contact contact)
+        public ContactDetail[] GetPersonDetails(Contact contact)
         {
             ReloadIfNeeded();
-            var result = new List<Detail>();
+            var result = new List<ContactDetail>();
             foreach (var (name, sourceId, url, values) in data)
             {
                 try
@@ -191,7 +187,7 @@ namespace fiitobot.Services
                                 if (result.Any(res =>
                                         res.Parameter.Equals(headers[i], StringComparison.OrdinalIgnoreCase)))
                                     continue;
-                                var detail = new Detail(name, headers[i].Replace("\n", " ").Replace("\r", " "), value,
+                                var detail = new ContactDetail(name, headers[i].Replace("\n", " ").Replace("\r", " "), value,
                                     sourceId);
                                 result.Add(detail);
                             }

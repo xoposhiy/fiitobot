@@ -33,9 +33,10 @@ namespace fiitobot.Services.Commands
             if (ShouldShowSender())
                 return sender;
             var students = botDataRepo.GetData().Students
-                .Where(s => s.Contact.Status.IsOneOf("Активный", ""))
+                .Where(s => s.Status.IsOneOf("Активный", ""))
                 .ToList();
-            return students[random.Next(students.Count)].Contact;
+            Contact tempQualifier = students[random.Next(students.Count)];
+            return tempQualifier;
         }
 
         private bool ShouldShowSender() => random.NextDouble() < ShowSenderChance;

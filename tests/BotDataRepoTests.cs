@@ -14,7 +14,7 @@ public class BotDataRepoTests
     public void Test()
     {
         var data = new BotDataRepository(new Settings()).GetData();
-        var students = data.Students.Where(s => s.Contact.Status.IsOneOf("Активный", "")).ToList();
+        var students = data.Students.Where(s => s.Status.IsOneOf("Активный", "")).ToList();
         Console.WriteLine(students.Count);
     }
 

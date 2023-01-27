@@ -21,7 +21,7 @@ namespace fiitobot.Services.Commands
             var args = text.Split(new[] { ' ' }, 3);
             var toWhom = args[1];
             var candidates = repo.GetData().Students.Where(s =>
-                    toWhom == s.Contact.Telegram || toWhom == s.Contact.Telegram.Trim('@') || toWhom == s.Contact.TgId.ToString() || toWhom == s.Contact.LastName)
+                    toWhom == s.Telegram || toWhom == s.Telegram.Trim('@') || toWhom == s.TgId.ToString() || toWhom == s.LastName)
                 .ToList();
             if (candidates.Count > 1)
                 await presenter.Say("Не понял кому... Слишком много кандидатов", fromChatId);
@@ -30,7 +30,7 @@ namespace fiitobot.Services.Commands
             else
             {
                 var message = args[2];
-                await presenter.Say(message, candidates.Single().Contact.TgId);
+                await presenter.Say(message, candidates.Single().TgId);
             }
         }
     }

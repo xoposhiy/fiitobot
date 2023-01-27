@@ -27,7 +27,7 @@ var botData = new BotData
 {
     Administrators = repo.GetAllAdmins(),
     SourceSpreadsheets = repo.GetOtherSpreadsheets(),
-    Students = people
+    Students = contacts
 };
 var content = JsonConvert.SerializeObject(botData, Formatting.Indented);
 File.WriteAllText("data.json", content);

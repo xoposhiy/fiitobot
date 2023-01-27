@@ -25,12 +25,14 @@ namespace fiitobot.Services.Commands
             var rest = text.Split(new[] { ' ' }, 2)[1].Trim();
             if (long.TryParse(rest, out var tgId))
             {
-                var contact = repo.GetData().FindPersonByTgId(tgId)?.Contact;
+                Contact tempQualifier = repo.GetData().FindContactByTgId(tgId);
+                var contact = (tempQualifier != null ? tempQualifier : null);
                 if (contact == null) return;
                 await presenter.ShowContact(contact, fromChatId, contact.GetDetailsLevelFor(sender));
             }
             {
-                var contact = repo.GetData().FindPersonByTelegramName(rest)?.Contact;
+                Contact tempQualifier = repo.GetData().FindContactByTelegramName(rest);
+                var contact = (tempQualifier != null ? tempQualifier : null);
                 if (contact == null) return;
                 await presenter.ShowContact(contact, fromChatId, contact.GetDetailsLevelFor(sender));
             }

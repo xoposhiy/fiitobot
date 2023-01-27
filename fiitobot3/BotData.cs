@@ -9,39 +9,39 @@ namespace fiitobot
     {
         public Contact[] Administrators;
         public string[] SourceSpreadsheets;
-        public PersonData[] Students;
+        public Contact[] Students;
         [JsonIgnore]
-        public IEnumerable<PersonData> AllContacts => Students.Concat(Administrators.Select(PersonData.FromContact)).Concat(Teachers?.Select(PersonData.FromContact) ?? Array.Empty<PersonData>());
+        public IEnumerable<Contact> AllContacts => Students.Concat(Administrators).Concat(Teachers ?? Array.Empty<Contact>());
         public Contact[] Teachers;
 
-        public PersonData[] FindPerson(string query)
+        public Contact[] FindContact(string query)
         {
-            var res = FindPersonIn(query, AllContacts.Where(c => c.Contact.Status == Contact.ActiveStatus));
+            var res = FindContactIn(query, AllContacts.Where(c => c.Status == Contact.ActiveStatus));
             if (res.Length == 0)
-                res = FindPersonIn(query, AllContacts.Where(c => c.Contact.Status != Contact.ActiveStatus));
+                res = FindContactIn(query, AllContacts.Where(c => c.Status != Contact.ActiveStatus));
             return res;
         }
 
-        private static PersonData[] FindPersonIn(string query, IEnumerable<PersonData> contacts)
+        private static Contact[] FindContactIn(string query, IEnumerable<Contact> contacts)
         {
             var allSearchable = contacts.ToList();
             var exactResults = allSearchable
-                .Where(c => ExactSameContact(c.Contact, query))
+                .Where(c => ExactSameContact(c, query))
                 .ToArray();
             if (exactResults.Length > 0)
                 return exactResults;
-            return allSearchable.Where(c => c.Contact.SameContact(query)).ToArray();
+            return allSearchable.Where(c => c.SameContact(query)).ToArray();
         }
 
-        public PersonData[] SearchPeople(string query)
+        public Contact[] SearchContacts(string query)
         {
-            var res = FindPerson(query);
+            var res = FindContact(query);
             if (res.Length > 0) return res;
             var parts = query.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-            return parts.Select(FindPerson)
+            return parts.Select(FindContact)
                        .Where(g => g.Length > 0)
                        .MinBy(g => g.Length)
-                   ?? Array.Empty<PersonData>();
+                   ?? Array.Empty<Contact>();
         }
 
         public static bool ExactSameContact(Contact contact, string query)
@@ -54,28 +54,14 @@ namespace fiitobot
                    || query.Equals(""+contact.TgId);
         }
 
-        public PersonData FindPersonByTgId(long id)
+        public Contact FindContactByTgId(long id)
         {
-            return AllContacts.FirstOrDefault(p => p.Contact.TgId == id);
+            return AllContacts.FirstOrDefault(p => p.TgId == id);
         }
 
-        public PersonData FindPersonByTelegramName(string username)
+        public Contact FindContactByTelegramName(string username)
         {
-            return AllContacts.FirstOrDefault(p => p.Contact.SameTelegramUsername(username));
+            return AllContacts.FirstOrDefault(p => p.SameTelegramUsername(username));
         }
-    }
-
-    public class PersonData
-    {
-        public static PersonData FromContact(Contact contact)
-        {
-            return new PersonData
-            {
-                Contact = contact,
-                Details = new List<Detail>()
-            };
-        }
-        public Contact Contact;
-        public List<Detail> Details;
     }
 }

@@ -73,9 +73,9 @@ namespace fiitobot.Services
             if (inlineQuery.Query.Length < 2) return;
             var sender = GetSenderContact(null, inlineQuery.From);
             if (!sender.Type.IsOneOf(ContactTypes.AllNotExternal)) return;
-            var foundPeople = botDataRepo.GetData().SearchPeople(inlineQuery.Query);
+            var foundPeople = botDataRepo.GetData().SearchContacts(inlineQuery.Query);
             if (foundPeople.Length > 10) return;
-            await presenter.InlineSearchResults(inlineQuery.Id, foundPeople.Select(c => c.Contact).ToArray());
+            await presenter.InlineSearchResults(inlineQuery.Id, foundPeople.Select(c => c).ToArray());
         }
 
         private async Task BotOnMessageReceived(Message message)
@@ -115,10 +115,12 @@ namespace fiitobot.Services
 
         private Contact GetSenderContact(Chat chat, User user)
         {
+            Contact tempQualifier = botDataRepo.GetData().FindContactByTgId(user.Id);
+            Contact tempQualifier1 = botDataRepo.GetData().FindContactByTelegramName(user.Username);
             return
-                botDataRepo.GetData().FindPersonByTgId(user.Id)?.Contact
-                ?? botDataRepo.GetData().FindPersonByTelegramName(user.Username)?.Contact
-                ?? new Contact(ContactType.External, user.Id, user.LastName, user.FirstName, "") { Telegram = user.Username };
+                (tempQualifier != null ? tempQualifier : null)
+                ?? (tempQualifier1 != null ? tempQualifier1 : null)
+                ?? new Contact(-1, ContactType.External, user.Id, user.LastName, user.FirstName, "") { Telegram = user.Username };
         }
 
         private async Task HandleForward(User forwardFrom, Contact sender, long fromChatId)
@@ -158,34 +160,34 @@ namespace fiitobot.Services
             }
             if (text.StartsWith("/"))
                 return;
-            var contacts = botDataRepo.GetData().SearchPeople(text);
+            var contacts = botDataRepo.GetData().SearchContacts(text);
             const int maxResultsCount = 1;
             foreach (var person in contacts.Take(maxResultsCount))
             {
-                if (person.Contact.TgId == fromChatId || asSelf)
-                    await SayCompliment(person.Contact, fromChatId);
-                ContactDetailsLevel detailsLevel = person.Contact.GetDetailsLevelFor(asSelf ? person.Contact : sender);
-                await presenter.ShowContact(person.Contact, fromChatId, detailsLevel);
-                var selfUploadedPhoto = await photoRepo.TryGetModeratedPhoto(person.Contact.TgId);
+                if (person.TgId == fromChatId || asSelf)
+                    await SayCompliment(person, fromChatId);
+                ContactDetailsLevel detailsLevel = person.GetDetailsLevelFor(asSelf ? person : sender);
+                await presenter.ShowContact(person, fromChatId, detailsLevel);
+                var selfUploadedPhoto = await photoRepo.TryGetModeratedPhoto(person.TgId);
                 if (selfUploadedPhoto != null)
                 {
-                    await presenter.ShowPhoto(person.Contact, selfUploadedPhoto, fromChatId);
+                    await presenter.ShowPhoto(person, selfUploadedPhoto, fromChatId);
                 }
                 else
                 {
-                    var photo = await namedPhotoDirectory.FindPhoto(person.Contact);
+                    var photo = await namedPhotoDirectory.FindPhoto(person);
                     if (photo != null)
-                        await presenter.ShowPhoto(person.Contact, photo, fromChatId, sender.Type);
+                        await presenter.ShowPhoto(person, photo, fromChatId, sender.Type);
                     else
                     {
-                        if (fromChatId == person.Contact.TgId)
+                        if (fromChatId == person.TgId)
                             await presenter.OfferToSetHisPhoto(fromChatId);
                     }
                 }
             }
 
             if (contacts.Length > maxResultsCount)
-                await presenter.ShowOtherResults(contacts.Skip(1).Select(p => p.Contact).ToArray(), fromChatId);
+                await presenter.ShowOtherResults(contacts.Skip(1).Select(p => p).ToArray(), fromChatId);
             if (contacts.Length == 0)
             {
                 if (await ShowContactsListBy(text, c => c.MainCompany, fromChatId))
@@ -223,7 +225,7 @@ namespace fiitobot.Services
         private async Task<bool> ShowContactsListBy(string text, Func<Contact, string> getProperty, long chatId)
         {
             var botData = botDataRepo.GetData();
-            var contacts = botData.AllContacts.Select(p => p.Contact).ToList();
+            var contacts = botData.AllContacts.Select(p => p).ToList();
             var res = contacts.Where(c => SmartContains(getProperty(c) ?? "", text))
                 .ToList();
             if (res.Count == 0) return false;
