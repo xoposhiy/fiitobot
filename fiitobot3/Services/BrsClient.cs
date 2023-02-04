@@ -56,7 +56,7 @@ namespace fiitobot.Services
         public override async Task<List<BrsStudentMark>> GetTotalMarks(string sessionId, BrsContainer container)
         {
             AddSessionCookie(sessionId);
-            var url = $"https://brs.urfu.ru/mrd/mvc/mobile/studentMarks/fetch?disciplineLoad={container.DisciplineLoad}&groupUuid={container.GroupHistoryId}&cardType=practice&hasTest=false&isTotal=true&intermediate=false&selectedTeachers=null&showActiveStudents=true";
+            var url = $"https://brs.urfu.ru/mrd/mvc/mobile/studentMarks/fetch?disciplineLoad={container.DisciplineLoad}&groupUuid={container.GroupHistoryId}&cardType=practice&hasTest=false&isTotal=true&intermediate=false&selectedTeachers=null&showActiveStudents=false";
             Console.WriteLine(url);
             var res = await httpClient.GetStringAsync(url);
             var marks = JsonConvert.DeserializeObject<List<BrsStudentMark>>(res).Where(m => m.IsRealMark).ToList();
