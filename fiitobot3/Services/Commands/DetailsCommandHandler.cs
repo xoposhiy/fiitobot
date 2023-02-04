@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace fiitobot.Services.Commands
@@ -6,12 +7,14 @@ namespace fiitobot.Services.Commands
     public class DetailsCommandHandler : IChatCommandHandler
     {
         private readonly IBotDataRepository botDataRepo;
+        private readonly IContactDetailsRepo contactDetailsRepo;
         private readonly IPresenter presenter;
 
-        public DetailsCommandHandler(IPresenter presenter, IBotDataRepository botDataRepo)
+        public DetailsCommandHandler(IPresenter presenter, IBotDataRepository botDataRepo, IContactDetailsRepo contactDetailsRepo)
         {
             this.presenter = presenter;
             this.botDataRepo = botDataRepo;
+            this.contactDetailsRepo = contactDetailsRepo;
         }
 
         public string Command => "/details";
@@ -27,8 +30,11 @@ namespace fiitobot.Services.Commands
             var contacts = botData.SearchContacts(query);
             if (contacts.Length == 1)
             {
-                var contactWithDetails = botDataRepo.GetDetails(contacts[0]);
-                await presenter.ShowDetails(contactWithDetails, botData.SourceSpreadsheets, fromChatId);
+                var contact = contacts[0];
+                var state = await contactDetailsRepo.FindById(contact.Id);
+                var details = state?.Details ?? new List<ContactDetail>();
+                var contactWithDetails = new ContactWithDetails(contact, details);
+                await presenter.ShowDetails(contactWithDetails, fromChatId);
             }
             else
                 await presenter.SayBeMoreSpecific(fromChatId);

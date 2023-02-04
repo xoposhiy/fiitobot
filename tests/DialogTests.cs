@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Channels;
 using System.Threading.Tasks;
 using FakeItEasy;
 using fiitobot;
@@ -97,7 +96,7 @@ public class DialogTests
         await handleUpdateService.HandlePlainText(query, 123, sender);
 
         A.CallTo(() => contactsPresenter.ShowDetails(
-            A<ContactWithDetails>.Ignored, data!.SourceSpreadsheets, 123))
+            A<ContactWithDetails>.Ignored, 123))
             .MustHaveHappenedOnceExactly();
     }
 
@@ -123,8 +122,7 @@ public class DialogTests
 
         await handleUpdateService.HandlePlainText(query, 123, sender);
 
-        A.CallTo(() => contactsPresenter.ShowDetails(
-                null, null, 123))
+        A.CallTo(() => contactsPresenter.ShowDetails(null, 123))
             .WithAnyArguments()
             .MustNotHaveHappened();
     }
@@ -253,11 +251,12 @@ public class DialogTests
         var photoRepo = A.Fake<IPhotoRepository>();
         var downloader = A.Fake<ITelegramFileDownloader>();
         var repo = new MemoryBotDataRepository(data);
+        var detailsRepo = A.Fake<IContactDetailsRepo>();
         var commands = new IChatCommandHandler[]
         {
             new StartCommandHandler(presenter, repo),
             new HelpCommandHandler(presenter),
-            new DetailsCommandHandler(presenter, repo),
+            new DetailsCommandHandler(presenter, repo, detailsRepo),
             new ContactsCommandHandler(repo, presenter),
             new RandomCommandHandler(repo, presenter, new Random()),
             new JoinCommandHandler(presenter, repo, 111),

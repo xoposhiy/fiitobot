@@ -35,36 +35,36 @@ namespace fiitobot
                 var update = JsonConvert.DeserializeObject<Update>(body);
                 var sheetClient = new GSheetClient(settings.GoogleAuthJson);
                 var contactsRepo = new SheetContactsRepository(sheetClient, settings.SpreadSheetId);
-                var detailsRepo = new DetailsRepository(sheetClient, contactsRepo);
                 var presenter = new Presenter(client, settings);
                 var botDataRepository = new BotDataRepository(settings);
+                var detailsRepo = new S3ContactsDetailsRepo(settings.CreateFiitobotBucketService());
                 var namedPhotoDirectory = new NamedPhotoDirectory(settings.PhotoListUrl);
                 var photoRepo = new S3PhotoRepository(settings);
                 var downloader = new TelegramFileDownloader(client);
                 var studentsDownloader = new UrfuStudentsDownloader(settings);
-
                 var demidovichService = new DemidovichService(settings.CreateDemidovichBucketService());
-                var brsClient = new BrsClient();
+                var brsClient = new BrsClient(BrsClient.IsFiitOfficialGroup);
                 var commands = new IChatCommandHandler[]
                 {
                     new StartCommandHandler(presenter, botDataRepository),
                     new HelpCommandHandler(presenter),
                     new ContactsCommandHandler(botDataRepository, presenter),
                     new RandomCommandHandler(botDataRepository, presenter, new Random()), 
-                    new ReloadCommandHandler(presenter, contactsRepo, detailsRepo, botDataRepository),
+                    new ReloadCommandHandler(presenter, contactsRepo, botDataRepository),
                     new ChangePhotoCommandHandler(presenter, botDataRepository, photoRepo, settings.ModeratorsChatId),
                     new AcceptPhotoCommandHandler(presenter, botDataRepository, photoRepo, settings.ModeratorsChatId),
                     new RejectPhotoCommandHandler(presenter, botDataRepository, photoRepo, settings.ModeratorsChatId),
                     new TellToContactCommandHandler(presenter, botDataRepository),
                     new UpdateStudentStatusesFromItsCommandHandler(presenter, studentsDownloader, botDataRepository, contactsRepo),
                     new JoinCommandHandler(presenter, botDataRepository, settings.ModeratorsChatId),
-                    new DetailsCommandHandler(presenter, botDataRepository),
+                    new DetailsCommandHandler(presenter, botDataRepository, detailsRepo),
                     new DemidovichCommandHandler(presenter, demidovichService),
-                    new DownloadScoresFromBrsCommandHandler(presenter, brsClient)
+                    new DownloadMarksFromBrsCommandHandler(presenter, botDataRepository, detailsRepo, brsClient)
                 };
                 var updateService = new HandleUpdateService(botDataRepository, namedPhotoDirectory, photoRepo, demidovichService, downloader, presenter, commands);
                 updateService.Handle(update).Wait();
-                client.SendTextMessageAsync(settings.DevopsChatId, presenter.FormatIncomingUpdate(update), ParseMode.Html);
+                if (GetSender(update) != settings.DevopsChatId)
+                    client.SendTextMessageAsync(settings.DevopsChatId, presenter.FormatIncomingUpdate(update), ParseMode.Html);
                 return new Response(200, "ok");
             }
             catch (Exception e)
@@ -72,6 +72,18 @@ namespace fiitobot
                 client.SendTextMessageAsync(settings.DevopsChatId, "Request:\n\n" + request + "\n\n" + e).Wait();
                 return new Response(500, e.ToString());
             }
+        }
+
+        private long GetSender(Update update)
+        {
+            return update.Type switch
+            {
+                UpdateType.Message => update.Message!.From.Id,
+                UpdateType.InlineQuery => update.InlineQuery!.From.Id,
+                UpdateType.EditedMessage => update.EditedMessage!.Chat.Id,
+                UpdateType.CallbackQuery => update.CallbackQuery!.From.Id,
+                _ => 0
+            };
         }
     }
 }

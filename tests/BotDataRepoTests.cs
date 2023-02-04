@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -17,8 +16,8 @@ public class BrsClientTests
     [Explicit]
     public async Task GetContainers()
     {
-        AbstractBrsClient client = new BrsClient();
-        var sessionId = "04D858DFD28FEAE7C75B9968CF3B5256";
+        AbstractBrsClient client = new BrsClient(BrsClient.IsFiitOfficialGroup);
+        var sessionId = "FBFEDE731BB86FE330068E44D47BC39A";
         var containers = await client.GetContainers(sessionId, 2022, 3, 1);
         foreach (var brsContainer in containers)
         {
@@ -38,7 +37,7 @@ public class BrsClientTests
     [Explicit]
     public async Task GetAllMarks()
     {
-        AbstractBrsClient client = new BrsClient();
+        AbstractBrsClient client = new BrsClient(BrsClient.IsFiitOfficialGroup);
         var sessionId = "04D858DFD28FEAE7C75B9968CF3B5256";
         var marks = await client.GetTotalMarks(sessionId, 2022, 3, 1);
         var students = marks.GroupBy(m => (Fio:m.StudentFio, Group:m.StudentGroup));

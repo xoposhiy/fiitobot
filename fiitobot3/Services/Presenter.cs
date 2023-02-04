@@ -9,7 +9,6 @@ using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.InlineQueryResults;
 using Telegram.Bot.Types.InputFiles;
 using Telegram.Bot.Types.ReplyMarkups;
-using TL;
 using Update = Telegram.Bot.Types.Update;
 
 namespace fiitobot.Services
@@ -38,7 +37,7 @@ namespace fiitobot.Services
         Task SayNoRights(long chatId, ContactType senderType);
         Task SayBeMoreSpecific(long chatId);
         Task InlineSearchResults(string inlineQueryId, Contact[] foundContacts);
-        Task ShowDetails(ContactWithDetails contact, string[] sources, long chatId);
+        Task ShowDetails(ContactWithDetails contact, long chatId);
         Task SayReloadStarted(long chatId);
         Task SayReloaded(BotData botData, long chatId);
         Task ShowErrorToDevops(Update incomingUpdate, string errorMessage);
@@ -82,19 +81,17 @@ namespace fiitobot.Services
             await botClient.AnswerInlineQueryAsync(inlineQueryId, results, 60);
         }
 
-        public async Task ShowDetails(ContactWithDetails person, string[] sources, long chatId)
+        public async Task ShowDetails(ContactWithDetails person, long chatId)
         {
             var text = new StringBuilder();
             var contact = person.Contact;
             text.AppendLine(
                 $@"<b>{contact.LastName} {contact.FirstName} {contact.Patronymic}</b> {contact.FormatMnemonicGroup(DateTime.Now)} (год поступления: {contact.AdmissionYear})");
             text.AppendLine();
-            foreach (var rubric in person.Details.GroupBy(d => d.Rubric))
+            foreach (var rubric in person.Details.GroupBy(d => d.Rubric).OrderBy(g => g.Key))
             {
-                var sourceId = rubric.First().SourceId;
-                var url = sources[sourceId];
                 text.AppendLine(
-                    $"<b>{EscapeForHtml(rubric.Key)}</b> (<a href=\"{url}\">источник</a>)");
+                    $"<b>{EscapeForHtml(rubric.Key)}</b>");
                 foreach (var detail in rubric)
                     text.AppendLine($" • {EscapeForHtml(detail.Parameter.TrimEnd('?'))}: {EscapeForHtml(detail.Value)}");
                 text.AppendLine();

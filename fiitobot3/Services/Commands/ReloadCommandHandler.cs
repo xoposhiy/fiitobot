@@ -8,14 +8,12 @@ namespace fiitobot.Services.Commands
         private readonly IBotDataRepository botDataRepo;
         private readonly IPresenter presenter;
         private readonly SheetContactsRepository contactsRepository;
-        private readonly DetailsRepository detailsRepository;
 
-        public ReloadCommandHandler(IPresenter presenter, SheetContactsRepository contactsRepository, DetailsRepository detailsRepository, IBotDataRepository botDataRepo)
+        public ReloadCommandHandler(IPresenter presenter, SheetContactsRepository contactsRepository, IBotDataRepository botDataRepo)
         {
             this.botDataRepo = botDataRepo;
             this.presenter = presenter;
             this.contactsRepository = contactsRepository;
-            this.detailsRepository = detailsRepository;
         }
         public string Command => "/reload";
 

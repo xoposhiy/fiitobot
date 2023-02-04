@@ -84,8 +84,9 @@ namespace fiitobot
             {
                 var first = FirstName.Canonize();
                 var last = LastName.Canonize();
+                var patronymic = Patronymic.Canonize();
                 var queryRegex = new Regex(@$" {Regex.Escape(query)} ");
-                var contact = " " + first + " " + last + " " + first + " " + Telegram.ToLower() + " " + Telegram.ToLower().TrimStart('@') + " ";
+                var contact = " " + first + " " + last + " " + first + " " + patronymic + " " + Telegram.ToLower() + " " + Telegram.ToLower().TrimStart('@') + " ";
                 return queryRegex.IsMatch(contact);
             }
             catch (Exception e)

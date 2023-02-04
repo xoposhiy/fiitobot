@@ -6,7 +6,9 @@ using fiitobot.Services.Commands;
 
 namespace fiitobot.Services
 {
-    public class DetailsRepository
+    // Больше не нужен (пока?)
+    // Загрузка по хитрому алгоритму деталей по студенту из гуглтаблиц
+    public class SpreadsheetsDetailsRepository
     {
         private readonly GSheetClient sheetClient;
         private readonly SheetContactsRepository contactsRepo;
@@ -15,7 +17,7 @@ namespace fiitobot.Services
         private volatile List<SheetData> data = new List<SheetData>();
         private volatile string[] sources;
 
-        public DetailsRepository(GSheetClient sheetClient, SheetContactsRepository contactsRepo)
+        public SpreadsheetsDetailsRepository(GSheetClient sheetClient, SheetContactsRepository contactsRepo)
         {
             this.sheetClient = sheetClient;
             this.contactsRepo = contactsRepo;
@@ -81,8 +83,7 @@ namespace fiitobot.Services
                                 if (person.Details.Any(res =>
                                         res.Parameter.Equals(headers[i], StringComparison.OrdinalIgnoreCase)))
                                     continue;
-                                var detail = new ContactDetail(rubric, headers[i].Replace("\n", " ").Replace("\r", " "), value,
-                                    sourceId);
+                                var detail = new ContactDetail(rubric, headers[i].Replace("\n", " ").Replace("\r", " "), value, DateTime.Now);
                                 person.Details.Add(detail);
                             }
                         }
@@ -188,7 +189,7 @@ namespace fiitobot.Services
                                         res.Parameter.Equals(headers[i], StringComparison.OrdinalIgnoreCase)))
                                     continue;
                                 var detail = new ContactDetail(name, headers[i].Replace("\n", " ").Replace("\r", " "), value,
-                                    sourceId);
+                                    DateTime.Now);
                                 result.Add(detail);
                             }
                         }

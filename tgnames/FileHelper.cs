@@ -5,17 +5,17 @@ namespace tgnames
 {
     public class FileHelper
     {
-        public static string FindFilenameUpwards(string filename, string? baseDirectoryPath = null)
+        public static string FindFilenameUpwards(string filename, string baseDirectoryPath = null)
         {
             return Path.GetFullPath(Path.IsPathRooted(filename) ? filename : WalkDirectoryTree(filename, File.Exists, baseDirectoryPath));
         }
 
-        public static string FindDirectoryUpwards(string dirName, string? baseDirectoryPath = null)
+        public static string FindDirectoryUpwards(string dirName, string baseDirectoryPath = null)
         {
             return Path.GetFullPath(Path.IsPathRooted(dirName) ? dirName : WalkDirectoryTree(dirName, Directory.Exists, baseDirectoryPath));
         }
 
-        private static string WalkDirectoryTree(string filename, Func<string, bool> fileSystemObjectExists, string? baseDirectoryPath = null)
+        private static string WalkDirectoryTree(string filename, Func<string, bool> fileSystemObjectExists, string baseDirectoryPath = null)
         {
             if (baseDirectoryPath == null)
                 baseDirectoryPath = AppDomain.CurrentDomain.BaseDirectory;

@@ -25,7 +25,6 @@ return;
     
 var sheetClient = new GSheetClient(settings.GoogleAuthJson);
 var repo = new SheetContactsRepository(sheetClient, settings.SpreadSheetId);
-var detailsRepo = new DetailsRepository(sheetClient, repo);
 var namesClient = new TgNamesClient(new tgnames.Settings().ApiKeys.First().Key, new Uri("https://functions.yandexcloud.net/d4ek1oph2qq118htfcp3"));
 var sw = Stopwatch.StartNew();
 var contacts = repo.GetAllContacts();
@@ -36,9 +35,7 @@ foreach (var contact in contacts)
 
 return;
 Console.WriteLine("GetData contacts " + sw.Elapsed);
-detailsRepo.ReloadIfNeeded();
 Console.WriteLine("GetData details " + sw.Elapsed);
-var people = detailsRepo.EnrichWithDetails(contacts);
 Console.WriteLine("Enrich " + sw.Elapsed);
 var botData = new BotData
 {

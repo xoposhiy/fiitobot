@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace fiitobot
 {
@@ -21,17 +22,17 @@ namespace fiitobot
     
     public class ContactDetail
     {
-        public ContactDetail(string rubric, string parameter, string value, int sourceId)
+        public ContactDetail(string rubric, string parameter, string value, DateTime updateTime)
         {
             Rubric = rubric;
             Parameter = parameter;
             Value = value;
-            SourceId = sourceId;
+            UpdateTime = updateTime;
         }
 
         public string Rubric;
         public string Parameter;
         public string Value;
-        public int SourceId;
+        public DateTime UpdateTime;
     };
 }

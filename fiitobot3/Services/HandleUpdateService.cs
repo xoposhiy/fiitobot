@@ -1,7 +1,5 @@
 ﻿using System;
-using System.IO;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using fiitobot.Services.Commands;
@@ -67,14 +65,14 @@ namespace fiitobot.Services
         private async Task BotOnCallbackQuery(CallbackQuery callbackQuery)
         {
             //if (!await EnsureHasAdminRights(callbackQuery.From, callbackQuery.Message!.Chat.Id)) return;
-            var sender = GetSenderContact(null, callbackQuery.From);
+            var sender = GetSenderContact(callbackQuery.From);
             await HandlePlainText(callbackQuery.Data!, callbackQuery.Message!.Chat.Id, sender);
         }
 
         private async Task BotOnInlineQuery(InlineQuery inlineQuery)
         {
             if (inlineQuery.Query.Length < 2) return;
-            var sender = GetSenderContact(null, inlineQuery.From);
+            var sender = GetSenderContact(inlineQuery.From);
             if (!sender.Type.IsOneOf(ContactTypes.AllNotExternal)) return;
             var foundPeople = botDataRepo.GetData().SearchContacts(inlineQuery.Query);
             if (foundPeople.Length > 10) return;
@@ -89,7 +87,7 @@ namespace fiitobot.Services
             var silentOnNoResults = message.ReplyToMessage != null;
             var messageFrom = message.From;
             if (messageFrom == null) return;
-            var sender = GetSenderContact(message.Chat, message.From);
+            var sender = GetSenderContact(message.From);
             var fromChatId = message.Chat.Id;
             var inGroupChat = messageFrom.Id != fromChatId;
             if (message.Type == MessageType.Text)
@@ -116,14 +114,13 @@ namespace fiitobot.Services
             }
         }
 
-        private Contact GetSenderContact(Chat chat, User user)
+        private Contact GetSenderContact(User user)
         {
-            Contact tempQualifier = botDataRepo.GetData().FindContactByTgId(user.Id);
-            Contact tempQualifier1 = botDataRepo.GetData().FindContactByTelegramName(user.Username);
+            var botData = botDataRepo.GetData();
             return
-                (tempQualifier != null ? tempQualifier : null)
-                ?? (tempQualifier1 != null ? tempQualifier1 : null)
-                ?? new Contact(-1, ContactType.External, user.Id, user.LastName, user.FirstName, "") { Telegram = user.Username };
+                botData.FindContactByTgId(user.Id)
+                ?? botData.FindContactByTelegramName(user.Username)
+                ?? new Contact(-1, ContactType.External, user.Id, user.LastName, user.FirstName) { Telegram = user.Username };
         }
 
         private async Task HandleForward(User forwardFrom, Contact sender, long fromChatId)
@@ -133,7 +130,7 @@ namespace fiitobot.Services
                 await presenter.SayNoRights(fromChatId, sender.Type);
                 return;
             }
-            var person = GetSenderContact(null, forwardFrom);
+            var person = GetSenderContact(forwardFrom);
             if (person.Type != ContactType.External)
                 await presenter.ShowContact(person, fromChatId, person.GetDetailsLevelFor(sender));
             else
@@ -198,7 +195,7 @@ namespace fiitobot.Services
             {
                 // TODO: сделать абстракцию "ответчика". Спрашивать всех ответчиков, и если есть всего один ответ,
                 // то показывать его. Если несколько, то показывать по кнопке на каждого ответчика и спрашивать у пользователя, что он хотел.
-                var imageBytes = await demidovichService.TryGetImageBytes(text);
+                var imageBytes = demidovichService == null ? null : await demidovichService.TryGetImageBytes(text);
                 var foundAnswer = false;
                 if (imageBytes != null)
                 {
