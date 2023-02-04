@@ -15,7 +15,7 @@ namespace fiitobot.Services
         public BotDataRepository(Settings settings)
         {
             this.settings = settings;
-            objectStorage = new Lazy<YandexStorageService>(settings.CreateYandexStorageService);
+            objectStorage = new Lazy<YandexStorageService>(settings.CreateFiitobotBucketService());
         }
 
         public BotData GetData()

@@ -43,6 +43,8 @@ namespace fiitobot
                 var downloader = new TelegramFileDownloader(client);
                 var studentsDownloader = new UrfuStudentsDownloader(settings);
 
+                var demidovichService = new DemidovichService(settings.CreateDemidovichBucketService());
+                var brsClient = new BrsClient();
                 var commands = new IChatCommandHandler[]
                 {
                     new StartCommandHandler(presenter, botDataRepository),
@@ -56,9 +58,11 @@ namespace fiitobot
                     new TellToContactCommandHandler(presenter, botDataRepository),
                     new UpdateStudentStatusesFromItsCommandHandler(presenter, studentsDownloader, botDataRepository, contactsRepo),
                     new JoinCommandHandler(presenter, botDataRepository, settings.ModeratorsChatId),
-                    new DetailsCommandHandler(presenter, botDataRepository)
+                    new DetailsCommandHandler(presenter, botDataRepository),
+                    new DemidovichCommandHandler(presenter, demidovichService),
+                    new DownloadScoresFromBrsCommandHandler(presenter, brsClient)
                 };
-                var updateService = new HandleUpdateService(botDataRepository, namedPhotoDirectory, photoRepo, downloader, presenter, commands);
+                var updateService = new HandleUpdateService(botDataRepository, namedPhotoDirectory, photoRepo, demidovichService, downloader, presenter, commands);
                 updateService.Handle(update).Wait();
                 client.SendTextMessageAsync(settings.DevopsChatId, presenter.FormatIncomingUpdate(update), ParseMode.Html);
                 return new Response(200, "ok");

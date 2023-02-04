@@ -262,6 +262,6 @@ public class DialogTests
             new RandomCommandHandler(repo, presenter, new Random()),
             new JoinCommandHandler(presenter, repo, 111),
         };
-        return new HandleUpdateService(repo, namedPhotoDirectory, photoRepo, downloader, presenter, commands);
+        return new HandleUpdateService(repo, namedPhotoDirectory, photoRepo, null, downloader, presenter, commands);
     }
 }

@@ -56,21 +56,21 @@ namespace fiitobot
                    Telegram.Trim('@').Equals(tgUsername.Trim('@'), StringComparison.OrdinalIgnoreCase);
         }
 
-        public string FormatMnemonicGroup(DateTime now)
+        public string FormatMnemonicGroup(DateTime now, bool withSubgroup = true)
         {
             if (GraduationYear <= 0) return "";
             if (GroupIndex <= 0) return "";
-            var delta = now.Month >= 8 ? 0 : 1;
-            var course = now.Year - GraduationYear - 3 - delta;
-            if (SubgroupIndex <= 0) return $"ФТ-{course}0{GroupIndex}";
+            var delta = now.Month >= 8 ? 1 : 0;
+            var course = 4 - (GraduationYear - (now.Year + delta));
+            if (SubgroupIndex <= 0 || !withSubgroup) return $"ФТ-{course}0{GroupIndex}";
             return $"ФТ-{course}0{GroupIndex}-{SubgroupIndex}";
         }
 
         public string FormatOfficialGroup(DateTime now)
         {
             if (GraduationYear <= 0) return "";
-            var delta = now.Month >= 8 ? 0 : 1;
-            var course = now.Year - GraduationYear - 3 - delta;
+            var delta = now.Month >= 8 ? 1 : 0;
+            var course = 4 - (GraduationYear - (now.Year + delta));
             var id = GraduationYear == 2023 
                 ? new[] { "0809", "0810" }[GroupIndex - 1]
                 : new[] { "0801", "0802", "0809", "0810" }[GroupIndex - 1];

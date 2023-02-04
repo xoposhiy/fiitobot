@@ -17,18 +17,21 @@ namespace fiitobot.Services
         private readonly IBotDataRepository botDataRepo;
         private readonly INamedPhotoDirectory namedPhotoDirectory;
         private readonly IPhotoRepository photoRepo;
+        private readonly DemidovichService demidovichService;
         private readonly IChatCommandHandler[] commands;
         private readonly ITelegramFileDownloader fileDownloader;
 
         public HandleUpdateService(IBotDataRepository botDataRepo,
             INamedPhotoDirectory namedPhotoDirectory,
             IPhotoRepository photoRepo,
+            DemidovichService demidovichService,
             ITelegramFileDownloader fileDownloader,
             IPresenter presenter, IChatCommandHandler[] commands)
         {
             this.botDataRepo = botDataRepo;
             this.namedPhotoDirectory = namedPhotoDirectory;
             this.photoRepo = photoRepo;
+            this.demidovichService = demidovichService;
             this.presenter = presenter;
             this.commands = commands;
             this.fileDownloader = fileDownloader;
@@ -160,7 +163,10 @@ namespace fiitobot.Services
             }
             if (text.StartsWith("/"))
                 return;
-            var contacts = botDataRepo.GetData().SearchContacts(text);
+            var data = botDataRepo.GetData();
+            if (TryHandleAsGroupName(text, data.Students, fromChatId))
+                return;
+            var contacts = data.SearchContacts(text);
             const int maxResultsCount = 1;
             foreach (var person in contacts.Take(maxResultsCount))
             {
@@ -190,6 +196,15 @@ namespace fiitobot.Services
                 await presenter.ShowOtherResults(contacts.Skip(1).Select(p => p).ToArray(), fromChatId);
             if (contacts.Length == 0)
             {
+                // TODO: сделать абстракцию "ответчика". Спрашивать всех ответчиков, и если есть всего один ответ,
+                // то показывать его. Если несколько, то показывать по кнопке на каждого ответчика и спрашивать у пользователя, что он хотел.
+                var imageBytes = await demidovichService.TryGetImageBytes(text);
+                var foundAnswer = false;
+                if (imageBytes != null)
+                {
+                    await presenter.ShowDemidovichTask(imageBytes, text, fromChatId);
+                    foundAnswer = true;
+                }
                 if (await ShowContactsListBy(text, c => c.MainCompany, fromChatId))
                     return;
                 if (await ShowContactsListBy(text, c => c.FiitJob, fromChatId))
@@ -200,9 +215,27 @@ namespace fiitobot.Services
                     return;
                 if (await ShowContactsListBy(text, c => c.Note, fromChatId))
                     return;
-                if (!silentOnNoResults)
+                if (!foundAnswer && !silentOnNoResults)
                     await presenter.SayNoResults(fromChatId);
             }
+        }
+
+        private bool TryHandleAsGroupName(string text, Contact[] contacts, long chatId)
+        {
+            if (!Regex.IsMatch(text, @"^(ФТ-\d+)|(МЕН-\d+)", RegexOptions.IgnoreCase)) return false;
+            var officialGroupStudent = contacts.FirstOrDefault(c => c.FormatOfficialGroup(DateTime.Now).StartsWith(text, StringComparison.OrdinalIgnoreCase));
+            if (officialGroupStudent != null)
+            {
+                presenter.Say(officialGroupStudent.FormatMnemonicGroup(DateTime.Now, false), chatId);
+                return true;
+            }
+            var mnemonicGroupStudent = contacts.FirstOrDefault(c => c.FormatMnemonicGroup(DateTime.Now).StartsWith(text, StringComparison.OrdinalIgnoreCase));
+            if (mnemonicGroupStudent != null)
+            {
+                presenter.Say(mnemonicGroupStudent.FormatOfficialGroup(DateTime.Now), chatId);
+                return true;
+            }
+            return false;
         }
 
         private (ContactType newSenderType, string restText) OverrideSenderType(string text, ContactType senderType)

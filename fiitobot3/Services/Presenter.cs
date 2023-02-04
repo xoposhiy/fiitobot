@@ -5,11 +5,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Telegram.Bot;
-using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.InlineQueryResults;
 using Telegram.Bot.Types.InputFiles;
 using Telegram.Bot.Types.ReplyMarkups;
+using TL;
+using Update = Telegram.Bot.Types.Update;
 
 namespace fiitobot.Services
 {
@@ -52,8 +53,11 @@ namespace fiitobot.Services
         Task SayPhotoAccepted(Contact photoOwner, Contact moderator, long chatId);
         Task SayPhotoRejected(Contact photoOwner, Contact moderator, long chatId);
         Task ShowPhoto(Contact personContact, byte[] photoBytes, long chatId);
+        Task ShowDemidovichTask(byte[] imageBytes, string exerciseNumber, long chatId);
         Task PromptChangePhoto(long chatId);
         Task OfferToSetHisPhoto(long chatId);
+        Task ShowIfItIsDemidovichTask(string callbackData, long fromChatId);
+        Task SendFile(byte[] content, string filename, string caption, long fromChatId);
     }
 
     public class Presenter : IPresenter
@@ -130,14 +134,17 @@ namespace fiitobot.Services
             {
                 var b = new StringBuilder("Напиши что-нибудь и я найду кого-нибудь из ФИИТ :)\nЯ понимаю имена, фамилии, юзернеймы Telegram, школы, города, компании и всякое.");
                 b.Append("\n\nЕщё можешь прислать мне свою фотографию, и её будут видеть все, кто запросит твой контакт у фиитобота.");
+                b.Append("\n\nМожно написать номер задачи из Демидовича, и я пришлю формулировку задачи.");
+                b.Append("\n\nА если прислать мне номер учебной группы ФИИТ, то я сконвертирую ее из ФТ- формата в МЕН- формат или наоборот.");
                 if (senderType.IsOneOf(ContactType.Administration))
                     b.AppendLine(
                         "\n\nВ любом другом чате напиши @fiitobot и после пробела начни писать фамилию. Я покажу, кого я знаю с такой фамилией, и после выбора конкретного студента, запощу карточку про студента в чат." +
                         $"\n\nДанные я беру из <a href='{settings.SpreadsheetUrl}'>гугл-таблицы к контактами</a>." +
                         $"\nНекоторые фотки я беру из <a href='{settings.PhotoListUrl}'>Яндекс диска</a>." +
                         $"\n\n<b>Секретные админские команды:</b>")
-                        .AppendLine("/reload — перезагружает данные из гугл-таблиц.")
-                        .AppendLine("/its — обновляет статусы студентов из ИТС УрФУ.")
+                        .AppendLine("/reload — перезагружает контакты студентов ФИИТ из гугл-таблицы")
+                        .AppendLine("/its — загружает из ИТС УрФУ актуальные списки студентов и сообщает о различиях с Контактами ФИИТ")
+                        .AppendLine("/scores — загружает из БРС баллы прошедшей сессии за курсы по выбору.")
                         .AppendLine("/tell @user message — отправляет message @user-у от имени фиитобота.")
                         .AppendLine("/as_student ... — как это выглядит для студента.")
                         .AppendLine("/as_staff ... — как это выглядит для препода.")
@@ -222,6 +229,11 @@ namespace fiitobot.Services
             await botClient.SendPhotoAsync(chatId, new InputOnlineFile(new MemoryStream(photoBytes)), caption: caption, parseMode: ParseMode.Html);
         }
 
+        public async Task ShowDemidovichTask(byte[] imageBytes, string exerciseNumber, long chatId)
+        {
+            await botClient.SendPhotoAsync(chatId, new InputOnlineFile(new MemoryStream(imageBytes)), caption: "Демидович " + exerciseNumber, parseMode: ParseMode.Html);
+        }
+
         public async Task PromptChangePhoto(long chatId)
         {
             await Say(
@@ -235,6 +247,17 @@ namespace fiitobot.Services
         public async Task OfferToSetHisPhoto(long chatId)
         {
             await Say("Тут могла бы быть твоя фотка, но ее нет. Пришли мне свою фотку, чтобы это исправить!", chatId);
+        }
+
+        public async Task ShowIfItIsDemidovichTask(string callbackData, long fromChatId)
+        {
+            await botClient.SendTextMessageAsync(fromChatId, "Задача из демидовича?", replyMarkup:
+                new InlineKeyboardMarkup(new InlineKeyboardButton("Да, покажи её!") { CallbackData = callbackData }));
+        }
+
+        public async Task SendFile(byte[] content, string filename, string caption, long fromChatId)
+        {
+            await botClient.SendDocumentAsync(fromChatId, new InputOnlineFile(new MemoryStream(content), filename), caption:caption);
         }
 
         public async Task ShowPhoto(Contact contact, PersonPhoto photo, long chatId, ContactType senderType)

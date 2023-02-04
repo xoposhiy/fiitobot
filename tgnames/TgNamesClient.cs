@@ -6,7 +6,6 @@ using tgnames;
 
 namespace tests
 {
-
     public class TgNamesClient
     {
         private readonly string apiKey;
