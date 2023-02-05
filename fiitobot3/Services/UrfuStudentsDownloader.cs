@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Web;
@@ -13,6 +14,8 @@ namespace fiitobot.Services
         Task<UrfuStudent[]> Download(string academicGroup);
     }
 
+    [SuppressMessage("ReSharper", "FieldCanBeMadeReadOnly.Global")]
+    [SuppressMessage("ReSharper", "UnassignedField.Global")]
     public class UrfuStudent
     {
         public string GroupName;
@@ -20,6 +23,12 @@ namespace fiitobot.Services
         public string Name;
         public double? Rating;
         public string Status;
+
+        public UrfuStudent(string groupName)
+        {
+            GroupName = groupName;
+        }
+
         public override string ToString()
         {
             return $"{GroupName} {Name} {Status} {Rating}";
@@ -34,6 +43,9 @@ namespace fiitobot.Services
             public UrfuStudent[] Data;
         }
 
+        [SuppressMessage("ReSharper", "InconsistentNaming")]
+        [SuppressMessage("ReSharper", "MemberCanBePrivate.Local")]
+        [SuppressMessage("ReSharper", "NotAccessedField.Local")]
         private class FilterItem
         {
             public readonly string property;

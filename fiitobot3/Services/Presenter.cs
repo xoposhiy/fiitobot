@@ -329,8 +329,10 @@ namespace fiitobot.Services
                 if (!string.IsNullOrWhiteSpace(contact.Phone))
                     b.AppendLine($"📞 {contact.Phone}");
             }
-            if (!string.IsNullOrWhiteSpace(contact.Telegram))
-                b.AppendLine($"💬 {contact.Telegram}");
+
+            var tgName = contact.Telegram;
+            if (!string.IsNullOrWhiteSpace(tgName))
+                b.AppendLine($"💬 {tgName}");
 
             b.AppendLine($"{EscapeForHtml(contact.Note)}");
 

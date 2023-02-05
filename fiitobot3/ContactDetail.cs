@@ -1,23 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
+using fiitobot.Services;
 
 namespace fiitobot
 {
     public class ContactWithDetails
     {
-        public ContactWithDetails(Contact contact)
-            : this(contact, new List<ContactDetail>())
-        {
-        }
-
-        public ContactWithDetails(Contact contact, List<ContactDetail> details)
+        public ContactWithDetails(Contact contact, ContactDetails details = null)
         {
             Contact = contact;
-            Details = details;
+            ContactDetails = details;
         }
 
         public readonly Contact Contact;
-        public readonly List<ContactDetail> Details;
+        public readonly ContactDetails ContactDetails;
+        public IReadOnlyList<ContactDetail> Details => ContactDetails?.Details ?? new List<ContactDetail>();
     }
     
     public class ContactDetail

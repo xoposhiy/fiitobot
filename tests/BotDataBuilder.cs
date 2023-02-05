@@ -1,7 +1,6 @@
 using System.IO;
 using fiitobot;
 using Newtonsoft.Json;
-using tests.Properties;
 
 namespace tests;
 

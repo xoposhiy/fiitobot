@@ -1,8 +1,4 @@
-﻿using System.Net;
-using System.Net.Http.Headers;
-using System.Threading.Tasks;
-using fiitobot.GoogleSpreadsheet;
-using WTelegram;
+﻿using System.Threading.Tasks;
 
 namespace fiitobot.Services.Commands
 {

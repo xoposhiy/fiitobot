@@ -2,7 +2,6 @@
 using System.Linq;
 using System.Threading.Tasks;
 using AspNetCore.Yandex.ObjectStorage;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace fiitobot.Services.Commands
 {

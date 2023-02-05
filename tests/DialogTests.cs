@@ -142,14 +142,14 @@ public class DialogTests
             .MustHaveHappenedOnceExactly();
     }
 
-    private Contact AStudent(long tgId = 123123123)
+    private ContactWithDetails AStudent(long tgId = 123123123)
     {
-        return data!.Students.First(c => c.TgId == tgId);
+        return new ContactWithDetails(data!.Students.First(c => c.TgId == tgId));
     }
 
-    private Contact AnAdmin()
+    private ContactWithDetails AnAdmin()
     {
-        return data!.Administrators.First();
+        return new ContactWithDetails(data!.Administrators.First());
     }
 
     [TestCase("Иван")]
@@ -199,12 +199,13 @@ public class DialogTests
         Assert.AreEqual(1, Fake.GetCalls(contactsPresenter).Count());
     }
 
-    private Contact AGuest()
+    private ContactWithDetails AGuest()
     {
-        return new Contact(1, ContactType.External, 555, "Некто", "Нектович")
-        {
-            Telegram = "@guest"
-        };
+        return new ContactWithDetails(
+            new Contact(1, ContactType.External, 555, "Некто", "Нектович")
+            {
+                Telegram = "@guest"
+            });
     }
 
     [TestCase("Я Гриша!")]
@@ -259,8 +260,8 @@ public class DialogTests
             new DetailsCommandHandler(presenter, repo, detailsRepo),
             new ContactsCommandHandler(repo, presenter),
             new RandomCommandHandler(repo, presenter, new Random()),
-            new JoinCommandHandler(presenter, repo, 111),
+            new JoinCommandHandler(presenter, 111),
         };
-        return new HandleUpdateService(repo, namedPhotoDirectory, photoRepo, null, downloader, presenter, commands);
+        return new HandleUpdateService(repo, namedPhotoDirectory, photoRepo, null, downloader, presenter, detailsRepo, commands);
     }
 }

@@ -17,7 +17,7 @@ public class TgNamesTests
         var user = await repo.SearchByTgId(123);
         Assert.That(user.Username, Is.EqualTo("me"));
         var user2 = await repo.SearchByUsername("me");
-        Assert.That(user.Id, Is.EqualTo(123));
+        Assert.That(user2.Id, Is.EqualTo(123));
     }
 
     [Test]

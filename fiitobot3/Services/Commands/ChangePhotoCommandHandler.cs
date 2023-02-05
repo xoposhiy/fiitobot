@@ -6,14 +6,12 @@ namespace fiitobot.Services.Commands
     public class ChangePhotoCommandHandler : IChatCommandHandler
     {
         private readonly IPresenter presenter;
-        private readonly IBotDataRepository repo;
         private readonly IPhotoRepository photoRepository;
         private readonly long reviewerChatId;
 
-        public ChangePhotoCommandHandler(IPresenter presenter, IBotDataRepository repo, IPhotoRepository photoRepository, long reviewerChatId)
+        public ChangePhotoCommandHandler(IPresenter presenter, IPhotoRepository photoRepository, long reviewerChatId)
         {
             this.presenter = presenter;
-            this.repo = repo;
             this.photoRepository = photoRepository;
             this.reviewerChatId = reviewerChatId;
         }

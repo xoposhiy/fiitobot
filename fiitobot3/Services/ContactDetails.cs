@@ -2,6 +2,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Newtonsoft.Json;
+using Telegram.Bot.Types;
 
 namespace fiitobot.Services
 {
@@ -14,6 +16,10 @@ namespace fiitobot.Services
         }
 
         public readonly long ContactId;
+        public long TelegramId;
+        public string TelegramUsername;
+        public DateTime LastUseTime;
+
         // TODO dialogState
         public readonly List<ContactDetail> Details;
 
@@ -34,5 +40,16 @@ namespace fiitobot.Services
                 detail.Value = value;
 
         }
+
+        public void UpdateFromTelegramUser(User user)
+        {
+            if (TelegramId == user.Id && TelegramUsername == user.Username)
+                return;
+            TelegramUsername = user.Username;
+            TelegramId = user.Id;
+            Changed = true;
+        }
+
+        [JsonIgnore] public bool Changed { get; set; }
     }
 }

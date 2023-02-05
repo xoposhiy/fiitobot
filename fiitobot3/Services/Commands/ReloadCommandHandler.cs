@@ -21,6 +21,7 @@ namespace fiitobot.Services.Commands
         public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
         {
             await presenter.SayReloadStarted(fromChatId);
+            //TODO update in sheet telegramIds and telegram names
             ReloadContactsFromSpreadsheet();
             await presenter.SayReloaded(botDataRepo.GetData(), fromChatId);
         }

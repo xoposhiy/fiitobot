@@ -35,8 +35,7 @@ namespace fiitobot.Services.Commands
             var students = botDataRepo.GetData().Students
                 .Where(s => s.Status.IsOneOf("Активный", ""))
                 .ToList();
-            Contact tempQualifier = students[random.Next(students.Count)];
-            return tempQualifier;
+            return students[random.Next(students.Count)];
         }
 
         private bool ShouldShowSender() => random.NextDouble() < ShowSenderChance;

@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using fiitobot.GoogleSpreadsheet;
 
 namespace fiitobot.Services.Commands
 {
@@ -36,10 +35,10 @@ namespace fiitobot.Services.Commands
             await presenter.Say($"Загрузил {students.Count.Pluralize("студента|студента|студентов")}", fromChatId);
             var result = sheetsRepo.UpdateStudentsActivity(students);
             if (result.updatedStudents.Any())
-                await presenter.Say($"Смотри, у этих студентов поменялись статусы!\n" + string.Join("\n", result.updatedStudents), fromChatId);
+                await presenter.Say("Смотри, у этих студентов поменялись статусы!\n" + string.Join("\n", result.updatedStudents), fromChatId);
             if (result.newStudents.Any())
-                await presenter.Say($"Ого, у нас есть новые активные студенты!\n" + string.Join("\n", result.newStudents), fromChatId);
-            await presenter.Say($"Готово!", fromChatId);
+                await presenter.Say("Ого, у нас есть новые активные студенты!\n" + string.Join("\n", result.newStudents), fromChatId);
+            await presenter.Say("Готово!", fromChatId);
         }
     }
 }

@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
+﻿using System.Linq;
 using System.Threading.Tasks;
 
 namespace fiitobot.Services.Commands
@@ -31,9 +30,9 @@ namespace fiitobot.Services.Commands
             if (contacts.Length == 1)
             {
                 var contact = contacts[0];
-                var state = await contactDetailsRepo.FindById(contact.Id);
-                var details = state?.Details ?? new List<ContactDetail>();
-                var contactWithDetails = new ContactWithDetails(contact, details);
+                var details = await contactDetailsRepo.FindById(contact.Id);
+                var contactWithDetails = new
+                    ContactWithDetails(contact, details);
                 await presenter.ShowDetails(contactWithDetails, fromChatId);
             }
             else

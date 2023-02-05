@@ -49,19 +49,19 @@ namespace fiitobot
                     new StartCommandHandler(presenter, botDataRepository),
                     new HelpCommandHandler(presenter),
                     new ContactsCommandHandler(botDataRepository, presenter),
-                    new RandomCommandHandler(botDataRepository, presenter, new Random()), 
+                    new RandomCommandHandler(botDataRepository, presenter, new Random()),
                     new ReloadCommandHandler(presenter, contactsRepo, botDataRepository),
-                    new ChangePhotoCommandHandler(presenter, botDataRepository, photoRepo, settings.ModeratorsChatId),
+                    new ChangePhotoCommandHandler(presenter, photoRepo, settings.ModeratorsChatId),
                     new AcceptPhotoCommandHandler(presenter, botDataRepository, photoRepo, settings.ModeratorsChatId),
                     new RejectPhotoCommandHandler(presenter, botDataRepository, photoRepo, settings.ModeratorsChatId),
                     new TellToContactCommandHandler(presenter, botDataRepository),
                     new UpdateStudentStatusesFromItsCommandHandler(presenter, studentsDownloader, botDataRepository, contactsRepo),
-                    new JoinCommandHandler(presenter, botDataRepository, settings.ModeratorsChatId),
+                    new JoinCommandHandler(presenter, settings.ModeratorsChatId),
                     new DetailsCommandHandler(presenter, botDataRepository, detailsRepo),
                     new DemidovichCommandHandler(presenter, demidovichService),
                     new DownloadMarksFromBrsCommandHandler(presenter, botDataRepository, detailsRepo, brsClient)
                 };
-                var updateService = new HandleUpdateService(botDataRepository, namedPhotoDirectory, photoRepo, demidovichService, downloader, presenter, commands);
+                var updateService = new HandleUpdateService(botDataRepository, namedPhotoDirectory, photoRepo, demidovichService, downloader, presenter, detailsRepo, commands);
                 updateService.Handle(update).Wait();
                 if (GetSender(update) != settings.DevopsChatId)
                     client.SendTextMessageAsync(settings.DevopsChatId, presenter.FormatIncomingUpdate(update), ParseMode.Html);

@@ -12,6 +12,7 @@ namespace fiitobot.Services
     public class HandleUpdateService
     {
         private readonly IPresenter presenter;
+        private readonly IContactDetailsRepo detailsRepo;
         private readonly IBotDataRepository botDataRepo;
         private readonly INamedPhotoDirectory namedPhotoDirectory;
         private readonly IPhotoRepository photoRepo;
@@ -24,13 +25,16 @@ namespace fiitobot.Services
             IPhotoRepository photoRepo,
             DemidovichService demidovichService,
             ITelegramFileDownloader fileDownloader,
-            IPresenter presenter, IChatCommandHandler[] commands)
+            IPresenter presenter,
+            IContactDetailsRepo detailsRepo,
+            IChatCommandHandler[] commands)
         {
             this.botDataRepo = botDataRepo;
             this.namedPhotoDirectory = namedPhotoDirectory;
             this.photoRepo = photoRepo;
             this.demidovichService = demidovichService;
             this.presenter = presenter;
+            this.detailsRepo = detailsRepo;
             this.commands = commands;
             this.fileDownloader = fileDownloader;
         }
@@ -65,15 +69,15 @@ namespace fiitobot.Services
         private async Task BotOnCallbackQuery(CallbackQuery callbackQuery)
         {
             //if (!await EnsureHasAdminRights(callbackQuery.From, callbackQuery.Message!.Chat.Id)) return;
-            var sender = GetSenderContact(callbackQuery.From);
+            var sender = await GetSenderContact(callbackQuery.From);
             await HandlePlainText(callbackQuery.Data!, callbackQuery.Message!.Chat.Id, sender);
         }
 
         private async Task BotOnInlineQuery(InlineQuery inlineQuery)
         {
             if (inlineQuery.Query.Length < 2) return;
-            var sender = GetSenderContact(inlineQuery.From);
-            if (!sender.Type.IsOneOf(ContactTypes.AllNotExternal)) return;
+            var sender = await GetSenderContact(inlineQuery.From);
+            if (!sender.Contact.Type.IsOneOf(ContactTypes.AllNotExternal)) return;
             var foundPeople = botDataRepo.GetData().SearchContacts(inlineQuery.Query);
             if (foundPeople.Length > 10) return;
             await presenter.InlineSearchResults(inlineQuery.Id, foundPeople.Select(c => c).ToArray());
@@ -87,7 +91,8 @@ namespace fiitobot.Services
             var silentOnNoResults = message.ReplyToMessage != null;
             var messageFrom = message.From;
             if (messageFrom == null) return;
-            var sender = GetSenderContact(message.From);
+            var sender = await GetSenderContact(message.From);
+            sender.ContactDetails.UpdateFromTelegramUser(message.From);
             var fromChatId = message.Chat.Id;
             var inGroupChat = messageFrom.Id != fromChatId;
             if (message.Type == MessageType.Text)
@@ -96,7 +101,9 @@ namespace fiitobot.Services
                 else
                     await HandlePlainText(message.Text!, fromChatId, sender, silentOnNoResults);
             else if (!inGroupChat && message.Type == MessageType.Photo)
-                await HandlePhoto(message, sender, fromChatId);
+                await HandlePhoto(message, sender.Contact, fromChatId);
+            if (sender.ContactDetails.Changed)
+                await detailsRepo.Save(sender.ContactDetails);
         }
 
         private async Task HandlePhoto(Message message, Contact sender, long fromChatId)
@@ -114,31 +121,37 @@ namespace fiitobot.Services
             }
         }
 
-        private Contact GetSenderContact(User user)
+        private async Task<ContactWithDetails> GetSenderContact(User user)
         {
             var botData = botDataRepo.GetData();
-            return
-                botData.FindContactByTgId(user.Id)
-                ?? botData.FindContactByTelegramName(user.Username)
-                ?? new Contact(-1, ContactType.External, user.Id, user.LastName, user.FirstName) { Telegram = user.Username };
+            var contact = botData.FindContactByTgId(user.Id)
+                          ?? botData.FindContactByTelegramName(user.Username)
+                          ?? new Contact(-1, ContactType.External, user.Id, user.LastName, user.FirstName) { Telegram = user.Username };
+            var details = await detailsRepo.FindById(contact.Id) ?? new ContactDetails(contact.Id);
+            contact.Telegram = details.TelegramUsername;
+            contact.TgId = details.TelegramId;
+            return new ContactWithDetails(contact, details);
         }
 
-        private async Task HandleForward(User forwardFrom, Contact sender, long fromChatId)
+        private async Task HandleForward(User forwardFrom, ContactWithDetails senderWithDetails, long fromChatId)
         {
+            var sender = senderWithDetails.Contact;
             if (sender.Type == ContactType.External)
             {
                 await presenter.SayNoRights(fromChatId, sender.Type);
                 return;
             }
-            var person = GetSenderContact(forwardFrom);
+            var personWithDetails = await GetSenderContact(forwardFrom);
+            var person = personWithDetails.Contact;
             if (person.Type != ContactType.External)
                 await presenter.ShowContact(person, fromChatId, person.GetDetailsLevelFor(sender));
             else
                 await presenter.SayNoResults(fromChatId);
         }
 
-        public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
+        public async Task HandlePlainText(string text, long fromChatId, ContactWithDetails senderWithDetails, bool silentOnNoResults = false)
         {
+            var sender = senderWithDetails.Contact;
             bool asSelf = text.Contains("/as_self");
             (sender.Type, text) = OverrideSenderType(text, sender.Type);
 

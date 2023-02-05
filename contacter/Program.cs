@@ -4,7 +4,6 @@ using fiitobot.Services;
 using System.Text;
 using TL;
 using WTelegram;
-using System.Diagnostics.CodeAnalysis;
 using Contact = fiitobot.Contact;
 
 //await ImportContacts();
@@ -46,7 +45,7 @@ async Task ReportActiveStudents(string chatTitle)
         if (history.Messages.Length == 0) break;
         foreach (var m in history.Messages)
         {
-            if (m.From is PeerUser user)
+            if (m.From is PeerUser)
             {
                 var id = m.From.ID;
                 activity[id] = activity.GetOrDefault(id) + 1;
@@ -94,14 +93,14 @@ async Task AnalyzeStudentsChat(int admissionYear, string chatName)
             Console.WriteLine($"{user.last_name};{user.first_name};;;;{user.phone};;{user.username};{user.ID}");
         else
         {
-            var year = ((Contact)match).AdmissionYear;
+            var year = match.AdmissionYear;
             var newCount = countByYear.GetOrDefault(year) + 1;
             countByYear[year] = newCount;
         }
     }
     Console.WriteLine();
     Console.WriteLine("# MISSING USERS IN CHAT:");
-    foreach (var person in data.Students.Where(s => ((Contact)s).AdmissionYear == admissionYear && ((Contact)s).Status.IsOneOf("", "Активный")))
+    foreach (var person in data.Students.Where(s => ((Contact)s).AdmissionYear == admissionYear && s.Status.IsOneOf("", "Активный")))
     {
         var contact = (Contact)person;
         var tgId = contact.TgId;
@@ -112,7 +111,7 @@ async Task AnalyzeStudentsChat(int admissionYear, string chatName)
         }
         else
         {
-            if (!users.TryGetValue(tgId, out var u))
+            if (!users.TryGetValue(tgId, out var _))
             {
                 missing++;
                 Console.WriteLine($"MISSING {contact.FirstName} {contact.LastName} {contact.Concurs}");

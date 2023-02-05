@@ -8,13 +8,11 @@ namespace fiitobot.Services
 {
     public class BotDataRepository : IBotDataRepository
     {
-        private readonly Settings settings;
         private BotData botData;
         private readonly Lazy<YandexStorageService> objectStorage;
 
         public BotDataRepository(Settings settings)
         {
-            this.settings = settings;
             objectStorage = new Lazy<YandexStorageService>(settings.CreateFiitobotBucketService());
         }
 

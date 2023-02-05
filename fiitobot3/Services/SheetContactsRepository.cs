@@ -8,18 +8,18 @@ namespace fiitobot.Services
 {
     public class SheetContactsRepository
     {
+        private const string StaffSheetName = "Staff";
+        private const string StudentsSheetName = "Students";
+        private const string AdminSheetName = "Administrators";
+        private const string Range = "A1:T";
         private readonly object locker = new object();
         private readonly GSheetClient sheetClient;
         private readonly string spreadsheetId;
         private volatile Contact[] admins;
-        private readonly string AdminSheetName = "Administrators";
         private volatile Contact[] contacts;
-        private DateTime lastUpdateTime = DateTime.MinValue;
         private volatile string[] otherSpreadsheets;
-        private readonly string Range = "A1:T";
         private volatile Contact[] staff;
-        private readonly string StaffSheetName = "Staff";
-        private readonly string StudentsSheetName = "Students";
+        private DateTime lastUpdateTime = DateTime.MinValue;
 
         public SheetContactsRepository(GSheetClient sheetClient, string contactsSpreadsheetId)
         {
@@ -113,7 +113,7 @@ namespace fiitobot.Services
         }
 
         public (IList<UrfuStudent> newStudents, IList<UrfuStudent> updatedStudents) UpdateStudentsActivity(
-            IReadOnlyList<UrfuStudent> updatedContacts)
+            IReadOnlyList<UrfuStudent> itsContacts)
         {
             var spreadsheet = sheetClient.GetSpreadsheet(spreadsheetId);
             var studentsSheet = spreadsheet.GetSheetByName(StudentsSheetName);
@@ -121,7 +121,7 @@ namespace fiitobot.Services
             var headers = data[0].TakeWhile(s => !string.IsNullOrWhiteSpace(s)).ToList();
             var sheetStudents = data.Skip(1).Select(row => ParseContactFromRow(row, headers, ContactType.Student))
                 .ToArray();
-            var map = updatedContacts.ToLookup(s => s.Name.Canonize());
+            var map = itsContacts.ToLookup(s => s.Name.Canonize());
             var edit = studentsSheet.Edit();
             var editsCount = 0;
 
@@ -137,7 +137,7 @@ namespace fiitobot.Services
             }
 
             var rowIndex = 1;
-            var notUsed = updatedContacts.ToHashSet();
+            var notUsed = itsContacts.ToHashSet();
             var updatedStudents = new List<UrfuStudent>();
             foreach (var row in sheetStudents)
             {
