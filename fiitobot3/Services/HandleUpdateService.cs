@@ -168,7 +168,11 @@ namespace fiitobot.Services
 
             if (sender.Type == ContactType.External)
             {
-                await presenter.SayNoRights(fromChatId, sender.Type);
+                var imageBytes = demidovichService == null ? null : await demidovichService.TryGetImageBytes(text);
+                if (imageBytes != null)
+                    await presenter.ShowDemidovichTask(imageBytes, text, fromChatId);
+                else
+                    await presenter.SayNoRights(fromChatId, sender.Type);
                 return;
             }
             if (text.StartsWith("/"))
