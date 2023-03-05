@@ -46,6 +46,8 @@ namespace fiitobot
 
         public static bool ExactSameContact(Contact contact, string query)
         {
+            if (query.StartsWith("https://t.me/"))
+                query = query.Substring("https://t.me/".Length);
             var fullName = contact.LastName + " " + contact.FirstName;
             var tg = contact.Telegram?.TrimStart('@') ?? "";
             var fn = fullName.Canonize();

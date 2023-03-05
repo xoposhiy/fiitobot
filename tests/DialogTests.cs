@@ -25,6 +25,7 @@ public class DialogTests
     [TestCase("Анастасия Мизурова", "Мизуро́ва")]
     [TestCase("Мизурова Анастасия", "Мизуро́ва")]
     [TestCase("username42", "Мизуро́ва")]
+    [TestCase("https://t.me/username42", "Мизуро́ва")]
     [TestCase("@username42", "Мизуро́ва")]
     [TestCase("Мизурова Анастасия Лишние Слова", "Мизуро́ва")]
     [TestCase("Семёнов Иван", "Семёнов")]
