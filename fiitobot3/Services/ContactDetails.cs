@@ -21,24 +21,21 @@ namespace fiitobot.Services
         public DateTime LastUseTime;
 
         // TODO dialogState
-        public readonly List<ContactDetail> Details;
+        public List<ContactDetail> Details;
 
         public void UpdateOrAddMark(BrsStudentMark mark, int year, int yearPart, int courseNumber)
         {
-            UpdateOrAddDetail(Rubrics.Semester(year, yearPart, courseNumber), mark.ModuleTitle, $"{mark.Total} ({mark.Mark})");
+            var details = mark.Mark;
+            if (!string.IsNullOrEmpty(mark.ContainerName))
+                details += $" {mark.ContainerName}";
+            UpdateOrAddDetail(Rubrics.Semester(year, yearPart, courseNumber), $"{mark.ModuleTitle}", $"{mark.Total} ({details})");
         }
         
         public void UpdateOrAddDetail(string rubric, string parameter, string value)
         {
-            var detail = Details.FirstOrDefault(d => d.Rubric == rubric && d.Parameter == parameter);
-            if (detail == null)
-            {
-                detail = new ContactDetail(rubric, parameter, value, DateTime.Now);
-                Details.Add(detail);
-            }
-            else
-                detail.Value = value;
-
+            var newDetails = Details.Where(d => d.Rubric != rubric || !d.Parameter.StartsWith(parameter)).ToList();
+            newDetails.Add(new ContactDetail(rubric, parameter, value, DateTime.Now));
+            Details = newDetails;
         }
 
         public void UpdateFromTelegramUser(User user)

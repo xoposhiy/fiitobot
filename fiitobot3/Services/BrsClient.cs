@@ -31,13 +31,26 @@ namespace fiitobot.Services
             int yearPart)
         {
             AddSessionCookie(sessionId);
-            var url = $"https://brs.urfu.ru/mrd/mvc/mobile/discipline/fetch?year={studyYear}&termType={yearPart}&course={courseNumber}&total=1000&page=1&pageSize=1000&search=";
+            var amountString = await httpClient.GetStringAsync($"https://brs.urfu.ru/mrd/mvc/mobile/discipline/amount?year={studyYear}&termType={yearPart}&course={courseNumber}");
+            var url = $"https://brs.urfu.ru/mrd/mvc/mobile/discipline/fetch?year={studyYear}&termType={yearPart}&course={courseNumber}&total={amountString}&page=1&pageSize=1000&search=";
             var res = await httpClient.GetStringAsync(url);
-            var ans = JsonConvert.DeserializeObject<JObject>(res);
+            var ans = TryDeserialize(res);
             var content = ans["content"];
             var brsContainers = content.ToObject<List<BrsContainer>>()!;
             brsContainers = brsContainers.Where(c => officialGroupPredicate(c.Group)).ToList();
             return brsContainers;
+        }
+
+        private static JObject TryDeserialize(string res)
+        {
+            try
+            {
+                return JsonConvert.DeserializeObject<JObject>(res);
+            }
+            catch
+            {
+                throw new FormatException(res);
+            }
         }
 
         private void AddSessionCookie(string sessionId)
@@ -57,13 +70,14 @@ namespace fiitobot.Services
         {
             AddSessionCookie(sessionId);
             var url = $"https://brs.urfu.ru/mrd/mvc/mobile/studentMarks/fetch?disciplineLoad={container.DisciplineLoad}&groupUuid={container.GroupHistoryId}&cardType=practice&hasTest=false&isTotal=true&intermediate=false&selectedTeachers=null&showActiveStudents=false";
-            Console.WriteLine(url);
             var res = await httpClient.GetStringAsync(url);
             var marks = JsonConvert.DeserializeObject<List<BrsStudentMark>>(res).Where(m => m.IsRealMark).ToList();
             foreach (var brsStudentMark in marks)
             {
                 if (string.IsNullOrWhiteSpace(brsStudentMark.ModuleTitle))
                     brsStudentMark.ModuleTitle = container.Discipline;
+                if (container.Discipline.StartsWith("Специальный курс"))
+                    brsStudentMark.ContainerName = "ск" + container.Discipline.Split("№").Last();
             }
             return marks;
         }

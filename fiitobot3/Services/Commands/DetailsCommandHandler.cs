@@ -17,19 +17,25 @@ namespace fiitobot.Services.Commands
         }
 
         public string Command => "/details";
-        public ContactType[] AllowedFor => new[] { ContactType.Staff, ContactType.Administration };
+        public ContactType[] AllowedFor => new[] { ContactType.Staff, ContactType.Administration, ContactType.Student };
         public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
         {
-            await ShowDetails(text.Split(" ").Skip(1).StrJoin(" "), fromChatId);
+            var query = text.Split(" ").Skip(1).StrJoin(" ");
+            await ShowDetails(query, sender, fromChatId);
         }
 
-        private async Task ShowDetails(string query, long fromChatId)
+        private async Task ShowDetails(string query, Contact sender, long fromChatId)
         {
             var botData = botDataRepo.GetData();
-            var contacts = botData.SearchContacts(query);
+            var contacts = string.IsNullOrWhiteSpace(query) ? new[]{sender} : botData.SearchContacts(query);
             if (contacts.Length == 1)
             {
                 var contact = contacts[0];
+                if (sender.Type == ContactType.Student && contact.TgId != fromChatId)
+                {
+                    await presenter.SayNoRights(fromChatId, ContactType.Student);
+                    return;
+                }
                 var details = await contactDetailsRepo.FindById(contact.Id);
                 var contactWithDetails = new
                     ContactWithDetails(contact, details);

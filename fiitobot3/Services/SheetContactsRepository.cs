@@ -191,7 +191,7 @@ namespace fiitobot.Services
                 SubgroupIndex = int.TryParse(Get("SubgroupIndex"), out var subgroupIndex) ? subgroupIndex : -1,
                 City = Get("City"),
                 School = Get("School"),
-                Concurs = Get("Konkurs"),
+                Concurs = Get("Concurs"),
                 EnrollRating = Get("EnrollRating"),
                 Telegram = Get("Telegram"),
                 Phone = Get("Phone"),
