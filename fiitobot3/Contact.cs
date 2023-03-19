@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Runtime.Serialization;
 using System.Text.RegularExpressions;
+using fiitobot.Services;
+using Newtonsoft.Json;
 
 namespace fiitobot
 {
@@ -14,16 +17,6 @@ namespace fiitobot
     public class Contact
     {
         public const string ActiveStatus = "Активный";
-
-        public Contact(long id, ContactType type, long tgId, string lastName, string firstName, string patronymic = "")
-        {
-            Id = id;
-            Type = type;
-            TgId = tgId;
-            LastName = lastName;
-            FirstName = firstName;
-            Patronymic = patronymic;
-        }
 
         public ContactType Type;
         public long Id;
@@ -86,7 +79,8 @@ namespace fiitobot
                 var last = LastName.Canonize();
                 var patronymic = Patronymic.Canonize();
                 var queryRegex = new Regex(@$" {Regex.Escape(query)} ");
-                var contact = " " + first + " " + last + " " + first + " " + patronymic + " " + Telegram.ToLower() + " " + Telegram.ToLower().TrimStart('@') + " ";
+                var tgUsernameLowercase = Telegram.ToLower();
+                var contact = " " + first + " " + last + " " + first + " " + patronymic + " " + tgUsernameLowercase + " " + tgUsernameLowercase.TrimStart('@') + " ";
                 return queryRegex.IsMatch(contact);
             }
             catch (Exception e)
@@ -104,6 +98,14 @@ namespace fiitobot
             return $"{FirstName} {LastName} {Telegram} {TgId}";
         }
 
+        public void UpdateFromDetails(ContactDetails details)
+        {
+            if (details == null) return;
+            if (!string.IsNullOrEmpty(details.TelegramUsername))
+                Telegram = details.TelegramUsernameWithSobachka;
+            if (details.TelegramId != 0)
+                TgId = details.TelegramId;
+        }
     }
 
     public static class ContactTypes

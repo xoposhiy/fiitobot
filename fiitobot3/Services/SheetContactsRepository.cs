@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Threading.Tasks;
 using fiitobot.GoogleSpreadsheet;
 
 namespace fiitobot.Services
@@ -15,53 +16,47 @@ namespace fiitobot.Services
         private readonly object locker = new object();
         private readonly GSheetClient sheetClient;
         private readonly string spreadsheetId;
+        private readonly IBotDataRepository botDataRepo;
+        private readonly IContactDetailsRepo detailsRepo;
         private volatile Contact[] admins;
-        private volatile Contact[] contacts;
-        private volatile string[] otherSpreadsheets;
-        private volatile Contact[] staff;
-        private DateTime lastUpdateTime = DateTime.MinValue;
+        private volatile Contact[] students;
+        private volatile Contact[] teachers;
 
-        public SheetContactsRepository(GSheetClient sheetClient, string contactsSpreadsheetId)
+        public SheetContactsRepository(GSheetClient sheetClient, string contactsSpreadsheetId, IBotDataRepository botDataRepo, IContactDetailsRepo detailsRepo)
         {
             this.sheetClient = sheetClient;
             spreadsheetId = contactsSpreadsheetId;
+            this.botDataRepo = botDataRepo;
+            this.detailsRepo = detailsRepo;
         }
 
-        public Contact[] FindContacts(string query)
+        private void ReloadIfNeeded()
         {
-            ReloadIfNeeded();
-            return contacts!.Where(c => SameContact(c, query)).ToArray();
-        }
-
-        private void ReloadIfNeeded(bool force = false)
-        {
+            var botData = botDataRepo.GetData();
             lock (locker)
             {
-                if (DateTime.Now - lastUpdateTime <= TimeSpan.FromMinutes(1) && !force) return;
-                contacts = LoadContacts(ContactType.Student, StudentsSheetName);
-                admins = LoadContacts(ContactType.Administration, AdminSheetName);
-                staff = LoadContacts(ContactType.Staff, StaffSheetName);
-                otherSpreadsheets = LoadDetailSourceSpreadsheets();
-                lastUpdateTime = DateTime.Now;
+                students = LoadContacts(ContactType.Student, StudentsSheetName, botData.Students);
+                admins = LoadContacts(ContactType.Administration, AdminSheetName, botData.Administrators);
+                teachers = LoadContacts(ContactType.Staff, StaffSheetName, botData.Teachers);
             }
         }
 
-        public Contact[] GetAllContacts()
+        public Contact[] GetStudents()
         {
             ReloadIfNeeded();
-            return contacts!;
+            return students;
         }
 
-        public Contact[] GetAllAdmins()
+        public Contact[] GetAdmins()
         {
             ReloadIfNeeded();
             return admins;
         }
 
-        public Contact[] GetAllTeachers()
+        public Contact[] GetTeachers()
         {
             ReloadIfNeeded();
-            return staff;
+            return teachers;
         }
 
         public string[] LoadDetailSourceSpreadsheets()
@@ -71,45 +66,65 @@ namespace fiitobot.Services
             return adminsSheet.ReadRange("A1:A").Select(row => row[0]).ToArray();
         }
 
-        private bool SameContact(Contact contact, string query)
-        {
-            query = query.ToLower();
-            var first = contact.FirstName.ToLower();
-            var last = contact.LastName.ToLower();
-            return first == query || last == query || last + ' ' + first == query || first + ' ' + last == query ||
-                   query == contact.Telegram.ToLower() || '@' + query == contact.Telegram.ToLower();
-        }
-
         /// <summary>
         /// Загружает контакты из гугл-таблицы.
         /// Для всех контактов, у которых нет идентификатора (столбец Id), присваивает новые идентификаторы и
         /// сохраняет их в гугл-таблице.
         /// </summary>
-        public Contact[] LoadContacts(ContactType contactType, string sheetName)
+        public Contact[] LoadContacts(ContactType contactType, string sheetName, Contact[] oldContacts)
         {
             var spreadsheet = sheetClient.GetSpreadsheet(spreadsheetId);
-            var studentsSheet = spreadsheet.GetSheetByName(sheetName);
-            var data = studentsSheet.ReadRange(Range);
-            var headers = data[0].TakeWhile(s => !string.IsNullOrWhiteSpace(s)).ToList();
-            var loadContacts = data.Skip(1).Select(row => ParseContactFromRow(row, headers, contactType)).ToArray();
-            var newContacts = loadContacts.Where(c => c.Id == -1).ToList();
-            if (newContacts.Any())
+            var contactsSheet = spreadsheet.GetSheetByName(sheetName);
+            var synchronizer = new GSheetSynchronizer<Contact, long>(contactsSheet, contact => contact.Id);
+            var loadContacts = synchronizer.LoadSheet(() => new Contact { Type = contactType });
+            var changes = new List<Contact>();
+            var createdContacts = loadContacts.Where(c => c.Id == -1).ToList();
+            if (createdContacts.Any())
             {
                 var now = DateTime.Now;
                 var timeId = long.Parse((int)contactType + now.ToString("yyMMddhhmmssfff"));
                 var prevId = Math.Max(timeId, loadContacts.Max(c => c.Id));
-                var edit = studentsSheet.Edit();
-                var idColumnIndex = headers.IndexOf("Id");
-                foreach (var contact in newContacts)
-                {
+                foreach (var contact in createdContacts)
                     contact.Id = ++prevId;
-                    var row = new List<object> { contact.Id };
-                    var contactIndex = loadContacts.IndexOf(contact);
-                    edit.WriteRangeNoCasts((contactIndex+1, idColumnIndex), new List<List<object>> { row });
-                }
-                edit.Execute();
             }
-            return loadContacts;
+            //var oldContactById = oldContacts?.ToDictionary(c => c.Id) ?? new Dictionary<long, Contact>();
+            //TODO херня с парами. Надо пройтись по новым
+            var pairs = loadContacts.Join(
+                    oldContacts ?? Array.Empty<Contact>(),
+                    c => c.Id,
+                    c => c.Id, (newContact, currentContact) => (newContact, currentContact));
+            foreach (var (newContact, oldContact) in pairs)
+            {
+                if (newContact.Telegram != oldContact.Telegram)
+                {
+                    var details = detailsRepo.FindById(newContact.Id).Result;
+                    if (details != null && details.TelegramUsername != newContact.Telegram)
+                    {
+                        details.TelegramId = 0;
+                        details.TelegramUsername = newContact.Telegram;
+                        details.TelegramUsernameSource = TgUsernameSource.GoogleSheet;
+                        detailsRepo.Save(details).Wait();
+                    }
+                }
+                else if (newContact.TgId == 0)
+                {
+                    var details = detailsRepo.FindById(newContact.Id).Result;
+                    if (details != null && details.TelegramId != 0)
+                    {
+                        newContact.TgId = details.TelegramId;
+                        newContact.Telegram = details.TelegramUsernameWithSobachka;
+                        changes.Add(newContact);
+                    }
+                }
+            }
+
+            Console.WriteLine("Changes of " + contactType);
+            foreach (var contact in changes)
+            {
+                Console.WriteLine(contact);
+            }
+            synchronizer.UpdateSheet(() => new Contact { Type = contactType }, changes);
+            return loadContacts.ToArray();
         }
 
         public (IList<UrfuStudent> newStudents, IList<UrfuStudent> updatedStudents) UpdateStudentsActivity(
@@ -176,14 +191,14 @@ namespace fiitobot.Services
 
             long GetId() => long.TryParse(Get("Id"), out var id) ? id : -1;
 
-            return new Contact(
-                GetId(),
-                contactType,
-                long.TryParse(Get("TgId"), out var tgId) ? tgId : -1,
-                Get("LastName"),
-                Get("FirstName"),
-                Get("Patronymic"))
+            return new Contact
             {
+                Id = GetId(),
+                Type = contactType,
+                TgId = long.TryParse(Get("TgId"), out var tgId) ? tgId : -1,
+                LastName = Get("LastName"),
+                FirstName = Get("FirstName"),
+                Patronymic = Get("Patronymic"),
                 AdmissionYear = int.TryParse(Get("AdmissionYear"), out var admYear) ? admYear : -1,
                 GraduationYear = int.TryParse(Get("GraduationYear"), out var gradYear) ? gradYear : -1,
                 Status = Get("Status"),
@@ -208,11 +223,6 @@ namespace fiitobot.Services
         {
             s = s.Replace(",", ".");
             return double.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out var d) ? (double?)d : null;
-        }
-
-        public string[] GetOtherSpreadsheets()
-        {
-            return otherSpreadsheets!;
         }
     }
 }

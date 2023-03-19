@@ -16,7 +16,7 @@ namespace fiitobot.Services
         /// 
         /// Код вычисляет список админов, которых нужно разжаловать, а потом список тех, кого нужно произвести в админы. Остальных не трогает.
         /// </summary>
-        public async Task GrantStudentRanks(WTelegram.Client client, SheetContactsRepository contactsRepository, string chatTitle = "спроси про ФИИТ", string studentRank = "Студент ФИИТ")
+        public async Task GrantStudentRanks(WTelegram.Client client, BotDataRepository dataRepository, string chatTitle = "спроси про ФИИТ", string studentRank = "Студент ФИИТ")
         {
             var me = await client.LoginUserIfNeeded();
             Messages_Chats chats = await client.Messages_GetAllChats();
@@ -34,7 +34,7 @@ namespace fiitobot.Services
             var adminIds = studAdmins.Select(p => p.id).ToHashSet();
             Console.WriteLine($"Found {adminIds.Count} student admins");
 
-            var students = contactsRepository.GetAllContacts().Where(s => s.AdmissionYear < 2022).Select(c => c.TgId).ToHashSet();
+            var students = dataRepository.GetData().Students.Where(s => s.AdmissionYear < 2022).Select(c => c.TgId).ToHashSet();
             Console.WriteLine($"Loaded {students.Count} students");
 
             Dictionary<long, PeerUser> lastAuthors = new Dictionary<long, PeerUser>();

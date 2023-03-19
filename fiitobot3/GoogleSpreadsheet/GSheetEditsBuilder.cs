@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Google.Apis.Http;
@@ -565,6 +565,7 @@ namespace fiitobot.GoogleSpreadsheet
 
         public void Execute()
         {
+            if (requests.Count == 0) return;
             var requestBody = new BatchUpdateSpreadsheetRequest {Requests = requests};
             var request = service.Spreadsheets.BatchUpdate(requestBody, spreadSheetId);
             request.AddUnsuccessfulResponseHandler(new ErrorsHandler());

@@ -92,7 +92,6 @@ namespace fiitobot.Services
             var messageFrom = message.From;
             if (messageFrom == null) return;
             var sender = await GetSenderContact(message.From);
-            sender.ContactDetails.UpdateFromTelegramUser(message.From);
             var fromChatId = message.Chat.Id;
             var inGroupChat = messageFrom.Id != fromChatId;
             if (message.Type == MessageType.Text)
@@ -124,13 +123,26 @@ namespace fiitobot.Services
         private async Task<ContactWithDetails> GetSenderContact(User user)
         {
             var botData = botDataRepo.GetData();
-            var contact = botData.FindContactByTgId(user.Id)
+            var senderContact = botData.FindContactByTgId(user.Id)
                           ?? botData.FindContactByTelegramName(user.Username)
-                          ?? new Contact(-1, ContactType.External, user.Id, user.LastName, user.FirstName) { Telegram = user.Username };
-            var details = await detailsRepo.FindById(contact.Id) ?? new ContactDetails(contact.Id);
-            contact.Telegram = details.TelegramUsername;
-            contact.TgId = details.TelegramId;
-            return new ContactWithDetails(contact, details);
+                          ?? CreateExternalContactFromTgUser(user);
+            var details = await detailsRepo.FindById(senderContact.Id) ?? new ContactDetails(senderContact.Id);
+            details.UpdateFromTelegramUser(user);
+            senderContact.UpdateFromDetails(details);
+            return new ContactWithDetails(senderContact, details);
+        }
+
+        private static Contact CreateExternalContactFromTgUser(User user)
+        {
+            return new Contact
+            {
+                Id = -1,
+                Type = ContactType.External,
+                TgId = user.Id,
+                LastName = user.LastName,
+                FirstName = user.FirstName,
+                Telegram = user.Username
+            };
         }
 
         private async Task HandleForward(User forwardFrom, ContactWithDetails senderWithDetails, long fromChatId)
@@ -186,6 +198,8 @@ namespace fiitobot.Services
             {
                 if (person.TgId == fromChatId || asSelf)
                     await SayCompliment(person, fromChatId);
+                var details = detailsRepo.FindById(person.Id).Result;
+                person.UpdateFromDetails(details);
                 ContactDetailsLevel detailsLevel = person.GetDetailsLevelFor(asSelf ? person : sender);
                 await presenter.ShowContact(person, fromChatId, detailsLevel);
                 var selfUploadedPhoto = await photoRepo.TryGetModeratedPhoto(person.TgId);

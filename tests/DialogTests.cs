@@ -203,8 +203,13 @@ public class DialogTests
     private ContactWithDetails AGuest()
     {
         return new ContactWithDetails(
-            new Contact(1, ContactType.External, 555, "Некто", "Нектович")
+            new Contact
             {
+                Id = 1,
+                Type = ContactType.External,
+                TgId = 555,
+                FirstName = "Некто",
+                LastName = "Нектович",
                 Telegram = "@guest"
             });
     }
@@ -260,7 +265,7 @@ public class DialogTests
             new HelpCommandHandler(presenter),
             new DetailsCommandHandler(presenter, repo, detailsRepo),
             new ContactsCommandHandler(repo, presenter),
-            new RandomCommandHandler(repo, presenter, new Random()),
+            new RandomCommandHandler(repo, detailsRepo, presenter, new Random()),
             new JoinCommandHandler(presenter, 111),
         };
         return new HandleUpdateService(repo, namedPhotoDirectory, photoRepo, null, downloader, presenter, detailsRepo, commands);

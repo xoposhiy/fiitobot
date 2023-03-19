@@ -34,10 +34,10 @@ namespace fiitobot
                 var body = JObject.Parse(request).GetValue("body")!.Value<string>();
                 var update = JsonConvert.DeserializeObject<Update>(body);
                 var sheetClient = new GSheetClient(settings.GoogleAuthJson);
-                var contactsRepo = new SheetContactsRepository(sheetClient, settings.SpreadSheetId);
-                var presenter = new Presenter(client, settings);
                 var botDataRepository = new BotDataRepository(settings);
                 var detailsRepo = new S3ContactsDetailsRepo(settings.CreateFiitobotBucketService());
+                var contactsRepo = new SheetContactsRepository(sheetClient, settings.SpreadSheetId, botDataRepository, detailsRepo);
+                var presenter = new Presenter(client, settings);
                 var namedPhotoDirectory = new NamedPhotoDirectory(settings.PhotoListUrl);
                 var photoRepo = new S3PhotoRepository(settings);
                 var downloader = new TelegramFileDownloader(client);
@@ -49,7 +49,7 @@ namespace fiitobot
                     new StartCommandHandler(presenter, botDataRepository),
                     new HelpCommandHandler(presenter),
                     new ContactsCommandHandler(botDataRepository, presenter),
-                    new RandomCommandHandler(botDataRepository, presenter, new Random()),
+                    new RandomCommandHandler(botDataRepository, detailsRepo, presenter, new Random()),
                     new ReloadCommandHandler(presenter, contactsRepo, botDataRepository),
                     new ChangePhotoCommandHandler(presenter, photoRepo, settings.ModeratorsChatId),
                     new AcceptPhotoCommandHandler(presenter, botDataRepository, photoRepo, settings.ModeratorsChatId),

@@ -8,11 +8,11 @@ namespace fiitobot
     public class BotData
     {
         public Contact[] Administrators;
-        public string[] SourceSpreadsheets;
         public Contact[] Students;
+        public Contact[] Teachers;
+
         [JsonIgnore]
         public IEnumerable<Contact> AllContacts => Students.Concat(Administrators).Concat(Teachers ?? Array.Empty<Contact>());
-        public Contact[] Teachers;
 
         public Contact[] FindContact(string query)
         {

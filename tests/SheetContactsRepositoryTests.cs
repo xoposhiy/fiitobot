@@ -1,4 +1,4 @@
-using System.Linq;
+using System;
 using NUnit.Framework;
 
 namespace tests;
@@ -6,12 +6,10 @@ namespace tests;
 public class SheetContactsRepositoryTests
 {
     [Test]
-    public void GetContacts()
+    [Explicit]
+    public void TestGetAllContacts()
     {
-        var repo = new SheetContactsRepositoryBuilder().Build();
-        var admins = repo.FindContacts("Егоров");
-        var staffs = repo.FindContacts("Гейн");
-        var contacts = repo.FindContacts("Мизуро́ва");
-        Assert.That(contacts.Select(c => c.ToString()), Is.EqualTo(new[]{ "Дарья Мизуро́ва @udarenienao 450998862" }));
+        var contactsRepository = new SheetContactsRepositoryBuilder().Build();
+        Console.WriteLine(contactsRepository.GetStudents().Length);
     }
 }

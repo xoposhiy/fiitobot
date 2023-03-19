@@ -27,12 +27,11 @@ namespace fiitobot.Services.Commands
         }
         private void ReloadContactsFromSpreadsheet()
         {
-            var contacts = contactsRepository.GetAllContacts().ToArray();
+            var contacts = contactsRepository.GetStudents().ToArray();
             var botData = new BotData
             {
-                Administrators = contactsRepository.GetAllAdmins().ToArray(),
-                Teachers = contactsRepository.GetAllTeachers().ToArray(),
-                SourceSpreadsheets = contactsRepository.GetOtherSpreadsheets().ToArray(),
+                Administrators = contactsRepository.GetAdmins().ToArray(),
+                Teachers = contactsRepository.GetTeachers().ToArray(),
                 Students = contacts
             };
             botDataRepo.Save(botData);

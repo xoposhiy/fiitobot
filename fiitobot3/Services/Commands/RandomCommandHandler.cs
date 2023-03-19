@@ -7,14 +7,16 @@ namespace fiitobot.Services.Commands
     public class RandomCommandHandler : IChatCommandHandler
     {
         private readonly IBotDataRepository botDataRepo;
+        private readonly IContactDetailsRepo detailsRepo;
         private readonly IPresenter presenter;
         private readonly Random random;
 
         private const double ShowSenderChance = 1.0 / 10.0;
 
-        public RandomCommandHandler(IBotDataRepository botDataRepo, IPresenter presenter, Random random)
+        public RandomCommandHandler(IBotDataRepository botDataRepo, IContactDetailsRepo detailsRepo, IPresenter presenter, Random random)
         {
             this.botDataRepo = botDataRepo;
+            this.detailsRepo = detailsRepo;
             this.presenter = presenter;
             this.random = random;
         }
@@ -35,7 +37,10 @@ namespace fiitobot.Services.Commands
             var students = botDataRepo.GetData().Students
                 .Where(s => s.Status.IsOneOf("Активный", ""))
                 .ToList();
-            return students[random.Next(students.Count)];
+            var randomContact = students[random.Next(students.Count)];
+            var details = detailsRepo.FindById(randomContact.Id).Result;
+            randomContact.UpdateFromDetails(details);
+            return randomContact;
         }
 
         private bool ShouldShowSender() => random.NextDouble() < ShowSenderChance;

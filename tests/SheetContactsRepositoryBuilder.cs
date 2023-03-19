@@ -1,4 +1,4 @@
-﻿using fiitobot;
+using fiitobot;
 using fiitobot.GoogleSpreadsheet;
 using fiitobot.Services;
 
@@ -10,7 +10,9 @@ namespace tests
         {
             var settings = new Settings();
             var client = new GSheetClient(settings.GoogleAuthJson);
-            return new SheetContactsRepository(client, settings.SpreadSheetId);
+            var dataRepo = new BotDataRepository(settings);
+            var detailsRepo = new S3ContactsDetailsRepo(settings.CreateFiitobotBucketService());
+            return new SheetContactsRepository(client, settings.SpreadSheetId, dataRepo, detailsRepo);
         }
     }
 

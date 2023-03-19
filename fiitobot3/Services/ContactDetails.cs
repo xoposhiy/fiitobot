@@ -18,6 +18,7 @@ namespace fiitobot.Services
         public readonly long ContactId;
         public long TelegramId;
         public string TelegramUsername;
+        public TgUsernameSource TelegramUsernameSource;
         public DateTime LastUseTime;
 
         // TODO dialogState
@@ -28,12 +29,17 @@ namespace fiitobot.Services
             var details = mark.Mark;
             if (!string.IsNullOrEmpty(mark.ContainerName))
                 details += $" {mark.ContainerName}";
-            UpdateOrAddDetail(Rubrics.Semester(year, yearPart, courseNumber), $"{mark.ModuleTitle}", $"{mark.Total} ({details})");
+            var rubric = Rubrics.Semester(year, yearPart, courseNumber);
+            var parameter = mark.ModuleTitle;
+            var value = $"{mark.Total} ({details})";
+            UpdateOrAddDetail(rubric, parameter, value);
         }
         
         public void UpdateOrAddDetail(string rubric, string parameter, string value)
         {
-            var newDetails = Details.Where(d => d.Rubric != rubric || !d.Parameter.StartsWith(parameter)).ToList();
+            var newDetails = Details
+                .Where(d => d.Rubric != rubric || !d.Parameter.StartsWith(parameter))
+                .ToList();
             newDetails.Add(new ContactDetail(rubric, parameter, value, DateTime.Now));
             Details = newDetails;
         }
@@ -44,9 +50,20 @@ namespace fiitobot.Services
                 return;
             TelegramUsername = user.Username;
             TelegramId = user.Id;
+            TelegramUsernameSource = TgUsernameSource.UsernameTgMessage;
             Changed = true;
         }
 
         [JsonIgnore] public bool Changed { get; set; }
+
+        public string TelegramUsernameWithSobachka =>
+            string.IsNullOrEmpty(TelegramUsername) ? "" : (
+            TelegramUsername.StartsWith("@") ? TelegramUsername : "@" + TelegramUsername);
+    }
+
+    public enum TgUsernameSource
+    {
+        GoogleSheet = 0,
+        UsernameTgMessage = 1
     }
 }

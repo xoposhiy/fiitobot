@@ -2,7 +2,6 @@ using System;
 using System.Threading.Tasks;
 using FakeItEasy;
 using fiitobot;
-using fiitobot.GoogleSpreadsheet;
 using fiitobot.Services;
 using fiitobot.Services.Commands;
 using NUnit.Framework;
@@ -35,7 +34,12 @@ public class UrfuStudentsDownloaderTests
             {
                 Console.WriteLine(call.Arguments[0]);
             });
-        var command = new UpdateStudentStatusesFromItsCommandHandler(presenter, downloader, new BotDataRepository(settings), new SheetContactsRepository(new GSheetClient(settings.GoogleAuthJson), settings.SpreadSheetId));
+        var sheetContactsRepository = new SheetContactsRepositoryBuilder().Build();
+        var command = new UpdateStudentStatusesFromItsCommandHandler(
+            presenter,
+            downloader,
+            new BotDataRepository(settings),
+            sheetContactsRepository);
         await command.HandlePlainText("", 0, null);
     }
 
