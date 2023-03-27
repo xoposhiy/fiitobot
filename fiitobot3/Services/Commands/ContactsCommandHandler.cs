@@ -1,6 +1,7 @@
 ﻿using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static Ydb.Sdk.Value.ResultSet;
 
 namespace fiitobot.Services.Commands
 {

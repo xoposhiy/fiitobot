@@ -49,6 +49,7 @@ namespace fiitobot
                     new StartCommandHandler(presenter, botDataRepository),
                     new HelpCommandHandler(presenter),
                     new ContactsCommandHandler(botDataRepository, presenter),
+                    new ShowGroupCommandHandler(botDataRepository, presenter),
                     new RandomCommandHandler(botDataRepository, detailsRepo, presenter, new Random()),
                     new ReloadCommandHandler(presenter, contactsRepo, botDataRepository),
                     new ChangePhotoCommandHandler(presenter, photoRepo, settings.ModeratorsChatId),

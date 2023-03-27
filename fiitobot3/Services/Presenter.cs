@@ -46,6 +46,7 @@ namespace fiitobot.Services
         Task ShowDownloadContactsYearSelection(long chatId);
         Task ShowDownloadContactsSuffixSelection(long chatId, string year);
         Task SendContacts(long chatId, byte[] content, string filename);
+        Task SendFile(long chatId, byte[] content, string filename, string caption);
         Task SayUploadPhotoFirst(long chatId);
         Task ShowPhotoForModeration(long moderatorChatId, Contact contact, Stream contactNewPhoto);
         Task SayPhotoGoesToModeration(long chatId, Stream photo);
@@ -432,6 +433,14 @@ namespace fiitobot.Services
             var caption = "Зайдите на https://contacts.google.com и импортируйте этот файл. " +
                           "Если у вас на телефоне контакты синхронизируются с Google, а Telegram синхронизируется с контактами телефона, " +
                           "то через некоторое время контакты в Telegram поменяют имена на правильные.";
+            await botClient.SendDocumentAsync(
+                chatId,
+                new InputOnlineFile(new MemoryStream(content), filename),
+                caption: caption);
+        }
+
+        public async Task SendFile(long chatId, byte[] content, string filename, string caption)
+        {
             await botClient.SendDocumentAsync(
                 chatId,
                 new InputOnlineFile(new MemoryStream(content), filename),
