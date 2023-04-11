@@ -17,7 +17,13 @@ namespace fiitobot.Services.Commands
         public ContactType[] AllowedFor => ContactTypes.All;
         public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
         {
-            var exerciseNumber = text.Split(" ", 2)[1];
+            var parts = text.Split(" ", 2);
+            if (parts.Length < 2)
+            {
+                await presenter.Say($"Укажите номер задачи, вот так: {Command} 123\n\nИли просто пришлите номер задачи без указания команды", fromChatId);
+                return;
+            }
+            var exerciseNumber = parts[1];
             var imageBytes = await demidovichService.TryGetImageBytes(exerciseNumber);
             if (imageBytes == null) return;
             await presenter.ShowDemidovichTask(imageBytes, exerciseNumber, fromChatId);
