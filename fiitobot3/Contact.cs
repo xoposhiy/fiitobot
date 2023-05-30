@@ -35,6 +35,8 @@ namespace fiitobot
         public string Telegram;
         public string Phone = "";
         public string Email = "";
+        public string Google = "";
+        public string Notion = "";
         public string Note = "";
         public string SecretNote = "";
         public string FiitJob = "";

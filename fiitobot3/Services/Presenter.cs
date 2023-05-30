@@ -326,7 +326,11 @@ namespace fiitobot.Services
             if (detailsLevel.HasFlag(ContactDetailsLevel.Contacts))
             {
                 if (!string.IsNullOrWhiteSpace(contact.Email))
-                    b.AppendLine($"📧 {contact.Email}");
+                    b.AppendLine($"Email: {contact.Email}");
+                if (!string.IsNullOrWhiteSpace(contact.Google))
+                    b.AppendLine($"Google: {contact.Google}");
+                if (!string.IsNullOrWhiteSpace(contact.Notion))
+                    b.AppendLine($"Notion: {contact.Notion}");
                 if (!string.IsNullOrWhiteSpace(contact.Phone))
                     b.AppendLine($"📞 {contact.Phone}");
             }

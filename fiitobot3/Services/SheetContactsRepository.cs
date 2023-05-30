@@ -211,6 +211,8 @@ namespace fiitobot.Services
                 Telegram = Get("Telegram"),
                 Phone = Get("Phone"),
                 Email = Get("Email"),
+                Google = Get("Google"),
+                Notion = Get("Notion"),
                 Note = Get("Note"),
                 FiitJob = Get("FiitJob"),
                 MainCompany = Get("MainCompany"),

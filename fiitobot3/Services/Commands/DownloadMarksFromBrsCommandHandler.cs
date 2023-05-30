@@ -78,9 +78,9 @@ namespace fiitobot.Services.Commands
             var details = await contactDetailsRepo.FindById(student.Id) ?? new ContactDetails(student.Id);
             foreach (var mark in brsMarks)
                 details.UpdateOrAddMark(mark, year, yearPart, courseNumber);
+            details.Details.RemoveAll(c => c.Value.Trim() == "()");
             await contactDetailsRepo.Save(details);
         }
-
 
         private byte[] CreateTsv(List<BrsStudentMark> marks)
         {

@@ -68,7 +68,12 @@ namespace fiitobot.Services
         [JsonProperty("mark")]
         public string Mark { get; set; }
         public string ContainerName { get; set; }
-        public bool IsRealMark => Mark != "Не должен сдавать" && Mark != "Не выбрана" && Mark != "";
+
+        public bool IsRealMark => Mark != "Не должен сдавать"
+                                  && Mark != "Не выбрана"
+                                  && !string.IsNullOrEmpty(Mark)
+                                  && Mark != "0.00"
+                                  && !string.IsNullOrEmpty(Total);
 
         public override string ToString()
         {
