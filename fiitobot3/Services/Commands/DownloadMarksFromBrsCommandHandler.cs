@@ -85,13 +85,13 @@ namespace fiitobot.Services.Commands
         private byte[] CreateTsv(List<BrsStudentMark> marks)
         {
             var tsv = new StringBuilder();
-            tsv.AppendLine(string.Join("\t", "Группа", "ФИО", "Дисциплина", "Оценка", "Баллы"));
+            tsv.AppendLine(string.Join("\t", "Группа", "ФИО", "Дисциплина", "Оценка", "Баллы", "Активный", "Контейнер"));
             foreach (var mark in marks)
             {
                 tsv.AppendLine(
                     string.Join(
                         "\t",
-                        mark.StudentGroup, mark.StudentFio, mark.ModuleTitle, mark.Mark, mark.Total));
+                        mark.StudentGroup, mark.StudentFio, mark.ModuleTitle, mark.Mark, mark.Total, mark.StudentStatus, mark.ContainerName));
             }
             return Encoding.UTF8.GetBytes(tsv.ToString());
         }

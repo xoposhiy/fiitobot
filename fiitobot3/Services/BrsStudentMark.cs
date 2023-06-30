@@ -72,7 +72,6 @@ namespace fiitobot.Services
         public bool IsRealMark => Mark != "Не должен сдавать"
                                   && Mark != "Не выбрана"
                                   && !string.IsNullOrEmpty(Mark)
-                                  && Mark != "0.00"
                                   && !string.IsNullOrEmpty(Total);
 
         public override string ToString()
