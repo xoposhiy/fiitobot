@@ -65,7 +65,7 @@ namespace fiitobot
                 var updateService = new HandleUpdateService(botDataRepository, namedPhotoDirectory, photoRepo, demidovichService, downloader, presenter, detailsRepo, commands);
                 updateService.Handle(update).Wait();
                 if (GetSender(update) != settings.DevopsChatId)
-                    client.SendTextMessageAsync(settings.DevopsChatId, presenter.FormatIncomingUpdate(update), ParseMode.Html);
+                    client.SendTextMessageAsync(settings.DevopsChatId, presenter.FormatIncomingUpdate(update), null, parseMode: ParseMode.Html);
                 return new Response(200, "ok");
             }
             catch (Exception e)

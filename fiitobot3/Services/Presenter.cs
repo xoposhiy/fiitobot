@@ -5,9 +5,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Telegram.Bot;
+using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.InlineQueryResults;
-using Telegram.Bot.Types.InputFiles;
 using Telegram.Bot.Types.ReplyMarkups;
 using Update = Telegram.Bot.Types.Update;
 
@@ -97,12 +97,12 @@ namespace fiitobot.Services
                     text.AppendLine($" • {EscapeForHtml(detail.Parameter.TrimEnd('?'))}: {EscapeForHtml(detail.Value)}");
                 text.AppendLine();
             }
-            await botClient.SendTextMessageAsync(chatId, text.ToString().TrimEnd(), ParseMode.Html);
+            await botClient.SendTextMessageAsync(chatId, text.ToString().TrimEnd(), parseMode:ParseMode.Html);
         }
 
         public async Task SayReloadStarted(long chatId)
         {
-            await botClient.SendTextMessageAsync(chatId, $"Перезагружаю данные из многочисленных гуглтаблиц. Это может занять минуту-другую.", ParseMode.Html);
+            await botClient.SendTextMessageAsync(chatId, $"Перезагружаю данные из многочисленных гуглтаблиц. Это может занять минуту-другую.", parseMode: ParseMode.Html);
         }
 
         public async Task SayReloaded(BotData botData, long chatId)
@@ -115,13 +115,13 @@ namespace fiitobot.Services
                                                          $"{studentsCount.Pluralize("студент|студента|студентов")}\n" +
                                                          $"{teachersCount.Pluralize("преподаватель|преподавателя|преподавателей")}\n" +
                                                          $"{administratorsCount.Pluralize("администратор|администратора|администраторов")}",
-                ParseMode.Html);
+                parseMode: ParseMode.Html);
         }
 
         public async Task ShowErrorToDevops(Update incomingUpdate, string errorMessage)
         {
             await botClient.SendTextMessageAsync(settings.DevopsChatId, FormatErrorHtml(incomingUpdate, errorMessage),
-                ParseMode.Html);
+                parseMode: ParseMode.Html);
         }
 
         public async Task ShowHelp(long chatId, ContactType senderType)
@@ -148,7 +148,7 @@ namespace fiitobot.Services
                         .AppendLine("/as_staff ... — как это выглядит для препода.")
                         .AppendLine("/as_external ... —  как это выглядит для внешних.");
 
-                await botClient.SendTextMessageAsync(chatId, b.ToString(), ParseMode.Html);
+                await botClient.SendTextMessageAsync(chatId, b.ToString(), parseMode: ParseMode.Html);
             }
         }
 
@@ -194,13 +194,13 @@ namespace fiitobot.Services
                     { CallbackData = GetButtonCallbackData(contact) })
                     : null;
                 var htmlText = FormatContactAsHtml(contact, detailsLevel);
-                await botClient.SendTextMessageAsync(chatId, htmlText, ParseMode.Html,
+                await botClient.SendTextMessageAsync(chatId, htmlText, parseMode: ParseMode.Html,
                     replyMarkup: inlineKeyboardMarkup);
             }
             else
             {
                 var htmlText = FormatContactAsHtml(contact, detailsLevel);
-                await botClient.SendTextMessageAsync(chatId, htmlText, ParseMode.Html);
+                await botClient.SendTextMessageAsync(chatId, htmlText, parseMode: ParseMode.Html);
             }
         }
 
@@ -224,12 +224,12 @@ namespace fiitobot.Services
         public async Task ShowPhoto(Contact contact, byte[] photoBytes, long chatId)
         {
             var caption = contact.FirstName + " " + contact.LastName;
-            await botClient.SendPhotoAsync(chatId, new InputOnlineFile(new MemoryStream(photoBytes)), caption: caption, parseMode: ParseMode.Html);
+            await botClient.SendPhotoAsync(chatId, new InputFileStream(new MemoryStream(photoBytes)), caption: caption, parseMode: ParseMode.Html);
         }
 
         public async Task ShowDemidovichTask(byte[] imageBytes, string exerciseNumber, long chatId)
         {
-            await botClient.SendPhotoAsync(chatId, new InputOnlineFile(new MemoryStream(imageBytes)), caption: "Демидович " + exerciseNumber, parseMode: ParseMode.Html);
+            await botClient.SendPhotoAsync(chatId, new InputFileStream(new MemoryStream(imageBytes)), caption: "Демидович " + exerciseNumber, parseMode: ParseMode.Html);
         }
 
         public async Task PromptChangePhoto(long chatId)
@@ -255,7 +255,7 @@ namespace fiitobot.Services
 
         public async Task SendFile(byte[] content, string filename, string caption, long fromChatId)
         {
-            await botClient.SendDocumentAsync(fromChatId, new InputOnlineFile(new MemoryStream(content), filename), caption:caption);
+            await botClient.SendDocumentAsync(fromChatId, new InputFileStream(new MemoryStream(content), filename), caption:caption);
         }
 
         public async Task ShowPhoto(Contact contact, PersonPhoto photo, long chatId, ContactType senderType)
@@ -263,26 +263,29 @@ namespace fiitobot.Services
             var caption = senderType.IsOneOf(ContactType.Administration)
                 ? $"<a href='{photo.PhotosDirectory}'>{photo.Name}</a>"
                 : contact.FirstName + " " + contact.LastName;
-            await botClient.SendPhotoAsync(chatId, new InputOnlineFile(photo.PhotoUri), caption: caption, parseMode: ParseMode.Html);
+            await botClient.SendPhotoAsync(chatId, new InputFileUrl(photo.PhotoUri), caption: caption, parseMode: ParseMode.Html);
         }
 
         public async Task SayNoResults(long chatId)
         {
             var text = "Не нашлось никого подходящего :(\n\nНе унывайте! Найдите кого-нибудь случайного /random! Или поищите по своей школе или городу!";
-            await botClient.SendTextMessageAsync(chatId, text, ParseMode.Html);
+            await botClient.SendTextMessageAsync(chatId, text, parseMode: ParseMode.Html);
         }
 
         public async Task SayBeMoreSpecific(long chatId)
         {
-            await botClient.SendTextMessageAsync(chatId, $"Уточните свой запрос", ParseMode.Html);
+            await botClient.SendTextMessageAsync(chatId, $"Уточните свой запрос", parseMode: ParseMode.Html);
         }
 
         public async Task SayNoRights(long chatId, ContactType senderType)
         {
             if (senderType == ContactType.External)
-                await botClient.SendTextMessageAsync(chatId, $"Этот бот только для студентов и преподавателей ФИИТ УрФУ. Если вы студент или преподаватель, и вам нужен доступ к контактам студентов, выполните команду /join и модераторы отреагируют на ваш запрос", ParseMode.Html);
+                await botClient.SendTextMessageAsync(
+                    chatId,
+                    $"Этот бот только для студентов и преподавателей ФИИТ УрФУ. Если вы студент или преподаватель, и вам нужен доступ к контактам студентов, выполните команду /join и модераторы отреагируют на ваш запрос",
+                    parseMode: ParseMode.Html);
             else
-                await botClient.SendTextMessageAsync(chatId, "Простите, эта команда не для вас.", ParseMode.Html);
+                await botClient.SendTextMessageAsync(chatId, "Простите, эта команда не для вас.", parseMode: ParseMode.Html);
         }
 
         public string FormatContactAsHtml(Contact contact, ContactDetailsLevel detailsLevel)
@@ -381,9 +384,9 @@ namespace fiitobot.Services
             var list = string.Join("\n", people.Select(FormatContactAsListItem).Take(20));
             var ending = listCount < people.Count ? $"\n\nЕсть ещё {people.Count - listCount} подходящих человек" : "";
             if (listCount == 0)
-                await botClient.SendTextMessageAsync(chatId, list, ParseMode.Html);
+                await botClient.SendTextMessageAsync(chatId, list, parseMode: ParseMode.Html);
             else
-                await botClient.SendTextMessageAsync(chatId, $"{criteria}:\n\n{list}{ending}", ParseMode.Html);
+                await botClient.SendTextMessageAsync(chatId, $"{criteria}:\n\n{list}{ending}", parseMode: ParseMode.Html);
         }
 
         public async Task ShowDownloadContactsYearSelection(long chatId)
@@ -402,7 +405,7 @@ namespace fiitobot.Services
             await botClient.SendTextMessageAsync(
                 chatId,
                 "Тут можно скачать файл с контактами ФИИТ, подходящий для импорта в Google Contacts (а их телефон может автоматически синхронизировать с контактами Telegram). Выберите год поступления.",
-                ParseMode.Html, replyMarkup: inlineKeyboardMarkup);
+                parseMode: ParseMode.Html, replyMarkup: inlineKeyboardMarkup);
         }
 
         public async Task ShowDownloadContactsSuffixSelection(long chatId, string year)
@@ -429,7 +432,7 @@ namespace fiitobot.Services
             await botClient.SendTextMessageAsync(
                 chatId,
                 "Можно к имени добавлять пометку ФИИТа или год поступления. Как лучше?",
-                ParseMode.Html, replyMarkup: inlineKeyboardMarkup);
+                parseMode: ParseMode.Html, replyMarkup: inlineKeyboardMarkup);
         }
 
         public async Task SendContacts(long chatId, byte[] content, string filename)
@@ -439,7 +442,7 @@ namespace fiitobot.Services
                           "то через некоторое время контакты в Telegram поменяют имена на правильные.";
             await botClient.SendDocumentAsync(
                 chatId,
-                new InputOnlineFile(new MemoryStream(content), filename),
+                new InputFileStream(new MemoryStream(content), filename),
                 caption: caption);
         }
 
@@ -447,21 +450,21 @@ namespace fiitobot.Services
         {
             await botClient.SendDocumentAsync(
                 chatId,
-                new InputOnlineFile(new MemoryStream(content), filename),
+                new InputFileStream(new MemoryStream(content), filename),
                 caption: caption);
         }
 
         public async Task SayUploadPhotoFirst(long chatId)
         {
             var text = "Сначала загрузи свою фотку!";
-            await botClient.SendTextMessageAsync(chatId, text, ParseMode.Html);
+            await botClient.SendTextMessageAsync(chatId, text, parseMode: ParseMode.Html);
         }
 
         public async Task ShowPhotoForModeration(long moderatorChatId, Contact contact, Stream contactNewPhoto)
         {
             await ShowContact(contact, moderatorChatId, ContactDetailsLevel.Minimal);
             await botClient.SendPhotoAsync(moderatorChatId,
-                new InputOnlineFile(contactNewPhoto),
+                new InputFileStream(contactNewPhoto),
                 caption: $"{contact.FirstName} {contact.LastName} хочет поменять фотку. Одобряешь?",
 
                 replyMarkup: new InlineKeyboardMarkup(new[]{
@@ -475,7 +478,7 @@ namespace fiitobot.Services
         public async Task SayPhotoGoesToModeration(long chatId, Stream photo)
         {
             var text = "Фото ушло на модерацию. Как только его проверят, бот начнет показывать её другим";
-            await botClient.SendPhotoAsync(chatId, new InputOnlineFile(photo), caption: text, ParseMode.Html);
+            await botClient.SendPhotoAsync(chatId, new InputFileStream(photo), caption: text, parseMode: ParseMode.Html);
         }
 
         public async Task SayPhotoAccepted(Contact photoOwner, Contact moderator, long chatId)
@@ -515,7 +518,7 @@ namespace fiitobot.Services
 
         public async Task Say(string text, long chatId)
         {
-            await botClient.SendTextMessageAsync(chatId, text, ParseMode.Html);
+            await botClient.SendTextMessageAsync(chatId, text, parseMode: ParseMode.Html);
         }
     }
 }

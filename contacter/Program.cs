@@ -140,23 +140,10 @@ async Task ActualizeContacts(string spreadsheetUrl, params string[] chatSubstrin
     var tgClient = new Client(settings.TgClientConfig);
     tgClient.FloodRetryThreshold = 120;
     var defaultLogger = Helpers.Log;
-    var rollingLog = new Queue<string>();
     Helpers.Log = (level, message) =>
     {
-        lock (rollingLog)
-        {
-            if (level < 3)
-            {
-                //rollingLog.Enqueue(message);
-                //while (rollingLog.Count > 10) rollingLog.Dequeue();
-            }
-            else
-            {
-                foreach (var prevMessage in rollingLog)
-                    defaultLogger(2, prevMessage);
-                defaultLogger(level, message);
-            }
-        }
+        if (level < 3) return;
+        defaultLogger(level, message);
     };
     
     await tgClient.LoginUserIfNeeded();

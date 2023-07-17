@@ -19,22 +19,23 @@ namespace fiitobot.Services
         public async Task GrantStudentRanks(WTelegram.Client client, BotDataRepository dataRepository, string chatTitle = "спроси про ФИИТ", string studentRank = "Студент ФИИТ")
         {
             var me = await client.LoginUserIfNeeded();
+            //(await client.GetMessageByLink()).
             Messages_Chats chats = await client.Messages_GetAllChats();
-            var chat = chats.chats.FirstOrDefault(c => c.Value.Title.Contains(chatTitle)).Value;
+            ChatBase chat = chats.chats.FirstOrDefault(c => c.Value.Title.Contains(chatTitle)).Value;
             Console.WriteLine($"Found Chat {chat.Title} {chat.ID} {chat.ToInputPeer()} {chat.GetType()}");
             var channel = (InputPeerChannel)chat.ToInputPeer();
             var participants = await client.Channels_GetParticipants(channel, new ChannelParticipantsAdmins());
-            var studAdmins = participants.participants.OfType<ChannelParticipantAdmin>().Where(a => a.rank == studentRank).Select(a => participants.users[a.UserID]).ToList();
-            var anyAdminIds = participants.participants.OfType<ChannelParticipantAdmin>().Select(a => a.UserID).ToHashSet();
+            var studAdmins = participants.participants.OfType<ChannelParticipantAdmin>().Where(a => a.rank == studentRank).Select(a => participants.users[a.UserId]).ToList();
+            var anyAdminIds = participants.participants.OfType<ChannelParticipantAdmin>().Select(a => a.UserId).ToHashSet();
             foreach (var creator in participants.participants.OfType<ChannelParticipantCreator>())
             {
-                anyAdminIds.Add(creator.UserID);
+                anyAdminIds.Add(creator.UserId);
             }
-            Console.WriteLine("Administrators: " + studAdmins.Count);
+            Console.WriteLine("All administrators: " + anyAdminIds.Count);
             var adminIds = studAdmins.Select(p => p.id).ToHashSet();
             Console.WriteLine($"Found {adminIds.Count} student admins");
 
-            var students = dataRepository.GetData().Students.Where(s => s.AdmissionYear < 2022).Select(c => c.TgId).ToHashSet();
+            var students = dataRepository.GetData().Students.Where(s => s.AdmissionYear < 2023).Select(c => c.TgId).ToHashSet();
             Console.WriteLine($"Loaded {students.Count} students");
 
             Dictionary<long, PeerUser> lastAuthors = new Dictionary<long, PeerUser>();

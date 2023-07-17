@@ -8,7 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="WTelegramClient" Version="2.4.1" />
+      <PackageReference Include="WTelegramClient" Version="3.5.1" />
     </ItemGroup>
 
     <ItemGroup>
