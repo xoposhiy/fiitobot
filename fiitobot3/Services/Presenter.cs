@@ -29,7 +29,7 @@ namespace fiitobot.Services
 
     public interface IPresenter
     {
-        Task Say(string text, long chatId);
+        Task Say(string html, long chatId);
         Task ShowContact(Contact contact, long chatId, ContactDetailsLevel detailsLevel);
         Task ShowPhoto(Contact contact, PersonPhoto photo, long chatId, ContactType senderType);
         Task ShowOtherResults(Contact[] otherContacts, long chatId);
@@ -374,6 +374,7 @@ namespace fiitobot.Services
             else if (concurs == "К") return "по контракту";
             else if (concurs == "КВ") return "по льготной квоте";
             else if (concurs == "Ц") return "по целевой квоте";
+            else if (concurs == "Ин") return "иностранец сверх бюджетных мест";
             else return "неизвестно как 🤷‍";
         }
 
@@ -399,6 +400,7 @@ namespace fiitobot.Services
                     new InlineKeyboardButton("2020"){CallbackData = "/contacts_2020"},
                     new InlineKeyboardButton("2021"){CallbackData = "/contacts_2021"},
                     new InlineKeyboardButton("2022"){CallbackData = "/contacts_2022"},
+                    new InlineKeyboardButton("2023"){CallbackData = "/contacts_2023"},
                     new InlineKeyboardButton("Все"){CallbackData = "/contacts_all"}
                 },
             });
@@ -516,9 +518,9 @@ namespace fiitobot.Services
             await ShowContactsBy("Ещё результаты", otherContacts, chatId);
         }
 
-        public async Task Say(string text, long chatId)
+        public async Task Say(string html, long chatId)
         {
-            await botClient.SendTextMessageAsync(chatId, text, parseMode: ParseMode.Html);
+            await botClient.SendTextMessageAsync(chatId, html, parseMode: ParseMode.Html);
         }
     }
 }

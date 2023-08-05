@@ -25,8 +25,10 @@ namespace fiitobot.Services.Commands
             ReloadContactsFromSpreadsheet();
             await presenter.SayReloaded(botDataRepo.GetData(), fromChatId);
         }
+
         private void ReloadContactsFromSpreadsheet()
         {
+            contactsRepository.Reload();
             var contacts = contactsRepository.GetStudents().ToArray();
             var botData = new BotData
             {

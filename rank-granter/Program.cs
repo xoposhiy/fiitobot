@@ -13,3 +13,5 @@ Helpers.Log = (level, message) =>
 };
 var dataRepo = new BotDataRepository(settings);
 await new TgRankGranter().GrantStudentRanks(client, dataRepo);
+Console.WriteLine("Press any key to exit");
+Console.ReadLine();

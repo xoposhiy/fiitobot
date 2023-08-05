@@ -1,20 +1,27 @@
 ﻿using fiitobot;
+using fiitobot.GoogleSpreadsheet;
 using fiitobot.Services;
-using fiitobot.Services.Commands;
 
 // ReSharper disable HeuristicUnreachableCode
 
 var settings = new Settings();
 
-var demidovich = new DemidovichService(settings.CreateDemidovichBucketService());
-var count = 0;
-foreach (var file in Directory.EnumerateFiles(@"c:\work\DemidovichBot\images\Demidovich", "*.gif"))
+var sheetClient = new GSheetClient(settings.GoogleAuthJson);
+var botDataRepo = new BotDataRepository(settings);
+var detailsRepo = new S3ContactsDetailsRepo(settings.CreateFiitobotBucketService());
+var contactsRepository = new SheetContactsRepository(sheetClient, settings.SpreadSheetId, botDataRepo, detailsRepo);
+
+Console.WriteLine("Loading");
+var contacts = contactsRepository.GetStudents().ToArray();
+Console.WriteLine($"Loaded {contacts.Length} students");
+var botData = new BotData
 {
-    var exerciseNumber = Path.GetFileNameWithoutExtension(file);
-    var exists = await demidovich.HasImage(Path.GetFileNameWithoutExtension(file));
-    if (!exists)
-        Console.WriteLine(exerciseNumber);
-    count++;
-    if (count % 100 == 0)
-        Console.WriteLine($"processed {count}");
-}
+    Administrators = contactsRepository.GetAdmins(),
+    Teachers = contactsRepository.GetTeachers(),
+    Students = contacts
+};
+Console.WriteLine("Saving data to S3");
+botDataRepo.Save(botData);
+Console.WriteLine("Done");
+
+

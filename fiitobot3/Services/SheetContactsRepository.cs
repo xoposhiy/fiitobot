@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using fiitobot.GoogleSpreadsheet;
 
@@ -18,9 +19,9 @@ namespace fiitobot.Services
         private readonly string spreadsheetId;
         private readonly IBotDataRepository botDataRepo;
         private readonly IContactDetailsRepo detailsRepo;
-        private volatile Contact[] admins;
+        public volatile Contact[] admins;
         private volatile Contact[] students;
-        private volatile Contact[] teachers;
+        public volatile Contact[] teachers;
 
         public SheetContactsRepository(GSheetClient sheetClient, string contactsSpreadsheetId, IBotDataRepository botDataRepo, IContactDetailsRepo detailsRepo)
         {
@@ -30,7 +31,7 @@ namespace fiitobot.Services
             this.detailsRepo = detailsRepo;
         }
 
-        private void ReloadIfNeeded()
+        public void Reload()
         {
             var botData = botDataRepo.GetData();
             lock (locker)
@@ -43,19 +44,19 @@ namespace fiitobot.Services
 
         public Contact[] GetStudents()
         {
-            ReloadIfNeeded();
+            if (students == null) Reload();
             return students;
         }
 
         public Contact[] GetAdmins()
         {
-            ReloadIfNeeded();
+            if (admins == null) Reload();
             return admins;
         }
 
         public Contact[] GetTeachers()
         {
-            ReloadIfNeeded();
+            if (teachers == null) Reload();
             return teachers;
         }
 
@@ -78,17 +79,20 @@ namespace fiitobot.Services
             var synchronizer = new GSheetSynchronizer<Contact, long>(contactsSheet, contact => contact.Id);
             var loadContacts = synchronizer.LoadSheet(() => new Contact { Type = contactType });
             var changes = new List<Contact>();
-            var createdContacts = loadContacts.Where(c => c.Id == -1).ToList();
+            var createdContacts = loadContacts.Where(c => c.Id == 0).ToList();
             if (createdContacts.Any())
             {
                 var now = DateTime.Now;
                 var timeId = long.Parse((int)contactType + now.ToString("yyMMddhhmmssfff"));
                 var prevId = Math.Max(timeId, loadContacts.Max(c => c.Id));
                 foreach (var contact in createdContacts)
+                {
                     contact.Id = ++prevId;
+                    changes.Add(contact);
+                }
             }
-            //var oldContactById = oldContacts?.ToDictionary(c => c.Id) ?? new Dictionary<long, Contact>();
-            //TODO херня с парами. Надо пройтись по новым
+            //TODO Баг: новые контакты без Id добавляются в конец списка, а старые остаются. Возникают дубликаты :(
+            //Что делать - надо придумать.
             var pairs = loadContacts.Join(
                     oldContacts ?? Array.Empty<Contact>(),
                     c => c.Id,

@@ -64,6 +64,7 @@ namespace fiitobot
         public string FormatOfficialGroup(DateTime now)
         {
             if (GraduationYear <= 0) return "";
+            if (GroupIndex <= 0) return "";
             var delta = now.Month >= 8 ? 1 : 0;
             var course = 4 - (GraduationYear - (now.Year + delta));
             var id = GraduationYear == 2023 

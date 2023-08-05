@@ -15,27 +15,27 @@ namespace fiitobot.Services
         /// Таким образом в последних сообщениях все студенты ФИИТ будут отмечены подписями.
         /// 
         /// Код вычисляет список админов, которых нужно разжаловать, а потом список тех, кого нужно произвести в админы. Остальных не трогает.
+        /// В 2023 появились ещё и выпускники. Им даем статус Выпускник ФИИТ
         /// </summary>
-        public async Task GrantStudentRanks(WTelegram.Client client, BotDataRepository dataRepository, string chatTitle = "спроси про ФИИТ", string studentRank = "Студент ФИИТ")
+        public async Task GrantStudentRanks(WTelegram.Client client, BotDataRepository dataRepository, string chatTitle = "спроси про ФИИТ", string studentRank = "Студент ФИИТ", string graduateRank = "Выпускник ФИИТ")
         {
-            var me = await client.LoginUserIfNeeded();
-            //(await client.GetMessageByLink()).
-            Messages_Chats chats = await client.Messages_GetAllChats();
+            var _ = await client.LoginUserIfNeeded();
+            var chats = await client.Messages_GetAllDialogs();
             ChatBase chat = chats.chats.FirstOrDefault(c => c.Value.Title.Contains(chatTitle)).Value;
             Console.WriteLine($"Found Chat {chat.Title} {chat.ID} {chat.ToInputPeer()} {chat.GetType()}");
             var channel = (InputPeerChannel)chat.ToInputPeer();
             var participants = await client.Channels_GetParticipants(channel, new ChannelParticipantsAdmins());
-            var studAdmins = participants.participants.OfType<ChannelParticipantAdmin>().Where(a => a.rank == studentRank).Select(a => participants.users[a.UserId]).ToList();
+            var studAdmins = participants.participants.OfType<ChannelParticipantAdmin>().Where(a => a.rank == studentRank || a.rank == graduateRank).ToList();
             var anyAdminIds = participants.participants.OfType<ChannelParticipantAdmin>().Select(a => a.UserId).ToHashSet();
             foreach (var creator in participants.participants.OfType<ChannelParticipantCreator>())
             {
                 anyAdminIds.Add(creator.UserId);
             }
             Console.WriteLine("All administrators: " + anyAdminIds.Count);
-            var adminIds = studAdmins.Select(p => p.id).ToHashSet();
-            Console.WriteLine($"Found {adminIds.Count} student admins");
+            Console.WriteLine($"Found {studAdmins.Count} student admins");
 
-            var students = dataRepository.GetData().Students.Where(s => s.AdmissionYear < 2023).Select(c => c.TgId).ToHashSet();
+            var studentContacts = dataRepository.GetData().Students;
+            var students = studentContacts.Where(s => s.AdmissionYear < 2023).Select(c => c.TgId).ToHashSet();
             Console.WriteLine($"Loaded {students.Count} students");
 
             Dictionary<long, PeerUser> lastAuthors = new Dictionary<long, PeerUser>();
@@ -55,12 +55,13 @@ namespace fiitobot.Services
                 Console.WriteLine($"Last authors: {lastAuthors.Count}");
             }
             Console.WriteLine($"Final last authors: {lastAuthors.Count}");
-            var adminsToRemove = studAdmins.Where(a => !lastAuthors.ContainsKey(a.id)).ToList();
+            //    .Select(a => participants.users[a.UserId]).ToList();
+            var adminsToRemove = studAdmins.Where(a => !lastAuthors.ContainsKey(a.UserId)).Select(a => participants.users[a.UserId]).ToList();
             Console.WriteLine($"Administrators to remove {adminsToRemove.Count}");
 
             foreach (var adminToRemove in adminsToRemove)
             {
-                await client.Channels_EditAdmin(channel, adminToRemove, new ChatAdminRights() { flags = 0 }, null);
+                await client.Channels_EditAdmin(channel, adminToRemove, new ChatAdminRights { flags = 0 }, null);
                 Console.WriteLine($"Remove admin {adminToRemove.username ?? adminToRemove.last_name}");
             }
             participants = await client.Channels_GetAllParticipants(channel);
@@ -70,8 +71,15 @@ namespace fiitobot.Services
             Console.WriteLine($"Administrators to add {adminsToAdd.Count}");
             foreach (var user in adminsToAdd)
             {
-                await client.Channels_EditAdmin(channel, user, new ChatAdminRights() { flags = ChatAdminRights.Flags.post_messages | ChatAdminRights.Flags.edit_messages }, studentRank);
-                Console.WriteLine($"Make admin {user.first_name} {user.last_name} {user.ID}");
+                var contact = studentContacts.First(s => s.TgId == user.ID);
+                var rank = contact.GraduationYear <= 2023 ? graduateRank : studentRank;
+                await client.Channels_EditAdmin(channel, user,
+                    new ChatAdminRights
+                    {
+                        flags = ChatAdminRights.Flags.post_messages | ChatAdminRights.Flags.edit_messages
+                    },
+                    rank);
+                Console.WriteLine($"Make admin {user.first_name} {user.last_name} {user.ID} → {rank}");
             }
         }
     }

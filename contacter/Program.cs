@@ -11,9 +11,55 @@ using Contact = fiitobot.Contact;
 //await AnalyzeStudentsChat(2022, "Чат ФИИТ 2022");
 //await ExtractChats();
 //await ExtractStudents();
-await ActualizeContacts("https://docs.google.com/spreadsheets/d/1VH_pZnYvTgQ-IzFVs5CYQWjbCo6YtUfip4w7K6GTK3U/edit#gid=0", "Чат ФИИТ");
+await ActualizeContacts("https://docs.google.com/spreadsheets/d/1VH_pZnYvTgQ-IzFVs5CYQWjbCo6YtUfip4w7K6GTK3U/edit#gid=0", "Чат ФИИТ 2023");
 //await ActualizeContacts("https://docs.google.com/spreadsheets/d/1VH_pZnYvTgQ-IzFVs5CYQWjbCo6YtUfip4w7K6GTK3U/edit#gid=1835136796", "Преп"); //Teachers
-//await ReportActiveStudents("Чат ФИИТ 2022");
+//await ReportActiveStudents("спроси про ФИИТ в УрФУ");
+//await AddToChat("Чат ФИИТ 2023", "phones2023.csv");
+
+// phone csv - список телефонов зачисленных, который добыт во время приёмки
+async Task AddToChat(string chatSubstring, string phonesCsv)
+{
+    var settings = new Settings();
+    using var client = new Client(settings.TgClientConfig);
+    var defaultLogger = Helpers.Log;
+    Helpers.Log = (level, message) =>
+    {
+        if (level >= 3) defaultLogger(level, message);
+    };
+
+    await client.LoginUserIfNeeded();
+    Messages_Chats chats = await client.Messages_GetAllChats();
+    var chat = chats.chats.First(c => c.Value.Title.Contains(chatSubstring)).Value;
+    Console.WriteLine($"Found Chat {chat.Title} {chat.ID} {chat.ToInputPeer()} {chat.GetType()}");
+
+
+
+    var phones = await File.ReadAllLinesAsync(phonesCsv);
+    var count = 0;
+    foreach (var phone in phones)
+    {
+        var user = await FindByPhone(client, phone);
+        if (user == null)
+            Console.WriteLine("NOT FOUND " + phone);
+        else
+        {
+            var usernames = user.usernames == null ? "-" : string.Join(";", user.usernames.Select(un => un.username).ToArray());
+            Console.WriteLine($"{user.MainUsername}\t{user.first_name}\t{user.last_name}\t{user.ID}\t{usernames}");
+            try
+            {
+                var res = await client.AddChatUser(chat, user);
+                count++;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Not added");
+            }
+
+        }
+    }
+
+    Console.WriteLine(count + " added");
+}
 
 
 #pragma warning disable CS8321 // Local function is declared but never used
@@ -54,6 +100,7 @@ async Task ReportActiveStudents(string chatTitle)
         lastMessageId = history.Messages.Last().ID;
         messagesCount += history.Messages.Length;
         Console.WriteLine($"Read {messagesCount} messages. Last message date {history.Messages.Last().Date}");
+        if (history.Messages.Last().Date < DateTime.Now - TimeSpan.FromDays(90)) break;
     }
 
     var activeStudents = data.Students.Select(p => (Contact: (Contact)p, MessagesCount: activity.GetOrDefault(((Contact)p).TgId)))
@@ -132,7 +179,7 @@ async Task ActualizeContacts(string spreadsheetUrl, params string[] chatSubstrin
     var settings = new Settings();
     var gsClient = new GSheetClient(settings.GoogleAuthJson);
     var sheet = gsClient.GetSheetByUrl(spreadsheetUrl);
-    var data = sheet.ReadRange("A1:O");
+    var data = sheet.ReadRange("A1:V");
     var headersRow = data[0];
     var usernameColIndex = headersRow.IndexOf("Telegram");
     var phoneColIndex = headersRow.IndexOf("Phone");
@@ -145,7 +192,7 @@ async Task ActualizeContacts(string spreadsheetUrl, params string[] chatSubstrin
         if (level < 3) return;
         defaultLogger(level, message);
     };
-    
+
     await tgClient.LoginUserIfNeeded();
     var extractor = new TgContactsExtractor();
     Dictionary<long, User> users = (await extractor.ExtractUsersFromChatsAndChannels(tgClient, chatSubstrings)).ToDictionary(u => u.ID, u => u);
@@ -154,7 +201,7 @@ async Task ActualizeContacts(string spreadsheetUrl, params string[] chatSubstrin
     Console.WriteLine($"Contacts from Google Sheet: {data.Count - 1}");
     var edit = sheet.Edit();
     var editsCount = 0;
-    for (var rowIndex = 1; rowIndex < data.Count; rowIndex++)
+    for (var rowIndex = 409; rowIndex < data.Count; rowIndex++)
     {
         var row = data[rowIndex];
         while (row.Count <= Math.Max(usernameColIndex, Math.Max(tgIdColIndex, phoneColIndex)))
@@ -163,8 +210,8 @@ async Task ActualizeContacts(string spreadsheetUrl, params string[] chatSubstrin
         var phone = row[phoneColIndex];
         var tgId = long.TryParse(row[tgIdColIndex], out var v) ? v : -1;
         //Console.WriteLine($"{string.Join(";", row)}...");
-        var user = await FindByPhone(tgClient, phone) ?? 
-                   (users.TryGetValue(tgId, out var u) ? u 
+        var user = await FindByPhone(tgClient, phone) ??
+                   (users.TryGetValue(tgId, out var u) ? u
                      : await FindByUsername(tgClient, username));
         if (user == null)
         {
@@ -182,12 +229,9 @@ async Task ActualizeContacts(string spreadsheetUrl, params string[] chatSubstrin
                     Console.WriteLine($"  {what}: {row[colIndex]} → {stringValue}");
                     row[colIndex] = stringValue;
 
-                    if (editsCount < 20)
-                    {
-                        edit = edit.WriteRangeNoCasts((rowIndex, colIndex), new List<List<object>> { new() { stringValue } });
-                        editsCount++;
-                    }
-                    else
+                    edit = edit.WriteRangeNoCasts((rowIndex, colIndex), new List<List<object>> { new() { stringValue } });
+                    editsCount++;
+                    if (editsCount > 20)
                     {
                         edit.Execute();
                         editsCount = 0;
@@ -211,7 +255,7 @@ async Task<User?> FindByUsername(Client client, string username)
     {
         Console.Write("SEARCH BY USERNAME " + username + "... ");
         var res = await client.Contacts_ResolveUsername(username.Replace("@", ""));
-        Console.WriteLine("FOUND!!!");
+        Console.WriteLine("FOUND!!! " + res.User.username);
         return res.User;
     }
     catch (RpcException e)
@@ -284,7 +328,7 @@ async Task ImportContacts()
             }
             else
                 if (myTgContact.first_name.EndsWith(suffix)) continue;
-        } 
+        }
         //Console.WriteLine($"{contact}");
 
         var resolvedPeer = await FindByPhone(client, contact.Phone) ??
