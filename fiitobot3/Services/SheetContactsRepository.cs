@@ -74,31 +74,28 @@ namespace fiitobot.Services
         /// </summary>
         public Contact[] LoadContacts(ContactType contactType, string sheetName, Contact[] oldContacts)
         {
+            var prevId = long.Parse((int)contactType + DateTime.Now.ToString("yyMMddhhmmssfff"));
+            long GenerateNewId()
+            {
+                // ReSharper disable once AccessToModifiedClosure
+                prevId++;
+                return prevId;
+            }
+
             var spreadsheet = sheetClient.GetSpreadsheet(spreadsheetId);
             var contactsSheet = spreadsheet.GetSheetByName(sheetName);
             var synchronizer = new GSheetSynchronizer<Contact, long>(contactsSheet, contact => contact.Id);
-            var loadContacts = synchronizer.LoadSheet(() => new Contact { Type = contactType });
+            var loadContacts = synchronizer.LoadSheetAndCreateIdsForNewRecords(() => new Contact { Type = contactType }, GenerateNewId);
             var changes = new List<Contact>();
-            var createdContacts = loadContacts.Where(c => c.Id == 0).ToList();
-            if (createdContacts.Any())
-            {
-                var now = DateTime.Now;
-                var timeId = long.Parse((int)contactType + now.ToString("yyMMddhhmmssfff"));
-                var prevId = Math.Max(timeId, loadContacts.Max(c => c.Id));
-                foreach (var contact in createdContacts)
-                {
-                    contact.Id = ++prevId;
-                    changes.Add(contact);
-                }
-            }
-            //TODO Баг: новые контакты без Id добавляются в конец списка, а старые остаются. Возникают дубликаты :(
-            //Что делать - надо придумать.
+            if (loadContacts.Any(c => c.Id == 0))
+                throw new Exception("Why no Id?!?");
             var pairs = loadContacts.Join(
                     oldContacts ?? Array.Empty<Contact>(),
                     c => c.Id,
                     c => c.Id, (newContact, currentContact) => (newContact, currentContact));
             foreach (var (newContact, oldContact) in pairs)
             {
+                // Мы поменяли username в Google Sheets → Надо перезаписать все в details, если там другой username
                 if (newContact.Telegram != oldContact.Telegram)
                 {
                     var details = detailsRepo.FindById(newContact.Id).Result;
@@ -110,7 +107,11 @@ namespace fiitobot.Services
                         detailsRepo.Save(details).Wait();
                     }
                 }
-                else if (newContact.TgId == 0)
+                // Мы хотим получить актуальную инфу из бота, и для этого удалили TgId из таблички
+                // → берем все, что есть из details
+                // По хорошему обновить бы у всех, но для этого надо будет прочитать все details всех контактов, а это непозволительно дорого
+                // поэтому делаем это только если явно заказали сделать, удалив TgId из таблички
+                else if (newContact.TgId == 0 || newContact.Telegram == "")
                 {
                     var details = detailsRepo.FindById(newContact.Id).Result;
                     if (details != null && details.TelegramId != 0)

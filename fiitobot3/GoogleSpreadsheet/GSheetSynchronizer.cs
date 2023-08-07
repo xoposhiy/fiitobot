@@ -1,8 +1,10 @@
-﻿using System;
+﻿using CsQuery.Engine.PseudoClassSelectors;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 
 namespace fiitobot.GoogleSpreadsheet
@@ -16,23 +18,67 @@ namespace fiitobot.GoogleSpreadsheet
         private readonly Func<TRecord, TId> getId;
         private static readonly FieldInfo[] Fields;
         private List<List<string>> data;
+        private readonly FieldInfo idField;
 
         static GSheetSynchronizer()
         {
             Fields = typeof(TRecord).GetFields(BindingFlags.Public | BindingFlags.Instance);
         }
         
-        public GSheetSynchronizer(GSheet sheet, Func<TRecord, TId> getId)
+        public GSheetSynchronizer(GSheet sheet, Expression<Func<TRecord, TId>> getId)
         {
             this.sheet = sheet;
-            this.getId = getId;
+            var memberExpr = (MemberExpression)getId.Body;
+            idField = (FieldInfo)memberExpr.Member;
+            this.getId = getId.Compile();
         }
 
-        public List<TRecord> LoadSheet(Func<TRecord> recordFactory)
+        public List<TRecord> LoadSheetAndCreateIdsForNewRecords(Func<TRecord> recordFactory, Func<TId> genNewId)
         {
             data = sheet.ReadRange("A1:ZZ");
             var (_, records) = ParseRecords(recordFactory, data);
+            var idColIndex = data[0].IndexOf(idField.Name);
+            var editBuilder = sheet.Edit();
+            int rowIndex = 1;
+            foreach (var record in records)
+            {
+                if (string.IsNullOrEmpty(data[rowIndex][idColIndex]))
+                {
+                    var newId = genNewId();
+                    idField.SetValue(record, newId);
+                    editBuilder.WriteCell(rowIndex, idColIndex, newId);
+                    data[rowIndex][idColIndex] = newId.ToString();
+                }
+                rowIndex++;
+            }
+            editBuilder.Execute();
             return records;
+        }
+
+        public void UpdateSheet(Func<TRecord> recordFactory, List<TRecord> recordsToUpdate)
+        {
+            if (data == null)
+                throw new Exception("LoadSheet must be called just before UpdateSheet");
+            var (headers, oldRecords) = ParseRecords(recordFactory, data);
+            var updatedRecords = recordsToUpdate.ToDictionary(getId);
+            var editBuilder = sheet.Edit();
+            int index = 1;
+            foreach (var oldRecord in oldRecords)
+            {
+                var id = getId(oldRecord);
+                if (updatedRecords.TryGetValue(id, out var newRecord))
+                {
+                    UpdateRecord(index, oldRecord, newRecord, headers, editBuilder);
+                    updatedRecords.Remove(id);
+                }
+                index++;
+            }
+            foreach (var newRecord in updatedRecords.Values)
+            {
+                UpdateRecord(index, null, newRecord, headers, editBuilder);
+                index++;
+            }
+            editBuilder.Execute();
         }
 
         private (Dictionary<string, int> headers, List<TRecord> records) ParseRecords(Func<TRecord> recordFactory,
@@ -43,32 +89,6 @@ namespace fiitobot.GoogleSpreadsheet
                 .ToDictionary(th => th.h.ToLowerInvariant(), h => h.i);
             var records = rowsOfCells.Skip(1).Select(row => FillRecordFieldsFromRow(recordFactory(), row, headers)).ToList();
             return (headers, records);
-        }
-
-        public void UpdateSheet(Func<TRecord> recordFactory, List<TRecord> recordsToUpdate)
-        {
-            if (data == null)
-                throw new Exception("LoadSheet must be called just before UpdateSheet");
-            var (headers, oldRecords) = ParseRecords(recordFactory, data);
-            var newRecords = recordsToUpdate.ToDictionary(getId);
-            var editBuilder = sheet.Edit();
-            int index = 1;
-            foreach (var oldRecord in oldRecords)
-            {
-                var id = getId(oldRecord);
-                if (newRecords.TryGetValue(id, out var newRecord))
-                {
-                    UpdateRecord(index, oldRecord, newRecord, headers, editBuilder);
-                    newRecords.Remove(id);
-                }
-                index++;
-            }
-            foreach (var newRecord in newRecords.Values)
-            {
-                UpdateRecord(index, null, newRecord, headers, editBuilder);
-                index++;
-            }
-            editBuilder.Execute();
         }
 
         private TRecord FillRecordFieldsFromRow(TRecord record, List<string> row, Dictionary<string, int> headerPos)

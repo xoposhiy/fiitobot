@@ -84,6 +84,35 @@ namespace fiitobot.GoogleSpreadsheet
                 });
             return this;
         }
+
+        public GSheetEditsBuilder WriteCell(int top, int left, object value)
+        {
+            var rows = new List<RowData>
+            {
+                new RowData
+                {
+                    Values = new List<CellData> { GetCellData(value) }
+                }
+            };
+
+            requests.Add(
+                new Request
+                {
+                    UpdateCells = new UpdateCellsRequest
+                    {
+                        Start = new GridCoordinate
+                        {
+                            SheetId = sheetId,
+                            RowIndex = top,
+                            ColumnIndex = left
+                        },
+                        Rows = rows,
+                        Fields = "*"
+                    }
+                });
+            return this;
+        }
+
         public GSheetEditsBuilder WriteRangeNoCasts(ValueTuple<int, int> topLeft, List<List<object>> payload)
         {
             var (topIndex, leftIndex) = topLeft;
