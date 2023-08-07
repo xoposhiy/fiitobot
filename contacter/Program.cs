@@ -7,16 +7,18 @@ using WTelegram;
 using Contact = fiitobot.Contact;
 
 //await ImportContacts();
-//await AnalyzeStudentsChat(2022, "Чат ФИИТ 2022");
-//await AnalyzeStudentsChat(2022, "Чат ФИИТ 2022");
+await AnalyzeStudentsChat(2023, "Чат ФИИТ 2023");
+//await ActualizeContacts(true, "https://docs.google.com/spreadsheets/d/1VH_pZnYvTgQ-IzFVs5CYQWjbCo6YtUfip4w7K6GTK3U/edit#gid=0", "Чат ФИИТ 2023");
+//await ActualizeContacts(false, "https://docs.google.com/spreadsheets/d/1VH_pZnYvTgQ-IzFVs5CYQWjbCo6YtUfip4w7K6GTK3U/edit#gid=1835136796", "Преп"); //Teachers
+//await ReportActiveStudents("Чат ФИИТ 2023");
+//await AddToChat("Чат ФИИТ 2023", "phones2023.csv");
 //await ExtractChats();
 //await ExtractStudents();
-await ActualizeContacts("https://docs.google.com/spreadsheets/d/1VH_pZnYvTgQ-IzFVs5CYQWjbCo6YtUfip4w7K6GTK3U/edit#gid=0", "Чат ФИИТ 2023");
-//await ActualizeContacts("https://docs.google.com/spreadsheets/d/1VH_pZnYvTgQ-IzFVs5CYQWjbCo6YtUfip4w7K6GTK3U/edit#gid=1835136796", "Преп"); //Teachers
-//await ReportActiveStudents("спроси про ФИИТ в УрФУ");
-//await AddToChat("Чат ФИИТ 2023", "phones2023.csv");
 
-// phone csv - список телефонов зачисленных, который добыт во время приёмки
+
+// Массовое добавление студентов в чат по их телефонам.
+// phone csv - список телефонов зачисленных, который добыт во время приёмки. В каждой строке телефон, TAB, и что угодно ещё.
+// В проекте есть пример файла.
 async Task AddToChat(string chatSubstring, string phonesCsv)
 {
     var settings = new Settings();
@@ -28,37 +30,43 @@ async Task AddToChat(string chatSubstring, string phonesCsv)
     };
 
     await client.LoginUserIfNeeded();
-    Messages_Chats chats = await client.Messages_GetAllChats();
+    var chats = await client.Messages_GetAllChats();
     var chat = chats.chats.First(c => c.Value.Title.Contains(chatSubstring)).Value;
     Console.WriteLine($"Found Chat {chat.Title} {chat.ID} {chat.ToInputPeer()} {chat.GetType()}");
 
-
-
-    var phones = await File.ReadAllLinesAsync(phonesCsv);
+    var lines = await File.ReadAllLinesAsync(phonesCsv);
     var count = 0;
-    foreach (var phone in phones)
+    Console.WriteLine("Spreadsheet copy-paste friendly formatting:");
+    foreach (var line in lines)
     {
+        Console.Write(line + "\t");
+        var phone = line.Split('\t', 1)[0];
         var user = await FindByPhone(client, phone);
-        if (user == null)
-            Console.WriteLine("NOT FOUND " + phone);
-        else
+        if (user != null)
         {
-            var usernames = user.usernames == null ? "-" : string.Join(";", user.usernames.Select(un => un.username).ToArray());
-            Console.WriteLine($"{user.MainUsername}\t{user.first_name}\t{user.last_name}\t{user.ID}\t{usernames}");
+            Console.Write($"{user.MainUsername}\t{user.ID}\t");
             try
             {
                 var res = await client.AddChatUser(chat, user);
+                Console.WriteLine($"added");
                 count++;
             }
             catch (Exception e)
             {
-                Console.WriteLine("Not added");
+                // TODO: If error because of no access — send invite link via personal message
+                //await client.SendMessageAsync(user, "TODO friendly text and invite link");
+                Console.WriteLine("NO ACCESS");
             }
-
+        }
+        else
+        {
+            //skip username and tgId
+            Console.Write("\t\t");
+            Console.WriteLine("NOT FOUND");
         }
     }
 
-    Console.WriteLine(count + " added");
+    Console.WriteLine(count + " users added to chat");
 }
 
 
@@ -137,7 +145,7 @@ async Task AnalyzeStudentsChat(int admissionYear, string chatName)
     {
         var match = data.AllContacts.FirstOrDefault(c => ((Contact)c).TgId == user.ID);
         if (match == null)
-            Console.WriteLine($"{user.last_name};{user.first_name};;;;{user.phone};;{user.username};{user.ID}");
+            Console.WriteLine($"UNKNOWN {user.last_name}; {user.first_name} {user.phone} {user.username} {user.ID}");
         else
         {
             var year = match.AdmissionYear;
@@ -174,7 +182,7 @@ async Task AnalyzeStudentsChat(int admissionYear, string chatName)
     }
 }
 
-async Task ActualizeContacts(string spreadsheetUrl, params string[] chatSubstrings)
+async Task ActualizeContacts(bool actualizeOnlyWithoutTgId, string spreadsheetUrl, params string[] chatSubstrings)
 {
     var settings = new Settings();
     var gsClient = new GSheetClient(settings.GoogleAuthJson);
@@ -209,6 +217,7 @@ async Task ActualizeContacts(string spreadsheetUrl, params string[] chatSubstrin
         var username = row[usernameColIndex];
         var phone = row[phoneColIndex];
         var tgId = long.TryParse(row[tgIdColIndex], out var v) ? v : -1;
+        if (actualizeOnlyWithoutTgId && tgId != -1) continue;
         //Console.WriteLine($"{string.Join(";", row)}...");
         var user = await FindByPhone(tgClient, phone) ??
                    (users.TryGetValue(tgId, out var u) ? u
@@ -313,24 +322,14 @@ async Task ImportContacts()
     await client.LoginUserIfNeeded();
     var extractor = new TgContactsExtractor();
 
-    Dictionary<long, User> users = (await extractor.ExtractUsersFromChatsAndChannels(client, "Чат ФИИТ", "спроси про ФИИТ", "Чат — Матмех, приём!")).ToDictionary(u => u.ID, u => u);
     var myContacts = await client.Contacts_GetContacts();
+    Console.WriteLine("Contacts: " + myContacts.users.Count);
+    Dictionary<long, User> users = (await extractor.ExtractUsersFromChatsAndChannels(client, "Чат ФИИТ 2023")).ToDictionary(u => u.ID, u => u);
 
     foreach (var contact in data.Students.Where(c => ((Contact)c).AdmissionYear.IsOneOf(2022)).Select(p => (Contact)p))
     {
+        if (myContacts.users.ContainsKey(contact.TgId)) continue;
         var suffix = contact.AdmissionYear <= 0 ? "" : (" фт" + contact.AdmissionYear % 100);
-        if (myContacts.users.ContainsKey(contact.TgId))
-        {
-            var myTgContact = myContacts.users[contact.TgId];
-            if (suffix == "")
-            {
-                if (!myTgContact.first_name.EndsWith(" фт22")) continue;
-            }
-            else
-                if (myTgContact.first_name.EndsWith(suffix)) continue;
-        }
-        //Console.WriteLine($"{contact}");
-
         var resolvedPeer = await FindByPhone(client, contact.Phone) ??
                            (users.TryGetValue(contact.TgId, out var u) ? u
                                : await FindByUsername(client, contact.Telegram));

@@ -16,6 +16,9 @@
     </ItemGroup>
 
     <ItemGroup>
+      <None Update="phones2023.sample.csv">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
       <None Update="phones2023.csv">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>

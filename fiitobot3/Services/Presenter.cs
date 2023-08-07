@@ -370,11 +370,11 @@ namespace fiitobot.Services
         private string FormatConcurs(string concurs)
         {
             if (concurs == "О") return "по общему конкурсу";
-            else if (concurs == "БЭ") return "по олимпиаде";
+            else if (concurs == "БЭ") return "без экзаменов";
             else if (concurs == "К") return "по контракту";
             else if (concurs == "КВ") return "по льготной квоте";
             else if (concurs == "Ц") return "по целевой квоте";
-            else if (concurs == "Ин") return "иностранец сверх бюджетных мест";
+            else if (concurs == "Ин") return "сверх бюджетных мест";
             else return "неизвестно как 🤷‍";
         }
 

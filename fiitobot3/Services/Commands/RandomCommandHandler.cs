@@ -11,6 +11,14 @@ namespace fiitobot.Services.Commands
         private readonly IPresenter presenter;
         private readonly Random random;
         private readonly string[] randomFacts = {
+            "Установи себе фотку в фиитоботе! Её будут видеть фиитовцы, которые ищут тебя тут. Чтобы установить фотку, просто пришли ее боту!",
+            "Тут можно искать преподавателей и администраторов ФИИТа",
+            "Я могу поискать людей по городу или номеру школы!",
+            "Мой исходный код открыт. https://github.com/xoposhiy/fiitobot/tree/main/fiitobot3",
+            "Меня хостят в Яндекс облаке с помощью бессерверных технологий, поэтому хостинг ничего не стоит! Научись делать так же с помощью этого шаблона телеграм бота: https://github.com/BasedDepartment1/cloud-function-bot",
+            "Вот классный курс по командной строке: https://ru.hexlet.io/courses/cli-basics",
+            "Вот коротенький курс по основам [не совсем] публичных выступлений для разработчиков: https://ulearn.me/course/speaker",
+            "Этика студентов! Слышал про такую? https://docs.google.com/document/d/19VobSaJxbIWweIhx3b_XFcakjvqtGVSAISq4A-XfbDI/edit",
             "А вы знаете, как общаться с инопланетянами по научному? https://www.youtube.com/watch?v=Hk0HhaBi-zY",
             "Раньше курс Операционные системы был другим. Неплохие лекции про ОС остались в записи: https://www.youtube.com/playlist?list=PL4UhuTnu1z7vZbza0LfZNWOwdKChijOhX",
             "Не хотите послушать ликбез про то, что такое DevOps? https://youtu.be/R0XeuJIBRsU",
@@ -41,6 +49,7 @@ namespace fiitobot.Services.Commands
             "Напиши отзыв про ФИИТ на https://vuzopedia.ru/vuz/1848",
             "Логотип и фирменный стиль ФИИТ бесплатно сделала компания JetStyle :) https://jetstyle.ru/portfolio/case/logo-and-brand-identity-for-fiit",
             "Если знаете случайный факт, достойный включения в этот список, пришлите его https://t.me/xoposhiy",
+            "Подпишись на канал Технологии в Контуре. Там публикуют ссылки на доклады и статьи про техномясо! https://t.me/KonturTech",
         };
 
         private const double ShowSenderChance = 1.0 / 10.0;
