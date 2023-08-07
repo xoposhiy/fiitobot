@@ -44,13 +44,20 @@ namespace fiitobot
                 var studentsDownloader = new UrfuStudentsDownloader(settings);
                 var demidovichService = new DemidovichService(settings.CreateDemidovichBucketService());
                 var brsClient = new BrsClient(BrsClient.IsFiitOfficialGroup);
+                var random = new Random(Guid.NewGuid().GetHashCode());
                 var commands = new IChatCommandHandler[]
                 {
                     new StartCommandHandler(presenter, botDataRepository),
                     new HelpCommandHandler(presenter),
                     new ContactsCommandHandler(botDataRepository, presenter),
                     new ShowGroupCommandHandler(botDataRepository, presenter),
-                    new RandomCommandHandler(botDataRepository, detailsRepo, presenter, new Random(Guid.NewGuid().GetHashCode())),
+                    new RandomCommandHandler(random, new IRandomFeatureCommand[]
+                        {
+                            new ShowSenderCommand(presenter),
+                            new ShowRandomFactCommand(presenter, random),
+                            new ShowRandomStudentCommand(presenter, random, botDataRepository, detailsRepo),
+                            new ShowAdmissionYearStudentCommand(presenter, random, botDataRepository, detailsRepo, DateTime.Now)
+                        }),
                     new ReloadCommandHandler(presenter, contactsRepo, botDataRepository),
                     new ChangePhotoCommandHandler(presenter, photoRepo, settings.ModeratorsChatId),
                     new AcceptPhotoCommandHandler(presenter, botDataRepository, photoRepo, settings.ModeratorsChatId),

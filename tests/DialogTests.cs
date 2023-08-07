@@ -19,7 +19,7 @@ public class DialogTests
     {
         data = new BotDataBuilder().Build();
     }
-    
+
     [TestCase("Мизурова", "Мизуро́ва")]
     [TestCase("Мизуро́ва", "Мизуро́ва")]
     [TestCase("Анастасия Мизурова", "Мизуро́ва")]
@@ -35,11 +35,11 @@ public class DialogTests
         var contactsPresenter = A.Fake<IPresenter>();
         var sender = AStudent();
         var handleUpdateService = PrepareUpdateService(contactsPresenter);
-        
+
         await handleUpdateService.HandlePlainText(query, 123, sender);
         Console.WriteLine(expectedLastNameOfSingleResult);
         A.CallTo(() => contactsPresenter.ShowContact(
-                A<Contact>.That.Matches(c => c.LastName == expectedLastNameOfSingleResult), 
+                A<Contact>.That.Matches(c => c.LastName == expectedLastNameOfSingleResult),
                 123, ContactDetailsLevel.Minimal | ContactDetailsLevel.Contacts))
             .MustHaveHappenedOnceExactly();
         A.CallTo(() => contactsPresenter.ShowOtherResults(null, 0))
@@ -86,7 +86,7 @@ public class DialogTests
                 A<Contact>.Ignored, A<byte[]>.Ignored, 123))
             .MustHaveHappenedOnceExactly();
     }
-    
+
     [TestCase("/details Мизурова")]
     public async Task AdminDetailsQuery_ShowsDetails(string query)
     {
@@ -159,9 +159,9 @@ public class DialogTests
         var contactsPresenter = A.Fake<IPresenter>();
         var sender = AStudent();
         var handleUpdateService = PrepareUpdateService(contactsPresenter);
-        
+
         await handleUpdateService.HandlePlainText(firstName, 42, sender);
-        
+
         A.CallTo(() => contactsPresenter.ShowContact(
                 A<Contact>.That.Matches(c => c.FirstName == firstName),
                 42, A<ContactDetailsLevel>.Ignored))
@@ -223,9 +223,9 @@ public class DialogTests
         await handleUpdateService.HandlePlainText("/join " + query, 555, AGuest());
 
         A.CallTo(() => contactsPresenter.Say(A<string>.Ignored, 111)) // Кто-то хочет доступ!
-            .MustHaveHappenedOnceExactly(); 
+            .MustHaveHappenedOnceExactly();
         A.CallTo(() => contactsPresenter.Say(A<string>.Ignored, 555)) // Модераторы получили твой запрос
-            .MustHaveHappenedOnceExactly(); 
+            .MustHaveHappenedOnceExactly();
         Assert.AreEqual(2, Fake.GetCalls(contactsPresenter).Count());
     }
 
@@ -243,10 +243,10 @@ public class DialogTests
 
         await handleUpdateService.HandlePlainText(query, 42, sender);
 
-        A.CallTo(() => 
+        A.CallTo(() =>
                 contactsPresenter.ShowContactsBy(
-                    A<string>.Ignored, 
-                    A<IList<Contact>>.That.Matches(p => p.Count == 1), 
+                    A<string>.Ignored,
+                    A<IList<Contact>>.That.Matches(p => p.Count == 1),
                     42))
             .MustHaveHappenedOnceExactly();
         Assert.AreEqual(1, Fake.GetCalls(contactsPresenter).Count());
@@ -259,13 +259,20 @@ public class DialogTests
         var downloader = A.Fake<ITelegramFileDownloader>();
         var repo = new MemoryBotDataRepository(data);
         var detailsRepo = A.Fake<IContactDetailsRepo>();
+        var random = new Random();
         var commands = new IChatCommandHandler[]
         {
             new StartCommandHandler(presenter, repo),
             new HelpCommandHandler(presenter),
             new DetailsCommandHandler(presenter, repo, detailsRepo),
             new ContactsCommandHandler(repo, presenter),
-            new RandomCommandHandler(repo, detailsRepo, presenter, new Random()),
+            new RandomCommandHandler(random, new IRandomFeatureCommand[]
+            {
+                new ShowSenderCommand(presenter),
+                new ShowRandomFactCommand(presenter, random),
+                new ShowRandomStudentCommand(presenter, random, repo, detailsRepo),
+                new ShowAdmissionYearStudentCommand(presenter, random, repo, detailsRepo, DateTime.Now)
+            }),
             new JoinCommandHandler(presenter, 111),
         };
         return new HandleUpdateService(repo, namedPhotoDirectory, photoRepo, null, downloader, presenter, detailsRepo, commands);
