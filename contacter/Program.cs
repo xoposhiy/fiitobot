@@ -386,9 +386,9 @@ async Task ImportContacts(int year)
         Console.WriteLine(contact.Telegram);
         if (myContacts.users.ContainsKey(contact.TgId)) continue;
         var suffix = contact.AdmissionYear <= 0 ? "" : (" фт" + contact.AdmissionYear % 100);
-        var resolvedPeer = await FindByPhone(client, contact.Phone) ??
+        var resolvedPeer = await FindByUsername(client, contact.Telegram) ??
                            (users.TryGetValue(contact.TgId, out var u) ? u
-                               : await FindByUsername(client, contact.Telegram));
+                               : await FindByPhone(client, contact.Phone));
         if (resolvedPeer == null)
             Console.WriteLine($"NotFound {contact}");
         else
