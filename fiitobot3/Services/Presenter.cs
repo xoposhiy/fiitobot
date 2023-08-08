@@ -369,13 +369,16 @@ namespace fiitobot.Services
 
         private string FormatConcurs(string concurs)
         {
-            if (concurs == "О") return "по общему конкурсу";
-            else if (concurs == "БЭ") return "без экзаменов";
-            else if (concurs == "К") return "по контракту";
-            else if (concurs == "КВ") return "по льготной квоте";
-            else if (concurs == "Ц") return "по целевой квоте";
-            else if (concurs == "Ин") return "сверх бюджетных мест";
-            else return "неизвестно как 🤷‍";
+            return concurs.ToUpper() switch
+            {
+                "О" => "по общему конкурсу",
+                "БЭ" => "без экзаменов",
+                "К" => "по контракту",
+                "КВ" => "по льготной квоте",
+                "Ц" => "по целевой квоте",
+                "Ин" => "сверх бюджетных мест",
+                _ => "неизвестно как 🤷‍"
+            };
         }
 
         public async Task ShowContactsBy(string criteria, IList<Contact> people, long chatId)

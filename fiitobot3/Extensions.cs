@@ -8,6 +8,7 @@ namespace fiitobot
 {
     public static class Extensions
     {
+
         public static string Canonize(this string text)
         {
             return text.ToLower().Replace("ë", "е").Replace("ё", "е").Replace("́", "");
@@ -215,6 +216,14 @@ namespace fiitobot
                 d[key] = v + 1;
             else
                 d[key] = 1;
+        }
+
+        public static string ToFrequencyString<TK>(this IDictionary<TK, int> frequencies, int topCount = int.MaxValue)
+        {
+            return frequencies.OrderByDescending(kv => kv.Value)
+                .Take(topCount)
+                .Select(kv => $"{kv.Value}\t{kv.Key}")
+                .StrJoin("\n");
         }
 
         public static int ElementwiseHashcode<T>(this IEnumerable<T> items)

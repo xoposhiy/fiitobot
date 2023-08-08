@@ -45,7 +45,7 @@ namespace fiitobot.Services.Commands
             var rows = students.Select(s => s.LastName + "\t" + s.FirstName + "\t" + s.Patronymic + "\t" + s.Status);
             var contentText = string.Join("\t", headers) + "\n" + string.Join("\n", rows);
             var content = Encoding.UTF8.GetBytes(contentText);
-            await presenter.SendFile(fromChatId, content, groupName + ".csv", $"Список группы {groupName}");
+            await presenter.SendFile(fromChatId, content, groupName + ".txt", $"Список группы {groupName}");
         }
     }
 }

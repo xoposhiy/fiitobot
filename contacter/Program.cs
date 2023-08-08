@@ -1,20 +1,24 @@
 ﻿using fiitobot;
 using fiitobot.GoogleSpreadsheet;
 using fiitobot.Services;
+using System.Diagnostics;
 using System.Text;
+using System.Text.RegularExpressions;
 using TL;
 using WTelegram;
 using Contact = fiitobot.Contact;
 
-//await ImportContacts();
-await AnalyzeStudentsChat(2023, "Чат ФИИТ 2023");
+//await AnalyzeFiitobotLogs("фиитобот");
+
+await ImportContacts(2023);
+//await AnalyzeStudentsChat(2023, "Чат ФИИТ 2023");
+
 //await ActualizeContacts(true, "https://docs.google.com/spreadsheets/d/1VH_pZnYvTgQ-IzFVs5CYQWjbCo6YtUfip4w7K6GTK3U/edit#gid=0", "Чат ФИИТ 2023");
 //await ActualizeContacts(false, "https://docs.google.com/spreadsheets/d/1VH_pZnYvTgQ-IzFVs5CYQWjbCo6YtUfip4w7K6GTK3U/edit#gid=1835136796", "Преп"); //Teachers
 //await ReportActiveStudents("Чат ФИИТ 2023");
 //await AddToChat("Чат ФИИТ 2023", "phones2023.csv");
 //await ExtractChats();
 //await ExtractStudents();
-
 
 // Массовое добавление студентов в чат по их телефонам.
 // phone csv - список телефонов зачисленных, который добыт во время приёмки. В каждой строке телефон, TAB, и что угодно ещё.
@@ -69,8 +73,59 @@ async Task AddToChat(string chatSubstring, string phonesCsv)
     Console.WriteLine(count + " users added to chat");
 }
 
+async Task AnalyzeFiitobotLogs(string name)
+{
+    var settings = new Settings();
+    using var client = new Client(settings.TgClientConfig);
+    var defaultLogger = Helpers.Log;
+    Helpers.Log = (level, message) =>
+    {
+        if (level >= 3) defaultLogger(level, message);
+    };
+
+    await client.LoginUserIfNeeded();
+    Contacts_TopPeers topPeers = (Contacts_TopPeers)await client.Contacts_GetTopPeers(bots_pm: true, bots_inline: true);
+    User fiitobot = topPeers.users.First(c => c.Value.username == "fiitobot").Value;
+    Console.WriteLine($"Found User {fiitobot.MainUsername} {fiitobot.ID} {fiitobot.GetType()}");
+    var lastMessageId = 0;
+    var usersFreq = new Dictionary<string, int>();
+    var requestsFreq = new Dictionary<string, int>();
+    var messagesCount = 0;
+    while (true)
+    {
+        var history = await client.Messages_GetHistory(fiitobot, offset_id: lastMessageId);
+        if (history.Messages.Length == 0) break;
+        var texts = history.Messages.OfType<Message>().Select(m => m.message)
+            .Where(t => t.StartsWith("From: "))
+            .Select(t => t.Substring("From: ".Length)).ToList();
+        foreach (var text in texts)
+        {
+            var parts = text.Split(" Message: ");
+            if (parts.Length < 2) continue;
+            var who = parts[0];
+            var what = parts[1];
+            usersFreq.Increment(who);
+            requestsFreq.Increment(what.ToLower().Trim());
+        }
+        lastMessageId = history.Messages.Last().ID;
+        messagesCount += history.Messages.Length;
+        Console.WriteLine($"Read {messagesCount} messages. Last message date {history.Messages.Last().Date}");
+        if (history.Messages.Last().Date < DateTime.Now - TimeSpan.FromDays(30)) break;
+    }
+
+    Console.WriteLine("Top Users:");
+    Console.WriteLine(usersFreq.ToFrequencyString(20));
+    File.WriteAllText("users.txt", usersFreq.ToFrequencyString());
+    Console.WriteLine();
+    Console.WriteLine("Top Requests:");
+    Console.WriteLine(requestsFreq.ToFrequencyString(20));
+    File.WriteAllText("requests.txt", requestsFreq.ToFrequencyString());
+}
+
 
 #pragma warning disable CS8321 // Local function is declared but never used
+
+
 async Task ReportActiveStudents(string chatTitle)
 {
     var settings = new Settings();
@@ -306,7 +361,7 @@ async Task<User?> FindByPhone(Client client, string phone)
     }
 }
 
-async Task ImportContacts()
+async Task ImportContacts(int year)
 {
     var settings = new Settings();
     var repo = new BotDataRepository(settings);
@@ -324,10 +379,11 @@ async Task ImportContacts()
 
     var myContacts = await client.Contacts_GetContacts();
     Console.WriteLine("Contacts: " + myContacts.users.Count);
-    Dictionary<long, User> users = (await extractor.ExtractUsersFromChatsAndChannels(client, "Чат ФИИТ 2023")).ToDictionary(u => u.ID, u => u);
+    Dictionary<long, User> users = (await extractor.ExtractUsersFromChatsAndChannels(client, $"Чат ФИИТ {year}")).ToDictionary(u => u.ID, u => u);
 
-    foreach (var contact in data.Students.Where(c => ((Contact)c).AdmissionYear.IsOneOf(2022)).Select(p => (Contact)p))
+    foreach (var contact in data.Students.Where(c => ((Contact)c).AdmissionYear.IsOneOf(year)).Select(p => (Contact)p))
     {
+        Console.WriteLine(contact.Telegram);
         if (myContacts.users.ContainsKey(contact.TgId)) continue;
         var suffix = contact.AdmissionYear <= 0 ? "" : (" фт" + contact.AdmissionYear % 100);
         var resolvedPeer = await FindByPhone(client, contact.Phone) ??

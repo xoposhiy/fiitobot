@@ -22,10 +22,6 @@ namespace fiitobot.Services
                 return null;
             if (!response.IsSuccessStatusCode)
                 throw new System.Exception(response.Error);
-            //TODO handle deserialization error
-            // 1. Self recovery
-            // 2. Notify admin
-            // 3. Save corrupted state for investigation
             var contactState = JsonConvert.DeserializeObject<ContactDetails>(response.Result);
             return contactState;
         }
