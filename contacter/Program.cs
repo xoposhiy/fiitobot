@@ -1,9 +1,7 @@
 ﻿using fiitobot;
 using fiitobot.GoogleSpreadsheet;
 using fiitobot.Services;
-using System.Diagnostics;
 using System.Text;
-using System.Text.RegularExpressions;
 using TL;
 using WTelegram;
 using Contact = fiitobot.Contact;
@@ -14,7 +12,6 @@ await ImportContacts(2023);
 //await AnalyzeStudentsChat(2023, "Чат ФИИТ 2023");
 
 //await ActualizeContacts(true, "https://docs.google.com/spreadsheets/d/1VH_pZnYvTgQ-IzFVs5CYQWjbCo6YtUfip4w7K6GTK3U/edit#gid=0", "Чат ФИИТ 2023");
-//await ActualizeContacts(false, "https://docs.google.com/spreadsheets/d/1VH_pZnYvTgQ-IzFVs5CYQWjbCo6YtUfip4w7K6GTK3U/edit#gid=1835136796", "Преп"); //Teachers
 //await ReportActiveStudents("Чат ФИИТ 2023");
 //await AddToChat("Чат ФИИТ 2023", "phones2023.csv");
 //await ExtractChats();

@@ -167,6 +167,17 @@ namespace fiitobot.Services
             bool asSelf = text.Contains("/as_self");
             (sender.Type, text) = OverrideSenderType(text, sender.Type);
 
+            var m = Regex.Match(text, "\\/as_(\\d+)\\s*");
+            if (m.Success && sender.Type == ContactType.Administration)
+            {
+                var allContacts = botDataRepo.GetData().AllContacts;
+                var id = m.Groups[1].Value;
+                var impersonatedUser = allContacts.FirstOrDefault(c =>
+                    c.TgId.ToString() == id || c.SameTelegramUsername(id) || c.Id.ToString() == id);
+                sender = impersonatedUser ?? sender;
+                text = text.Replace(m.Value, "");
+            }
+
             var command = commands.FirstOrDefault(c => text.StartsWith(c.Command));
 
             if (command != null)
@@ -187,8 +198,10 @@ namespace fiitobot.Services
                     await presenter.SayNoRights(fromChatId, sender.Type);
                 return;
             }
+
             if (text.StartsWith("/"))
                 return;
+
             var data = botDataRepo.GetData();
             if (TryHandleAsGroupName(text, data.Students, fromChatId))
                 return;
@@ -302,7 +315,7 @@ namespace fiitobot.Services
 
         private async Task SayCompliment(Contact contact, long fromChatId)
         {
-            if (contact.Patronymic.EndsWith("вна"))
+            if (contact.Gender == Gender.F || contact.Patronymic.EndsWith("вна"))
                 await presenter.Say("Ты прекрасна, спору нет! ❤", fromChatId);
             else
                 await presenter.Say("Ты прекрасен, спору нет! ✨", fromChatId);

@@ -15,7 +15,7 @@ namespace fiitobot.Services.Commands
             "Тут можно искать преподавателей и администраторов ФИИТа",
             "Я могу поискать людей по городу или номеру школы!",
             "Мой исходный код открыт. https://github.com/xoposhiy/fiitobot/tree/main/fiitobot3",
-            "Меня хостят в Яндекс облаке с помощью бессерверных технологий, поэтому хостинг ничего не стоит! Научись делать так же с помощью этого шаблона телеграм бота: https://github.com/BasedDepartment1/cloud-function-bot",
+            "Фиитобот хостится в Яндекс облаке с помощью бессерверных технологий, поэтому хостинг ничего не стоит! Научись делать так же с помощью этого шаблона телеграм бота: https://github.com/BasedDepartment1/cloud-function-bot",
             "Вот классный курс по командной строке: https://ru.hexlet.io/courses/cli-basics",
             "Вот коротенький курс по основам [не совсем] публичных выступлений для разработчиков: https://ulearn.me/course/speaker",
             "Этика студентов! Слышал про такую? https://docs.google.com/document/d/19VobSaJxbIWweIhx3b_XFcakjvqtGVSAISq4A-XfbDI/edit",
@@ -52,8 +52,10 @@ namespace fiitobot.Services.Commands
             "Подпишись на канал Технологии в Контуре. Там публикуют ссылки на доклады и статьи про техномясо! https://t.me/KonturTech",
         };
 
-        private const double ShowSenderChance = 1.0 / 10.0;
-        private const double ShowRandomFactChance = 3.0 / 10.0;
+        private const double ShowRandomFactChance = 1 / 5.0;
+        private const double ShowSenderChance = 1.0 / 15.0;
+        private const double ShowSameYearChance = 1 / 2.0;
+        private const double ShowSameGroupChance = 1 / 2.0;
 
         public RandomCommandHandler(IBotDataRepository botDataRepo, IContactDetailsRepo detailsRepo, IPresenter presenter, Random random)
         {
@@ -68,31 +70,29 @@ namespace fiitobot.Services.Commands
 
         public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
         {
-            var chance = random.NextDouble();
-            if (chance < ShowSenderChance)
-            {
-                await presenter.ShowContact(sender, fromChatId, sender.GetDetailsLevelFor(sender));
-                return;
-            }
-
-            if (chance < ShowSenderChance + ShowRandomFactChance)
+            if (random.NextDouble() < ShowRandomFactChance)
             {
                 var randomFact = randomFacts[random.Next(randomFacts.Length)];
                 await presenter.Say($"Кстати!\n\n{randomFact}", fromChatId);
                 return;
             }
-            var contact = GetPresentedContact(sender);
+            var contact = SelectPresentedContact(sender);
             await presenter.ShowContact(contact, fromChatId, contact.GetDetailsLevelFor(sender));
         }
 
-        private Contact GetPresentedContact(Contact sender)
+        public Contact SelectPresentedContact(Contact sender)
         {
-            var chance = random.NextDouble();
-            if (chance < ShowSenderChance)
+            if (random.NextDouble() < ShowSenderChance)
                 return sender;
             var students = botDataRepo.GetData().Students
                 .Where(s => s.Status.IsOneOf("Активный", ""))
                 .ToList();
+            if (random.NextDouble() < ShowSameYearChance)
+            {
+                students = students.Where(s => s.AdmissionYear == sender.AdmissionYear).ToList();
+                if (random.NextDouble() < ShowSameGroupChance)
+                    students = students.Where(s => s.GroupIndex == sender.GroupIndex).ToList();
+            }
             var randomContact = students[random.Next(students.Count)];
             var details = detailsRepo.FindById(randomContact.Id).Result;
             randomContact.UpdateFromDetails(details);

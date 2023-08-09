@@ -63,6 +63,7 @@ public class DialogTests
         Assert.AreEqual(1, Fake.GetCalls(contactsPresenter).Count());
     }
 
+
     [TestCase("Мизурова", ContactDetailsLevel.Minimal | ContactDetailsLevel.Contacts)]
     [TestCase("Егоров Павел", ContactDetailsLevel.Minimal | ContactDetailsLevel.Contacts | ContactDetailsLevel.Marks)]
     [TestCase("Петров Пётр", ContactDetailsLevel.Minimal)]
@@ -140,6 +141,49 @@ public class DialogTests
         A.CallTo(() => contactsPresenter.ShowContact(
                 A<Contact>.Ignored,
                 123, ContactDetailsLevel.Minimal | ContactDetailsLevel.Contacts))
+            .MustHaveHappenedOnceExactly();
+    }
+
+    [TestCase("/as_123123123 Петров")]
+    public async Task AsConcreteStudent_DowngradeAdminRights(string query)
+    {
+        var contactsPresenter = A.Fake<IPresenter>();
+        var sender = AnAdmin();
+        var handleUpdateService = PrepareUpdateService(contactsPresenter);
+
+        await handleUpdateService.HandlePlainText(query, 123, sender);
+
+        A.CallTo(() => contactsPresenter.ShowContact(
+                A<Contact>.Ignored,
+                123, ContactDetailsLevel.Minimal))
+            .MustHaveHappenedOnceExactly();
+    }
+
+    [TestCase("/as_123123123 Семёнов")]
+    public async Task AsConcreteStudent_SearchSameGroupStudent_DowngradeAdminRights(string query)
+    {
+        var contactsPresenter = A.Fake<IPresenter>();
+        var sender = AnAdmin();
+        var handleUpdateService = PrepareUpdateService(contactsPresenter);
+
+        await handleUpdateService.HandlePlainText(query, 123, sender);
+
+        A.CallTo(() => contactsPresenter.ShowContact(
+                A<Contact>.Ignored,
+                123, ContactDetailsLevel.Minimal | ContactDetailsLevel.Contacts))
+            .MustHaveHappenedOnceExactly();
+    }
+
+    [TestCase("/as_123123123 /random")]
+    public async Task AsConcreteStudent_SearchRandom(string query)
+    {
+        var contactsPresenter = A.Fake<IPresenter>();
+        var sender = AnAdmin();
+        var handleUpdateService = PrepareUpdateService(contactsPresenter);
+
+        await handleUpdateService.HandlePlainText(query, 123, sender);
+
+        A.CallTo(contactsPresenter)
             .MustHaveHappenedOnceExactly();
     }
 

@@ -342,11 +342,12 @@ namespace fiitobot.Services
             if (!string.IsNullOrWhiteSpace(tgName))
                 b.AppendLine($"💬 {tgName}");
 
-            b.AppendLine($"{EscapeForHtml(contact.Note)}");
+            if (!string.IsNullOrWhiteSpace(contact.SecretNote))
+                b.AppendLine($"\n{EscapeForHtml(contact.Note)}");
 
             if (detailsLevel.HasFlag(ContactDetailsLevel.SecretNote) && !string.IsNullOrWhiteSpace(contact.SecretNote))
             {
-                b.AppendLine($"{contact.SecretNote}");
+                b.AppendLine($"\n{contact.SecretNote}");
             }
             if (detailsLevel.HasFlag(ContactDetailsLevel.Marks))
             {

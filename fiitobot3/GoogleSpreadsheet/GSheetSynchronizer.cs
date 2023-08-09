@@ -137,6 +137,8 @@ namespace fiitobot.GoogleSpreadsheet
                 return double.Parse(value.Replace(",", "."), CultureInfo.InvariantCulture);
             if (type == typeof(DateTime))
                 return DateTime.Parse(value);
+            if (type.IsEnum)
+                return Enum.Parse(type, value, true);
             var notNullableType = Nullable.GetUnderlyingType(type);
             if (notNullableType != null)
             {

@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Runtime.Serialization;
 using System.Text.RegularExpressions;
 using fiitobot.Services;
-using Newtonsoft.Json;
 
 namespace fiitobot
 {
@@ -12,6 +10,13 @@ namespace fiitobot
         Student = 0,
         Administration = 1,
         Staff = 2,
+    }
+
+    public enum Gender
+    {
+        Unknown = 0,
+        M,
+        F
     }
 
     public class Contact
@@ -24,6 +29,7 @@ namespace fiitobot
         public string LastName;
         public string FirstName;
         public string Patronymic;
+        public Gender Gender;
         public int AdmissionYear = -1;
         public int GraduationYear = -1;
         public int GroupIndex = -1;
