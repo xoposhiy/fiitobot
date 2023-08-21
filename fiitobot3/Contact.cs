@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Text.RegularExpressions;
 using fiitobot.Services;
 
@@ -42,6 +43,7 @@ namespace fiitobot
         public string Phone = "";
         public string Email = "";
         public string Google = "";
+        public string Github = "";
         public string Notion = "";
         public string Note = "";
         public string SecretNote = "";
@@ -73,7 +75,7 @@ namespace fiitobot
             if (GroupIndex <= 0) return "";
             var delta = now.Month >= 8 ? 1 : 0;
             var course = 4 - (GraduationYear - (now.Year + delta));
-            var id = GraduationYear == 2023 
+            var id = GraduationYear == 2023
                 ? new[] { "0809", "0810" }[GroupIndex - 1]
                 : new[] { "0801", "0802", "0809", "0810" }[GroupIndex - 1];
             return $"МЕН-{course}{(GraduationYear-4) % 10}{id}";
@@ -114,6 +116,27 @@ namespace fiitobot
                 Telegram = details.TelegramUsernameWithSobachka;
             if (details.TelegramId != 0)
                 TgId = details.TelegramId;
+        }
+
+        public static int ExtractGroupIndex(string group)
+        {
+            group = group.Trim();
+            if (group.StartsWith("МЕН-"))
+            {
+                var digits = group.Split("-")[1];
+                //2019
+                if (digits[1] == '9')
+                    return new[] { "0809", "0810" }.IndexOf(digits.Substring(2)) + 1;
+                //2020..2023
+                return new[] { "0801", "0802", "0809", "0810" }.IndexOf(digits.Substring(2)) + 1;
+            }
+            else if (group.StartsWith("ФТ-", StringComparison.OrdinalIgnoreCase)
+                     ||group.StartsWith("ФИИТ-", StringComparison.OrdinalIgnoreCase))
+            {
+                return group.Last() - '0';
+            }
+            else
+                throw new Exception($"Unsupported group format {group}");
         }
     }
 

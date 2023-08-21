@@ -11,14 +11,14 @@ namespace fiitobot.Services
 {
     public class HandleUpdateService
     {
-        private readonly IPresenter presenter;
-        private readonly IContactDetailsRepo detailsRepo;
         private readonly IBotDataRepository botDataRepo;
+        private readonly IChatCommandHandler[] commands;
+        private readonly DemidovichService demidovichService;
+        private readonly IContactDetailsRepo detailsRepo;
+        private readonly ITelegramFileDownloader fileDownloader;
         private readonly INamedPhotoDirectory namedPhotoDirectory;
         private readonly IPhotoRepository photoRepo;
-        private readonly DemidovichService demidovichService;
-        private readonly IChatCommandHandler[] commands;
-        private readonly ITelegramFileDownloader fileDownloader;
+        private readonly IPresenter presenter;
 
         public HandleUpdateService(IBotDataRepository botDataRepo,
             INamedPhotoDirectory namedPhotoDirectory,
@@ -110,7 +110,7 @@ namespace fiitobot.Services
             if (sender.Type != ContactType.External)
             {
                 var fileId = message.Photo!.Last().FileId;
-                byte[] file = await fileDownloader.GetFileAsync(fileId);
+                var file = await fileDownloader.GetFileAsync(fileId);
                 await photoRepo.SetPhotoForModeration(fromChatId, file);
                 await presenter.PromptChangePhoto(fromChatId);
             }
@@ -124,8 +124,8 @@ namespace fiitobot.Services
         {
             var botData = botDataRepo.GetData();
             var senderContact = botData.FindContactByTgId(user.Id)
-                          ?? botData.FindContactByTelegramName(user.Username)
-                          ?? CreateExternalContactFromTgUser(user);
+                                ?? botData.FindContactByTelegramName(user.Username)
+                                ?? CreateExternalContactFromTgUser(user);
             var details = await detailsRepo.FindById(senderContact.Id) ?? new ContactDetails(senderContact.Id);
             details.UpdateFromTelegramUser(user);
             senderContact.UpdateFromDetails(details);
@@ -153,6 +153,7 @@ namespace fiitobot.Services
                 await presenter.SayNoRights(fromChatId, sender.Type);
                 return;
             }
+
             var personWithDetails = await GetSenderContact(forwardFrom);
             var person = personWithDetails.Contact;
             if (person.Type != ContactType.External)
@@ -161,10 +162,11 @@ namespace fiitobot.Services
                 await presenter.SayNoResults(fromChatId);
         }
 
-        public async Task HandlePlainText(string text, long fromChatId, ContactWithDetails senderWithDetails, bool silentOnNoResults = false)
+        public async Task HandlePlainText(string text, long fromChatId, ContactWithDetails senderWithDetails,
+            bool silentOnNoResults = false)
         {
             var sender = senderWithDetails.Contact;
-            bool asSelf = text.Contains("/as_self");
+            var asSelf = text.Contains("/as_self");
             (sender.Type, text) = OverrideSenderType(text, sender.Type);
 
             var m = Regex.Match(text, "\\/as_(\\d+)\\s*");
@@ -213,7 +215,7 @@ namespace fiitobot.Services
                     await SayCompliment(person, fromChatId);
                 var details = detailsRepo.FindById(person.Id).Result;
                 person.UpdateFromDetails(details);
-                ContactDetailsLevel detailsLevel = person.GetDetailsLevelFor(asSelf ? person : sender);
+                var detailsLevel = person.GetDetailsLevelFor(asSelf ? person : sender);
                 await presenter.ShowContact(person, fromChatId, detailsLevel);
                 var selfUploadedPhoto = await photoRepo.TryGetModeratedPhoto(person.TgId);
                 if (selfUploadedPhoto != null)
@@ -224,7 +226,9 @@ namespace fiitobot.Services
                 {
                     var photo = await namedPhotoDirectory.FindPhoto(person);
                     if (photo != null)
+                    {
                         await presenter.ShowPhoto(person, photo, fromChatId, sender.Type);
+                    }
                     else
                     {
                         if (fromChatId == person.TgId)
@@ -246,6 +250,7 @@ namespace fiitobot.Services
                     await presenter.ShowDemidovichTask(imageBytes, text, fromChatId);
                     foundAnswer = true;
                 }
+
                 if (await ShowContactsListBy(text, c => c.MainCompany, fromChatId))
                     return;
                 if (await ShowContactsListBy(text, c => c.FiitJob, fromChatId))
@@ -264,18 +269,22 @@ namespace fiitobot.Services
         private bool TryHandleAsGroupName(string text, Contact[] contacts, long chatId)
         {
             if (!Regex.IsMatch(text, @"^(ФТ-\d+)|(МЕН-\d+)", RegexOptions.IgnoreCase)) return false;
-            var officialGroupStudent = contacts.FirstOrDefault(c => c.FormatOfficialGroup(DateTime.Now).StartsWith(text, StringComparison.OrdinalIgnoreCase));
+            var officialGroupStudent = contacts.FirstOrDefault(c =>
+                c.FormatOfficialGroup(DateTime.Now).StartsWith(text, StringComparison.OrdinalIgnoreCase));
             if (officialGroupStudent != null)
             {
                 presenter.Say(officialGroupStudent.FormatMnemonicGroup(DateTime.Now, false), chatId);
                 return true;
             }
-            var mnemonicGroupStudent = contacts.FirstOrDefault(c => c.FormatMnemonicGroup(DateTime.Now).StartsWith(text, StringComparison.OrdinalIgnoreCase));
+
+            var mnemonicGroupStudent = contacts.FirstOrDefault(c =>
+                c.FormatMnemonicGroup(DateTime.Now).StartsWith(text, StringComparison.OrdinalIgnoreCase));
             if (mnemonicGroupStudent != null)
             {
                 presenter.Say(mnemonicGroupStudent.FormatOfficialGroup(DateTime.Now), chatId);
                 return true;
             }
+
             return false;
         }
 
@@ -283,10 +292,12 @@ namespace fiitobot.Services
         {
             if (senderType != ContactType.Administration) return (senderType, text);
 
-            (ContactType newSenderType, string restText)? TryHandle(string command, ContactType newSenderType) =>
-                text.StartsWith(command)
+            (ContactType newSenderType, string restText)? TryHandle(string command, ContactType newSenderType)
+            {
+                return text.StartsWith(command)
                     ? (newSenderType, text.Replace(command, ""))
                     : ((ContactType newSenderType, string restText)?)null;
+            }
 
             return
                 TryHandle("/as_staff ", ContactType.Staff)

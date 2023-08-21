@@ -10,16 +10,16 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
-        <PackageReference Include="Ydb.Sdk" Version="0.0.5" />
-        <PackageReference Include="Ydb.Sdk.Yc.Auth" Version="0.0.5" />
-        <PackageReference Include="dotenv.net" Version="3.1.0" />
+        <PackageReference Include="Newtonsoft.Json" Version="12.0.3"/>
+        <PackageReference Include="Ydb.Sdk" Version="0.0.5"/>
+        <PackageReference Include="Ydb.Sdk.Yc.Auth" Version="0.0.5"/>
+        <PackageReference Include="dotenv.net" Version="3.1.0"/>
     </ItemGroup>
 
     <ItemGroup>
-      <None Update="YandexCloudKey.json">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None>
+        <None Update="YandexCloudKey.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
     </ItemGroup>
 
 </Project>

@@ -9,15 +9,17 @@ namespace fiitobot.Services
 {
     public class ContactDetails
     {
-        public ContactDetails(long contactId, List<ContactDetail> details = null)
+        public ContactDetails(long contactId, List<ContactDetail> details = null, List<SemesterMarks> semesters = null)
         {
             ContactId = contactId;
             Details = details ?? new List<ContactDetail>();
+            Semesters = semesters ?? new List<SemesterMarks>();
         }
 
         public readonly long ContactId;
         public long TelegramId;
         public string TelegramUsername;
+        public List<SemesterMarks> Semesters;
         public TgUsernameSource TelegramUsernameSource;
         public DateTime LastUseTime;
 
@@ -34,7 +36,7 @@ namespace fiitobot.Services
             var value = $"{mark.Total} ({details})";
             UpdateOrAddDetail(rubric, parameter, value);
         }
-        
+
         public void UpdateOrAddDetail(string rubric, string parameter, string value)
         {
             var newDetails = Details

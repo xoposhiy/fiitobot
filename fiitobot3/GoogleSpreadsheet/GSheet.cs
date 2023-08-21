@@ -8,6 +8,12 @@ namespace fiitobot.GoogleSpreadsheet
 {
     public class GSheet
     {
+        public readonly int SheetId;
+        public readonly string SheetName;
+        public readonly SheetsService SheetsService;
+
+        public readonly string SpreadsheetId;
+
         public GSheet(string spreadsheetId, string sheetName, int sheetId, SheetsService sheetsService)
         {
             SpreadsheetId = spreadsheetId;
@@ -15,11 +21,6 @@ namespace fiitobot.GoogleSpreadsheet
             SheetId = sheetId;
             SheetsService = sheetsService;
         }
-
-        public readonly string SpreadsheetId;
-        public readonly string SheetName;
-        public readonly int SheetId;
-        public readonly SheetsService SheetsService;
 
         public string ReadCell(ValueTuple<int, int> cellCoords)
         {

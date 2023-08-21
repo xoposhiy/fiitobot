@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Google.Apis.Sheets.v4;
@@ -8,14 +8,28 @@ namespace fiitobot.GoogleSpreadsheet
 {
     public class GSpreadsheet
     {
+        public readonly SheetsService SheetsService;
+
+        public readonly string SpreadsheetId;
+
         public GSpreadsheet(string spreadsheetId, SheetsService sheetsService)
         {
             SpreadsheetId = spreadsheetId;
             SheetsService = sheetsService;
         }
 
-        public readonly string SpreadsheetId;
-        public readonly SheetsService SheetsService;
+        public string GetTitle()
+        {
+            try
+            {
+                var metadata = SheetsService.Spreadsheets.Get(SpreadsheetId).Execute();
+                return metadata.Properties.Title;
+            }
+            catch (Exception e)
+            {
+                throw new Exception($"Can't get metadata for {SpreadsheetId}", e);
+            }
+        }
 
         public List<GSheet> GetSheets()
         {
@@ -46,19 +60,19 @@ namespace fiitobot.GoogleSpreadsheet
         {
             var requests = new List<Request>
             {
-                new Request()
+                new Request
                 {
                     AddSheet = new AddSheetRequest
                     {
                         Properties = new SheetProperties
                         {
                             Title = title,
-                            TabColor = new Color {Red = 1}
+                            TabColor = new Color { Red = 1 }
                         }
                     }
                 }
             };
-            var requestBody = new BatchUpdateSpreadsheetRequest {Requests = requests};
+            var requestBody = new BatchUpdateSpreadsheetRequest { Requests = requests };
             var request = SheetsService.Spreadsheets.BatchUpdate(requestBody, SpreadsheetId);
             var response = request.Execute();
         }

@@ -38,6 +38,7 @@ namespace fiitobot
                 var detailsRepo = new S3ContactsDetailsRepo(settings.CreateFiitobotBucketService());
                 var contactsRepo = new SheetContactsRepository(sheetClient, settings.SpreadSheetId, botDataRepository, detailsRepo);
                 var presenter = new Presenter(client, settings);
+                var marksReloadService = new MarksReloadService(botDataRepository, detailsRepo, sheetClient);
                 var namedPhotoDirectory = new NamedPhotoDirectory(settings.PhotoListUrl);
                 var photoRepo = new S3PhotoRepository(settings);
                 var downloader = new TelegramFileDownloader(client);
@@ -60,7 +61,8 @@ namespace fiitobot
                     new JoinCommandHandler(presenter, settings.ModeratorsChatId),
                     new DetailsCommandHandler(presenter, botDataRepository, detailsRepo),
                     new DemidovichCommandHandler(presenter, demidovichService),
-                    new DownloadMarksFromBrsCommandHandler(presenter, botDataRepository, detailsRepo, brsClient)
+                    new DownloadMarksFromBrsCommandHandler(presenter, botDataRepository, detailsRepo, brsClient),
+                    new DownloadMarksFromSpreadsheetsCommandHandler(presenter, marksReloadService)
                 };
                 var updateService = new HandleUpdateService(botDataRepository, namedPhotoDirectory, photoRepo, demidovichService, downloader, presenter, detailsRepo, commands);
                 updateService.Handle(update).Wait();

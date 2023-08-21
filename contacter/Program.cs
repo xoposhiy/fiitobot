@@ -1,15 +1,17 @@
-﻿using fiitobot;
+﻿using System.Text;
+using fiitobot;
 using fiitobot.GoogleSpreadsheet;
 using fiitobot.Services;
-using System.Text;
 using TL;
 using WTelegram;
 using Contact = fiitobot.Contact;
 
+#pragma warning disable CS8321
+
 //await AnalyzeFiitobotLogs("фиитобот");
 
-await ImportContacts(2023);
-//await AnalyzeStudentsChat(2023, "Чат ФИИТ 2023");
+//await ImportContacts(2023);
+await AnalyzeStudentsChat(2023, "Чат ФИИТ 2023");
 
 //await ActualizeContacts(true, "https://docs.google.com/spreadsheets/d/1VH_pZnYvTgQ-IzFVs5CYQWjbCo6YtUfip4w7K6GTK3U/edit#gid=0", "Чат ФИИТ 2023");
 //await ReportActiveStudents("Чат ФИИТ 2023");
@@ -48,11 +50,11 @@ async Task AddToChat(string chatSubstring, string phonesCsv)
             Console.Write($"{user.MainUsername}\t{user.ID}\t");
             try
             {
-                var res = await client.AddChatUser(chat, user);
-                Console.WriteLine($"added");
+                var _ = await client.AddChatUser(chat, user);
+                Console.WriteLine("added");
                 count++;
             }
-            catch (Exception e)
+            catch
             {
                 // TODO: If error because of no access — send invite link via personal message
                 //await client.SendMessageAsync(user, "TODO friendly text and invite link");
@@ -70,7 +72,7 @@ async Task AddToChat(string chatSubstring, string phonesCsv)
     Console.WriteLine(count + " users added to chat");
 }
 
-async Task AnalyzeFiitobotLogs(string name)
+async Task AnalyzeFiitobotLogs()
 {
     var settings = new Settings();
     using var client = new Client(settings.TgClientConfig);
@@ -81,8 +83,8 @@ async Task AnalyzeFiitobotLogs(string name)
     };
 
     await client.LoginUserIfNeeded();
-    Contacts_TopPeers topPeers = (Contacts_TopPeers)await client.Contacts_GetTopPeers(bots_pm: true, bots_inline: true);
-    User fiitobot = topPeers.users.First(c => c.Value.username == "fiitobot").Value;
+    var topPeers = (Contacts_TopPeers)await client.Contacts_GetTopPeers(bots_pm: true, bots_inline: true);
+    var fiitobot = topPeers.users.First(c => c.Value.username == "fiitobot").Value;
     Console.WriteLine($"Found User {fiitobot.MainUsername} {fiitobot.ID} {fiitobot.GetType()}");
     var lastMessageId = 0;
     var usersFreq = new Dictionary<string, int>();
@@ -90,7 +92,7 @@ async Task AnalyzeFiitobotLogs(string name)
     var messagesCount = 0;
     while (true)
     {
-        var history = await client.Messages_GetHistory(fiitobot, offset_id: lastMessageId);
+        var history = await client.Messages_GetHistory(fiitobot, lastMessageId);
         if (history.Messages.Length == 0) break;
         var texts = history.Messages.OfType<Message>().Select(m => m.message)
             .Where(t => t.StartsWith("From: "))
@@ -104,6 +106,7 @@ async Task AnalyzeFiitobotLogs(string name)
             usersFreq.Increment(who);
             requestsFreq.Increment(what.ToLower().Trim());
         }
+
         lastMessageId = history.Messages.Last().ID;
         messagesCount += history.Messages.Length;
         Console.WriteLine($"Read {messagesCount} messages. Last message date {history.Messages.Last().Date}");
@@ -137,7 +140,7 @@ async Task ReportActiveStudents(string chatTitle)
     };
 
     await client.LoginUserIfNeeded();
-    Messages_Chats chats = await client.Messages_GetAllChats();
+    var chats = await client.Messages_GetAllChats();
     var chat = chats.chats.FirstOrDefault(c => c.Value.Title.Contains(chatTitle)).Value;
     Console.WriteLine($"Found Chat {chat.Title} {chat.ID} {chat.ToInputPeer()} {chat.GetType()}");
     var channel = (InputPeerChannel)chat.ToInputPeer();
@@ -147,28 +150,26 @@ async Task ReportActiveStudents(string chatTitle)
     var activity = new Dictionary<long, int>();
     while (true)
     {
-        var history = await client.Messages_GetHistory(channel, offset_id: lastMessageId);
+        var history = await client.Messages_GetHistory(channel, lastMessageId);
         if (history.Messages.Length == 0) break;
         foreach (var m in history.Messages)
-        {
             if (m.From is PeerUser)
             {
                 var id = m.From.ID;
                 activity[id] = activity.GetOrDefault(id) + 1;
             }
-        }
+
         lastMessageId = history.Messages.Last().ID;
         messagesCount += history.Messages.Length;
         Console.WriteLine($"Read {messagesCount} messages. Last message date {history.Messages.Last().Date}");
         if (history.Messages.Last().Date < DateTime.Now - TimeSpan.FromDays(90)) break;
     }
 
-    var activeStudents = data.Students.Select(p => (Contact: (Contact)p, MessagesCount: activity.GetOrDefault(((Contact)p).TgId)))
+    var activeStudents = data.Students
+        .Select(p => (Contact: (Contact)p, MessagesCount: activity.GetOrDefault(((Contact)p).TgId)))
         .OrderByDescending(c => c.MessagesCount).ToList();
     foreach (var s in activeStudents)
-    {
         Console.WriteLine($"{s.MessagesCount},{s.Contact.AdmissionYear},{s.Contact.FirstLastName()}");
-    }
 }
 
 async Task AnalyzeStudentsChat(int admissionYear, string chatName)
@@ -190,14 +191,15 @@ async Task AnalyzeStudentsChat(int admissionYear, string chatName)
     var users = (await extractor.ExtractUsersFromChatsAndChannels(client, chatName)).ToDictionary(u => u.ID, u => u);
     Console.WriteLine($"FOUND {users.Count} users in chat {chatName}");
     var missing = 0;
-    var noTgId = 0;
     var countByYear = new Dictionary<int, int>();
     Console.WriteLine("# UNKNOWN USERS IN CHAT:");
     foreach (var user in users.Values)
     {
         var match = data.AllContacts.FirstOrDefault(c => ((Contact)c).TgId == user.ID);
         if (match == null)
+        {
             Console.WriteLine($"UNKNOWN {user.last_name}; {user.first_name} {user.phone} {user.username} {user.ID}");
+        }
         else
         {
             var year = match.AdmissionYear;
@@ -205,15 +207,16 @@ async Task AnalyzeStudentsChat(int admissionYear, string chatName)
             countByYear[year] = newCount;
         }
     }
+
     Console.WriteLine();
     Console.WriteLine("# MISSING USERS IN CHAT:");
-    foreach (var person in data.Students.Where(s => ((Contact)s).AdmissionYear == admissionYear && s.Status.IsOneOf("", "Активный")))
+    foreach (var person in data.Students.Where(s =>
+                 ((Contact)s).AdmissionYear == admissionYear && s.Status.IsOneOf("", "Активный")))
     {
         var contact = (Contact)person;
         var tgId = contact.TgId;
         if (tgId == -1)
         {
-            noTgId++;
             Console.WriteLine($"NO TGID {contact.FirstName} {contact.LastName} {contact.Concurs}");
         }
         else
@@ -225,13 +228,13 @@ async Task AnalyzeStudentsChat(int admissionYear, string chatName)
             }
         }
     }
+
     Console.WriteLine("MISSING COUNT: " + missing);
     Console.WriteLine();
     Console.WriteLine("# ADMISSION YEAR STATISTICS:");
     foreach (var kv in countByYear.OrderBy(kv => kv.Key))
-    {
-        Console.WriteLine(kv.Key + "\t" + kv.Value + "\t из " + data.AllContacts.Count(c => ((Contact)c).AdmissionYear == kv.Key));
-    }
+        Console.WriteLine(kv.Key + "\t" + kv.Value + "\t из " +
+                          data.AllContacts.Count(c => ((Contact)c).AdmissionYear == kv.Key));
 }
 
 async Task ActualizeContacts(bool actualizeOnlyWithoutTgId, string spreadsheetUrl, params string[] chatSubstrings)
@@ -255,13 +258,14 @@ async Task ActualizeContacts(bool actualizeOnlyWithoutTgId, string spreadsheetUr
 
     await tgClient.LoginUserIfNeeded();
     var extractor = new TgContactsExtractor();
-    Dictionary<long, User> users = (await extractor.ExtractUsersFromChatsAndChannels(tgClient, chatSubstrings)).ToDictionary(u => u.ID, u => u);
+    Dictionary<long, User> users =
+        (await extractor.ExtractUsersFromChatsAndChannels(tgClient, chatSubstrings)).ToDictionary(u => u.ID, u => u);
 
     Console.WriteLine($"Tg Users Found: {users.Count}");
     Console.WriteLine($"Contacts from Google Sheet: {data.Count - 1}");
     var edit = sheet.Edit();
     var editsCount = 0;
-    for (var rowIndex = 409; rowIndex < data.Count; rowIndex++)
+    for (var rowIndex = 408; rowIndex < data.Count; rowIndex++)
     {
         var row = data[rowIndex];
         while (row.Count <= Math.Max(usernameColIndex, Math.Max(tgIdColIndex, phoneColIndex)))
@@ -272,11 +276,12 @@ async Task ActualizeContacts(bool actualizeOnlyWithoutTgId, string spreadsheetUr
         if (actualizeOnlyWithoutTgId && tgId != -1) continue;
         //Console.WriteLine($"{string.Join(";", row)}...");
         var user = await FindByPhone(tgClient, phone) ??
-                   (users.TryGetValue(tgId, out var u) ? u
-                     : await FindByUsername(tgClient, username));
+                   (users.TryGetValue(tgId, out var u)
+                       ? u
+                       : await FindByUsername(tgClient, username));
         if (user == null)
         {
-            Console.WriteLine($"  no telegram user found");
+            Console.WriteLine("  no telegram user found");
         }
         else
         {
@@ -290,7 +295,8 @@ async Task ActualizeContacts(bool actualizeOnlyWithoutTgId, string spreadsheetUr
                     Console.WriteLine($"  {what}: {row[colIndex]} → {stringValue}");
                     row[colIndex] = stringValue;
 
-                    edit = edit.WriteRangeNoCasts((rowIndex, colIndex), new List<List<object>> { new() { stringValue } });
+                    edit = edit.WriteRangeNoCasts((rowIndex, colIndex),
+                        new List<List<object>> { new() { stringValue } });
                     editsCount++;
                     if (editsCount > 20)
                     {
@@ -300,11 +306,13 @@ async Task ActualizeContacts(bool actualizeOnlyWithoutTgId, string spreadsheetUr
                     }
                 }
             }
+
             Update(usernameColIndex, "@", user.username, "username");
             Update(phoneColIndex, "+ ", user.phone, "phone");
             Update(tgIdColIndex, "", user.id, "ID");
         }
     }
+
     if (editsCount > 0)
         edit.Execute();
 }
@@ -376,21 +384,26 @@ async Task ImportContacts(int year)
 
     var myContacts = await client.Contacts_GetContacts();
     Console.WriteLine("Contacts: " + myContacts.users.Count);
-    Dictionary<long, User> users = (await extractor.ExtractUsersFromChatsAndChannels(client, $"Чат ФИИТ {year}")).ToDictionary(u => u.ID, u => u);
+    Dictionary<long, User> users =
+        (await extractor.ExtractUsersFromChatsAndChannels(client, $"Чат ФИИТ {year}")).ToDictionary(u => u.ID, u => u);
 
     foreach (var contact in data.Students.Where(c => ((Contact)c).AdmissionYear.IsOneOf(year)).Select(p => (Contact)p))
     {
         Console.WriteLine(contact.Telegram);
         if (myContacts.users.ContainsKey(contact.TgId)) continue;
-        var suffix = contact.AdmissionYear <= 0 ? "" : (" фт" + contact.AdmissionYear % 100);
+        var suffix = contact.AdmissionYear <= 0 ? "" : " фт" + contact.AdmissionYear % 100;
         var resolvedPeer = await FindByUsername(client, contact.Telegram) ??
-                           (users.TryGetValue(contact.TgId, out var u) ? u
+                           (users.TryGetValue(contact.TgId, out var u)
+                               ? u
                                : await FindByPhone(client, contact.Phone));
         if (resolvedPeer == null)
+        {
             Console.WriteLine($"NotFound {contact}");
+        }
         else
         {
-            Console.WriteLine("AddContact " + resolvedPeer.ID + "\t" + contact.FirstName + suffix + " " + contact.LastName + " @" + resolvedPeer.username);
+            Console.WriteLine("AddContact " + resolvedPeer.ID + "\t" + contact.FirstName + suffix + " " +
+                              contact.LastName + " @" + resolvedPeer.username);
             await client.Contacts_AddContact(resolvedPeer, contact.FirstName + suffix, contact.LastName,
                 contact.Phone, true);
         }

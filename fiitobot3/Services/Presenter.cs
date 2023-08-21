@@ -89,8 +89,13 @@ namespace fiitobot.Services
             text.AppendLine(
                 $@"<b>{contact.LastName} {contact.FirstName} {contact.Patronymic}</b> {contact.FormatMnemonicGroup(DateTime.Now)} (год поступления: {contact.AdmissionYear})");
             text.AppendLine();
+
+            AppendMarks(text, person.ContactDetails.Semesters);
+
             foreach (var rubric in person.Details.GroupBy(d => d.Rubric).OrderBy(g => g.Key))
             {
+                if (rubric.Key.StartsWith("Семестр 1") || rubric.Key.StartsWith("Семестр 2") || rubric.Key.StartsWith("Семестр 3") || rubric.Key.StartsWith("Семестр 4"))
+                    continue;
                 text.AppendLine(
                     $"<b>{EscapeForHtml(rubric.Key)}</b>");
                 foreach (var detail in rubric)
@@ -98,6 +103,23 @@ namespace fiitobot.Services
                 text.AppendLine();
             }
             await botClient.SendTextMessageAsync(chatId, text.ToString().TrimEnd(), parseMode:ParseMode.Html);
+        }
+
+        private void AppendMarks(StringBuilder text, List<SemesterMarks> semesters)
+        {
+            foreach (var semester in semesters)
+            {
+                text.AppendLine(
+                    $"<b>Семестр {semester.SemesterNumber}</b>");
+                foreach (var disciplineMark in semester.Marks)
+                {
+                    var markLine = $" • {EscapeForHtml(disciplineMark.DisciplineName)}: {EscapeForHtml(disciplineMark.MarkName)}";
+                    if (disciplineMark.Mark100Grade.HasValue)
+                        markLine += $" ({disciplineMark.Mark100Grade.Value})";
+                    text.AppendLine(markLine);
+                }
+                text.AppendLine();
+            }
         }
 
         public async Task SayReloadStarted(long chatId)
@@ -143,6 +165,7 @@ namespace fiitobot.Services
                         .AppendLine("/reload — перезагружает контакты студентов ФИИТ из гугл-таблицы")
                         .AppendLine("/its — загружает из ИТС УрФУ актуальные списки студентов и сообщает о различиях с Контактами ФИИТ")
                         .AppendLine("/scores — загружает из БРС баллы прошедшей сессии за курсы по выбору.")
+                        .AppendLine("/gdoc_scores <url гуглтаблицы> — загружает результаты сессии с листов вида '1 семестр' гуглтаблицы 'Студенты ФИИТ 20xx'.")
                         .AppendLine("/tell @user message — отправляет message @user-у от имени фиитобота.")
                         .AppendLine("/as_student ... — как это выглядит для студента.")
                         .AppendLine("/as_staff ... — как это выглядит для препода.")
@@ -338,6 +361,8 @@ namespace fiitobot.Services
                     b.AppendLine($"📞 {contact.Phone}");
             }
 
+            if (!string.IsNullOrWhiteSpace(contact.Github))
+                b.AppendLine($"Github: {contact.Github}");
             var tgName = contact.Telegram;
             if (!string.IsNullOrWhiteSpace(tgName))
                 b.AppendLine($"💬 {tgName}");
