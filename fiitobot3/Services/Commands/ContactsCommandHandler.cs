@@ -71,23 +71,23 @@ namespace fiitobot.Services.Commands
                         GetNameWithSuffix(c),
                         suffix == "patronymic" ? c.Patronymic : "",
                         GetSecondNameWithSuffix(c),
-                        c.Note,
+                        "",
                         "*",
                         c.Email,
                         "Telegram",
                         c.Telegram,
                         "Mobile",
                         c.Phone,
-                        c.City,
+                        "",
                         "School",
-                        c.School,
+                        "",
                         "University",
                         "ФИИТ УрФУ " + c.AdmissionYear
                     })
                     .Select(row => string.Join(",", row))
                     .ToList();
 
-                var contentText = string.Join(",", headers) + "\n" + string.Join("\n", rows);
+                var contentText = string.Join(",", headers) + "\n" + string.Join("\n", rows.Select(cell => cell.Replace("\r\n", " ").Replace("\n", " ")));
                 var content = Encoding.UTF8.GetBytes(contentText);
                 await presenter.SendContacts(fromChatId, content, "contacts_" + year + "_" + suffix + ".csv");
             }

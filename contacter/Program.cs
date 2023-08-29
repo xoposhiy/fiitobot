@@ -11,9 +11,9 @@ using Contact = fiitobot.Contact;
 //await AnalyzeFiitobotLogs("фиитобот");
 
 //await ImportContacts(2023);
-await AnalyzeStudentsChat(2023, "Чат ФИИТ 2023");
+//await AnalyzeStudentsChat(2023, "Чат ФИИТ 2023");
 
-//await ActualizeContacts(true, "https://docs.google.com/spreadsheets/d/1VH_pZnYvTgQ-IzFVs5CYQWjbCo6YtUfip4w7K6GTK3U/edit#gid=0", "Чат ФИИТ 2023");
+await ActualizeContacts(true, "https://docs.google.com/spreadsheets/d/1VH_pZnYvTgQ-IzFVs5CYQWjbCo6YtUfip4w7K6GTK3U/edit#gid=0", "Чат ФИИТ 2023");
 //await ReportActiveStudents("Чат ФИИТ 2023");
 //await AddToChat("Чат ФИИТ 2023", "phones2023.csv");
 //await ExtractChats();
