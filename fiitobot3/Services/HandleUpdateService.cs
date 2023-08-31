@@ -207,6 +207,8 @@ namespace fiitobot.Services
             var data = botDataRepo.GetData();
             if (TryHandleAsGroupName(text, data.Students, fromChatId))
                 return;
+            if (await TryHandleAsRequestAboutHimself(text, data.AllContacts.ToArray(), sender))
+                return;
             var contacts = data.SearchContacts(text);
             const int maxResultsCount = 1;
             foreach (var person in contacts.Take(maxResultsCount))
@@ -264,6 +266,19 @@ namespace fiitobot.Services
                 if (!foundAnswer && !silentOnNoResults)
                     await presenter.SayNoResults(fromChatId);
             }
+        }
+
+        private async Task<bool> TryHandleAsRequestAboutHimself(string text, Contact[] contacts, Contact sender)
+        {
+            if (!text.Equals("я", StringComparison.OrdinalIgnoreCase)) return false;
+            var me = contacts.Where(s => s.TgId == sender.TgId).ToList();
+            if (me.Count == 0) return false;
+            var person = me[0];
+            var detailsLevel = person.GetDetailsLevelFor(sender);
+            await SayCompliment(person, sender.TgId);
+            await presenter.ShowContact(person, sender.TgId, detailsLevel);
+            await presenter.Say("Есть неточность − напишите об этом @xoposhiy или ещё кому-то из команды ФИИТ.", sender.TgId);
+            return true;
         }
 
         private bool TryHandleAsGroupName(string text, Contact[] contacts, long chatId)

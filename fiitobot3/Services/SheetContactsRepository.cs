@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using fiitobot.GoogleSpreadsheet;
 
 namespace fiitobot.Services
@@ -13,7 +11,7 @@ namespace fiitobot.Services
         private const string StaffSheetName = "Staff";
         private const string StudentsSheetName = "Students";
         private const string AdminSheetName = "Administrators";
-        private const string Range = "A1:T";
+        private const string Range = "A1:U";
         private readonly object locker = new object();
         private readonly GSheetClient sheetClient;
         private readonly string spreadsheetId;
