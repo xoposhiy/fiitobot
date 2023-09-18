@@ -127,6 +127,11 @@ namespace fiitobot.Services
                 Console.WriteLine(contact);
             }
             synchronizer.UpdateSheet(() => new Contact { Type = contactType }, changes);
+            foreach (var contact in loadContacts)
+            {
+                if (contact.Telegram.StartsWith("https://t.me/"))
+                    contact.Telegram = contact.Telegram.Replace("https://t.me/", "@");
+            }
             return loadContacts.ToArray();
         }
 

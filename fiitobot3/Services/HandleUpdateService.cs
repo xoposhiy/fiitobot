@@ -277,7 +277,6 @@ namespace fiitobot.Services
             var detailsLevel = person.GetDetailsLevelFor(sender);
             await SayCompliment(person, sender.TgId);
             await presenter.ShowContact(person, sender.TgId, detailsLevel);
-            await presenter.Say("Есть неточность − напишите об этом @xoposhiy или ещё кому-то из команды ФИИТ.", sender.TgId);
             return true;
         }
 
@@ -345,6 +344,13 @@ namespace fiitobot.Services
                 await presenter.Say("Ты прекрасна, спору нет! ❤", fromChatId);
             else
                 await presenter.Say("Ты прекрасен, спору нет! ✨", fromChatId);
+            await presenter.Say("Что из этого видят другие пользователи фиитобота? \n" +
+                                "Детали вашего поступления видят только преподаватели.\n" +
+                                "e-mail, телефон, github видят только преподаватели и ваши однокурсники (того же года поступления или того же года выпуска).\n" +
+                                "Телеграм и заметки видят все пользователи фиитобота.\n" +
+                                "Внешние люди, не студенты, не преподаватели и не администраторы ФИИТ не видят ничего.\n\n" +
+                                "О неточностях в данных пишите @xoposhiy или ещё кому-то из команды ФИИТ.",
+                fromChatId);
         }
 
         private Task UnknownUpdateHandlerAsync(Update update)

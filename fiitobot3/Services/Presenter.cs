@@ -359,10 +359,10 @@ namespace fiitobot.Services
                     b.AppendLine($"Notion: {contact.Notion}");
                 if (!string.IsNullOrWhiteSpace(contact.Phone))
                     b.AppendLine($"📞 {contact.Phone}");
+                if (!string.IsNullOrWhiteSpace(contact.Github))
+                    b.AppendLine($"Github: {contact.Github}");
             }
 
-            if (!string.IsNullOrWhiteSpace(contact.Github))
-                b.AppendLine($"Github: {contact.Github}");
             var tgName = contact.Telegram;
             if (!string.IsNullOrWhiteSpace(tgName))
                 b.AppendLine($"💬 {tgName}");
