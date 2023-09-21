@@ -135,8 +135,7 @@ namespace fiitobot.Services
             return loadContacts.ToArray();
         }
 
-        public (IList<UrfuStudent> newStudents, IList<UrfuStudent> updatedStudents) UpdateStudentsActivity(
-            IReadOnlyList<UrfuStudent> itsContacts)
+        public (IList<UrfuStudent> newStudents, IList<UrfuStudent> updatedStudents) UpdateStudentsActivity(IReadOnlyList<UrfuStudent> itsContacts)
         {
             var spreadsheet = sheetClient.GetSpreadsheet(spreadsheetId);
             var studentsSheet = spreadsheet.GetSheetByName(StudentsSheetName);
@@ -165,15 +164,20 @@ namespace fiitobot.Services
             foreach (var row in sheetStudents)
             {
                 var key = (row.LastName + " " + row.FirstName + " " + row.Patronymic).Canonize();
-                var urfuStudent = map[key].FirstOrDefault(s => s.GroupName == row.FormatOfficialGroup(DateTime.Now));
-                if (urfuStudent != null)
-                {
-                    notUsed.Remove(urfuStudent);
-                    if (Update("Status", row.Status, urfuStudent.Status, rowIndex))
-                        updatedStudents.Add(urfuStudent);
-                    Update("CurrentRating", row.CurrentRating, urfuStudent.Rating, rowIndex);
-                }
-
+                var groupName = row.FormatOfficialGroup(DateTime.Now);
+                var urfuStudent = map[key].FirstOrDefault(s => s.GroupName == groupName)
+                                  ?? new UrfuStudent(groupName)
+                                  {
+                                      Name = row.FirstLastName(),
+                                      Status = row.Status != Contact.ActiveStatus
+                                          ? row.Status :
+                                          (row.IsGraduated(DateTime.Now) ? "Закончил" : "Переведён"),
+                                      Rating = row.CurrentRating
+                                  };
+                notUsed.Remove(urfuStudent);
+                if (Update("Status", row.Status, urfuStudent.Status, rowIndex))
+                    updatedStudents.Add(urfuStudent);
+                Update("CurrentRating", row.CurrentRating, urfuStudent.Rating, rowIndex);
                 rowIndex++;
             }
 

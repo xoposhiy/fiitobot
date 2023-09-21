@@ -52,6 +52,11 @@ namespace fiitobot
         public string Status = "";
         public double? CurrentRating;
 
+        public bool IsGraduated(DateTime now)
+        {
+            return now > new DateTime(GraduationYear, 07, 01) && (Status == "Закончил" || Status == "Активный");
+        }
+
         public bool SameTelegramUsername(string tgUsername)
         {
             if (string.IsNullOrWhiteSpace(tgUsername)) return false;

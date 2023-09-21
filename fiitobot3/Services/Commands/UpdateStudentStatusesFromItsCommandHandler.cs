@@ -35,9 +35,16 @@ namespace fiitobot.Services.Commands
             await presenter.Say($"Загрузил {students.Count.Pluralize("студента|студента|студентов")}", fromChatId);
             var result = sheetsRepo.UpdateStudentsActivity(students);
             if (result.updatedStudents.Any())
+            {
                 await presenter.Say("Смотри, у этих студентов поменялись статусы!\n" + string.Join("\n", result.updatedStudents), fromChatId);
+                await presenter.Say("Не забудь /reload", fromChatId);
+            }
+
             if (result.newStudents.Any())
+            {
                 await presenter.Say("Ого, у нас есть новые активные студенты!\n" + string.Join("\n", result.newStudents), fromChatId);
+                await presenter.Say("Их нужно вручную внести в таблицу с контактами: для вышедших из академ-опуска поменяйте года в его старой записи, а новеньких придется добавить в конец таблицы. После этого не забудь /reload", fromChatId);
+            }
             await presenter.Say("Готово!", fromChatId);
         }
     }
