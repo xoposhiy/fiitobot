@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using fiitobot.Services.Commands;
@@ -209,6 +210,8 @@ namespace fiitobot.Services
                 return;
             if (await TryHandleAsRequestAboutHimself(text, data.AllContacts.ToArray(), sender))
                 return;
+            if (await TryHandleAsRequestAsMultilineList(text, data, fromChatId))
+                return;
             var contacts = data.SearchContacts(text);
             const int maxResultsCount = 1;
             foreach (var person in contacts.Take(maxResultsCount))
@@ -266,6 +269,32 @@ namespace fiitobot.Services
                 if (!foundAnswer && !silentOnNoResults)
                     await presenter.SayNoResults(fromChatId);
             }
+        }
+
+        private async Task<bool> TryHandleAsRequestAsMultilineList(string text, BotData data, long fromChatId)
+        {
+            var lines = text.Split("\n").ToArray();
+            if (lines.Length < 2) return false;
+
+            var resultLines = new StringBuilder();
+            var found = 0;
+            foreach (var line in lines)
+            {
+                var query = new string(line.Where(c => char.IsLetter(c) || char.IsWhiteSpace(c)).ToArray()).Trim();
+                var contacts = data.SearchContacts(query);
+                if (contacts.Length >= 1)
+                {
+                    var res = contacts[0];
+                    var question = contacts.Length > 1 ? ("(?) " + query + " ") : "";
+                    resultLines.AppendLine(line + " " + res.Telegram + " " + question + res.FormatMnemonicGroup(DateTime.Now));
+                    found++;
+                }
+                else
+                    resultLines.AppendLine(line);
+            }
+            if (found == 0) return false;
+            await presenter.SayPlainText(string.Join("\n", resultLines), fromChatId);
+            return true;
         }
 
         private async Task<bool> TryHandleAsRequestAboutHimself(string text, Contact[] contacts, Contact sender)

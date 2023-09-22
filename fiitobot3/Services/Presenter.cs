@@ -30,6 +30,7 @@ namespace fiitobot.Services
     public interface IPresenter
     {
         Task Say(string html, long chatId);
+        Task SayPlainText(string plainText, long chatId);
         Task ShowContact(Contact contact, long chatId, ContactDetailsLevel detailsLevel);
         Task ShowPhoto(Contact contact, PersonPhoto photo, long chatId, ContactType senderType);
         Task ShowOtherResults(Contact[] otherContacts, long chatId);
@@ -550,6 +551,10 @@ namespace fiitobot.Services
         public async Task Say(string html, long chatId)
         {
             await botClient.SendTextMessageAsync(chatId, html, parseMode: ParseMode.Html);
+        }
+        public async Task SayPlainText(string plainText, long chatId)
+        {
+            await botClient.SendTextMessageAsync(chatId, EscapeForHtml(plainText), parseMode: ParseMode.Html);
         }
     }
 }
