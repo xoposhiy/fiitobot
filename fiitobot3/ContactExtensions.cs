@@ -12,6 +12,7 @@ namespace fiitobot
                 ContactType.Staff => ContactDetailsLevel.Minimal | ContactDetailsLevel.Contacts | ContactDetailsLevel.Marks,
                 ContactType.Student when contact.TgId == contactViewer.TgId => ContactDetailsLevel.Minimal | ContactDetailsLevel.Contacts | ContactDetailsLevel.Marks, // что видит про себя
                 ContactType.Student when contactViewer.GraduationYear == contact.GraduationYear || contactViewer.AdmissionYear == contact.AdmissionYear => ContactDetailsLevel.Minimal | ContactDetailsLevel.Contacts, // что видит про однопоточников
+                ContactType.Student when contact.Type == ContactType.Administration || contact.Type == ContactType.Staff => ContactDetailsLevel.Minimal | ContactDetailsLevel.Contacts, // что видит про преподов и команду ФИИТ
                 ContactType.Student => ContactDetailsLevel.Minimal, // что видит про остальных
                 _ => ContactDetailsLevel.No
             };
