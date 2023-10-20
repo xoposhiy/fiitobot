@@ -11,7 +11,7 @@ namespace fiitobot.Services
         private const string StaffSheetName = "Staff";
         private const string StudentsSheetName = "Students";
         private const string AdminSheetName = "Administrators";
-        private const string Range = "A1:U";
+        private const string Range = "A1:X";
         private readonly object locker = new object();
         private readonly GSheetClient sheetClient;
         private readonly string spreadsheetId;
@@ -151,6 +151,8 @@ namespace fiitobot.Services
             {
                 if (oldValue == newValue || "" + oldValue == "" + newValue) return false;
                 var colIndex = headers.IndexOf(colName);
+                if (colIndex < 0)
+                    throw new Exception("Unknown column " + colName + ". Headers: " + string.Join(", ", headers));
                 edit.WriteRangeNoCasts((rowIndex, colIndex),
                     new List<List<object>> { new List<object> { newValue } });
                 Console.WriteLine($"Update google sheet: ({rowIndex} {colIndex}) {oldValue} → {newValue}");
