@@ -21,7 +21,7 @@ namespace fiitobot.Services.Commands
             this.contactDetailsRepo = contactDetailsRepo;
             this.brsClient = brsClient;
         }
-        
+
         public string Command => "/scores";
         public ContactType[] AllowedFor => new[] { ContactType.Administration };
         public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
@@ -47,7 +47,7 @@ namespace fiitobot.Services.Commands
             var tsvFileContent = CreateTsv(marks);
             var filename = $"scores_{studyYear}-{yearPart}_{courseNumber}.csv";
             var caption = $"Успеваемость студентов ФИИТ ({marks.Count} оценок). {semester}";
-            await presenter.SendFile(tsvFileContent, filename, caption, fromChatId);
+            await presenter.SendFile(fromChatId,tsvFileContent, filename, caption);
             await presenter.Say($"Done in {sw.ElapsedMilliseconds} ms. Now updating student details...", fromChatId);
             await UpdateStudentDetails(marks, studyYear, yearPart, courseNumber);
             await presenter.Say($"Done in {sw.ElapsedMilliseconds} ms", fromChatId);
