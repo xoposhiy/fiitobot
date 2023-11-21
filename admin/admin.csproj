@@ -8,8 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\fiitobot3\fiitobot3.csproj"/>
-        <ProjectReference Include="..\tgnames\tgnames.csproj"/>
+        <ProjectReference Include="..\fiitobot3\fiitobot3.csproj" />
     </ItemGroup>
 
 </Project>

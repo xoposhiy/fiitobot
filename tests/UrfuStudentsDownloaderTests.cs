@@ -14,7 +14,7 @@ public class UrfuStudentsDownloaderTests
     public async Task TestDownloader()
     {
         var downloader = new UrfuStudentsDownloader(new Settings());
-        var students = await downloader.Download("МЕН-2108");
+        var students = await downloader.Download("МЕН-400810");
         foreach (var s in students)
         {
             Console.WriteLine($@"{s.Name} {s.GroupName} {s.Status}");
