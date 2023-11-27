@@ -58,7 +58,6 @@ namespace fiitobot.Services
         Task PromptChangePhoto(long chatId);
         Task OfferToSetHisPhoto(long chatId);
         Task ShowIfItIsDemidovichTask(string callbackData, long fromChatId);
-        Task SendFile(byte[] content, string filename, string caption, long fromChatId);
     }
 
     public class Presenter : IPresenter
@@ -275,11 +274,6 @@ namespace fiitobot.Services
         {
             await botClient.SendTextMessageAsync(fromChatId, "Задача из демидовича?", replyMarkup:
                 new InlineKeyboardMarkup(new InlineKeyboardButton("Да, покажи её!") { CallbackData = callbackData }));
-        }
-
-        public async Task SendFile(byte[] content, string filename, string caption, long fromChatId)
-        {
-            await botClient.SendDocumentAsync(fromChatId, new InputFileStream(new MemoryStream(content), filename), caption:caption);
         }
 
         public async Task ShowPhoto(Contact contact, PersonPhoto photo, long chatId, ContactType senderType)
