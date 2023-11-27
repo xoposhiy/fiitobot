@@ -47,7 +47,7 @@ namespace fiitobot.Services.Commands
             var tsvFileContent = CreateTsv(marks);
             var filename = $"scores_{studyYear}-{yearPart}_{courseNumber}.csv";
             var caption = $"Успеваемость студентов ФИИТ ({marks.Count} оценок). {semester}";
-            await presenter.SendFile(fromChatId,tsvFileContent, filename, caption);
+            await presenter.SendFile(fromChatId, tsvFileContent, filename, caption);
             await presenter.Say($"Done in {sw.ElapsedMilliseconds} ms. Now updating student details...", fromChatId);
             await UpdateStudentDetails(marks, studyYear, yearPart, courseNumber);
             await presenter.Say($"Done in {sw.ElapsedMilliseconds} ms", fromChatId);
