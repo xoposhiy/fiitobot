@@ -69,9 +69,12 @@ namespace fiitobot.Services
 
         private async Task BotOnCallbackQuery(CallbackQuery callbackQuery)
         {
-            //if (!await EnsureHasAdminRights(callbackQuery.From, callbackQuery.Message!.Chat.Id)) return;
+            // if (!await EnsureHasAdminRights(callbackQuery.From, callbackQuery.Message!.Chat.Id)) return;
             var sender = await GetSenderContact(callbackQuery.From);
-            await HandlePlainText(callbackQuery.Data!, callbackQuery.Message!.Chat.Id, sender);
+            await HandlePlainText(callbackQuery.Data!, callbackQuery.Message!.Chat.Id, sender,
+                messageMessageId: callbackQuery.Message.MessageId);
+            await presenter.StopCallbackQueryAnimation(callbackQuery);
+            // await presenter.HideInlineKeyboard(callbackQuery.Message.Chat.Id, callbackQuery.Message.MessageId);
         }
 
         private async Task BotOnInlineQuery(InlineQuery inlineQuery)
@@ -94,6 +97,7 @@ namespace fiitobot.Services
             if (messageFrom == null) return;
             var sender = await GetSenderContact(message.From);
             var fromChatId = message.Chat.Id;
+
             var inGroupChat = messageFrom.Id != fromChatId;
             if (message.Type == MessageType.Text)
                 if (message.ForwardFrom != null)
@@ -164,7 +168,8 @@ namespace fiitobot.Services
         }
 
         public async Task HandlePlainText(string text, long fromChatId, ContactWithDetails senderWithDetails,
-            bool silentOnNoResults = false)
+            bool silentOnNoResults = false,
+            int? messageMessageId = null)
         {
             var sender = senderWithDetails.Contact;
             var asSelf = text.Contains("/as_self");
@@ -181,12 +186,41 @@ namespace fiitobot.Services
                 text = text.Replace(m.Value, "");
             }
 
-            var command = commands.FirstOrDefault(c => text.StartsWith(c.Command));
+            var contactDetails = senderWithDetails.ContactDetails;
+            // command взять из state (CommandHandlerLine) или из текста, если его нет, то идём дальше.
+            // В state сохранить commandHandler
+            IChatCommandHandler command;
+
+            if (messageMessageId != null)
+            {
+                contactDetails.DialogState.MessageId = messageMessageId;
+                await detailsRepo.Save(contactDetails);
+            }
+            if (contactDetails.DialogState.CommandHandlerLine.Length > 0)
+            {
+                command = commands.FirstOrDefault(c =>
+                    contactDetails.DialogState.CommandHandlerLine.StartsWith(c.Command));
+            }
+            else
+            {
+                command = commands.FirstOrDefault(c => text.StartsWith(c.Command));
+            }
 
             if (command != null)
             {
                 if (sender.Type.IsOneOf(command.AllowedFor))
-                    await command.HandlePlainText(text, fromChatId, sender, silentOnNoResults);
+                {
+                    try
+                    {
+                        await command.HandlePlainText(text, fromChatId, sender, silentOnNoResults);
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine(e);
+                        await detailsRepo.Save(contactDetails);
+                        throw;
+                    }
+                }
                 else
                     await presenter.SayNoRights(fromChatId, sender.Type);
                 return;
@@ -286,12 +320,14 @@ namespace fiitobot.Services
                 {
                     var res = contacts[0];
                     var question = contacts.Length > 1 ? ("(?) " + query + " ") : "";
-                    resultLines.AppendLine(line + " " + res.Telegram + " " + question + res.FormatMnemonicGroup(DateTime.Now));
+                    resultLines.AppendLine(line + " " + res.Telegram + " " + question +
+                                           res.FormatMnemonicGroup(DateTime.Now));
                     found++;
                 }
                 else
                     resultLines.AppendLine(line);
             }
+
             if (found == 0) return false;
             await presenter.SayPlainText(string.Join("\n", resultLines), fromChatId);
             return true;
@@ -339,7 +375,7 @@ namespace fiitobot.Services
             {
                 return text.StartsWith(command)
                     ? (newSenderType, text.Replace(command, ""))
-                    : ((ContactType newSenderType, string restText)?)null;
+                    : ((ContactType newSenderType, string restText)?) null;
             }
 
             return

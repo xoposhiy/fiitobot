@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using fiitobot.Services.Commands;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -57,6 +58,16 @@ namespace fiitobot.Services
         Task ShowDemidovichTask(byte[] imageBytes, string exerciseNumber, long chatId);
         Task PromptChangePhoto(long chatId);
         Task OfferToSetHisPhoto(long chatId);
+        Task StopCallbackQueryAnimation(CallbackQuery callbackQuery);
+        Task ShowSpasibkaConfirmationMessage(string content, long chatId);
+        Task NotifyReceiverAboutNewSpasibka(string content, long chatId);
+        Task ShowAllSpasibkaList(string content, long chatId, bool canEdit = false);
+        Task ShowOneSpasibkaFromList(string content, long chatId, int messageId,
+            bool previous = false, bool next = false);
+        Task EditMessage(string content, long chatId, int messageId,
+            InlineKeyboardMarkup inlineKeyboardMarkup = null);
+        Task DeleteMessage(int messageId, long chatId);
+        Task HideInlineKeyboard(ChatId chatId, int messageId);
     }
 
     public class Presenter : IPresenter
@@ -209,21 +220,165 @@ namespace fiitobot.Services
 
         public async Task ShowContact(Contact contact, long chatId, ContactDetailsLevel detailsLevel)
         {
+            var keyboardButtons = new List<InlineKeyboardButton>();
+            string htmlText;
+
             if (contact.Type == ContactType.Student)
             {
-                var inlineKeyboardMarkup = detailsLevel.HasFlag(ContactDetailsLevel.Details)
-                    ? new InlineKeyboardMarkup(new InlineKeyboardButton("Подробнее!")
-                    { CallbackData = GetButtonCallbackData(contact) })
-                    : null;
-                var htmlText = FormatContactAsHtml(contact, detailsLevel);
-                await botClient.SendTextMessageAsync(chatId, htmlText, parseMode: ParseMode.Html,
-                    replyMarkup: inlineKeyboardMarkup);
+                if (detailsLevel.HasFlag(ContactDetailsLevel.Details))
+                    keyboardButtons.Add(new InlineKeyboardButton("Подробнее!")
+                        { CallbackData = GetButtonCallbackData(contact) });
+
+                htmlText = FormatContactAsHtml(contact, detailsLevel);
             }
+
             else
+                htmlText = FormatContactAsHtml(contact, detailsLevel);
+
+            if (contact.TgId != chatId)
             {
-                var htmlText = FormatContactAsHtml(contact, detailsLevel);
-                await botClient.SendTextMessageAsync(chatId, htmlText, parseMode: ParseMode.Html);
+                keyboardButtons.Add(new InlineKeyboardButton("Написать спасибку!")
+                    { CallbackData = GetSpasibkiCallbackData(contact) });
+                keyboardButtons.Add( new InlineKeyboardButton("Посмотреть спасибки")
+                    { CallbackData = ShowAllSpasibki(contact) });
             }
+
+            else
+                keyboardButtons.Add(new InlineKeyboardButton("Посмотреть мои спасибки")
+                    { CallbackData = ShowAllSpasibki() });
+
+            var inlineKeyboardMarkup = new InlineKeyboardMarkup(keyboardButtons.ToArray());
+            await botClient.SendTextMessageAsync(chatId, htmlText, parseMode: ParseMode.Html,
+                replyMarkup: inlineKeyboardMarkup);
+        }
+
+        public async Task NotifyReceiverAboutNewSpasibka(string content, long chatId)
+        {
+            var inlineKeyboardMarkup = new InlineKeyboardMarkup(new[]
+            {
+                new InlineKeyboardButton("Посмотреть все спасибки") { CallbackData = ShowAllSpasibki() },
+            });
+
+            await botClient.SendTextMessageAsync(chatId, content, parseMode: ParseMode.Html,
+                replyMarkup: inlineKeyboardMarkup);
+        }
+
+        public async Task ShowAllSpasibkaList(string content, long chatId, bool canEdit = false)
+        {
+            var inlineKeyboardMarkup =
+                canEdit ? new InlineKeyboardMarkup(new[]
+                    {
+                        new InlineKeyboardButton("Выбрать для удаления") { CallbackData = ShowSpasibkaToDelete() },
+                    })
+                : null;
+
+            await botClient.SendTextMessageAsync(chatId, content, parseMode: ParseMode.Html,
+                replyMarkup: inlineKeyboardMarkup);
+        }
+
+        public async Task ShowOneSpasibkaFromList(string content, long chatId, int messageId,
+            bool previous = false, bool next = false)
+        {
+            var keyboardButtons = new List<InlineKeyboardButton>();
+
+            if (previous)
+                keyboardButtons.Add(new InlineKeyboardButton("Предыдущая") { CallbackData = PreviousSpasibka() });
+
+            keyboardButtons.Add(new InlineKeyboardButton("Отменить") { CallbackData = CancelDeleteSpasibka() });
+            keyboardButtons.Add(new InlineKeyboardButton("Удалить спасибку") { CallbackData = DeleteSpasibka() });
+
+            if (next)
+                keyboardButtons.Add(new InlineKeyboardButton("Следующая") { CallbackData = NextSpasibka() });
+
+            var inlineKeyboardMarkup = new InlineKeyboardMarkup(keyboardButtons.ToArray());
+            await botClient.EditMessageTextAsync(chatId, messageId, content, parseMode: ParseMode.Html,
+                replyMarkup: inlineKeyboardMarkup);
+        }
+
+        public async Task ShowSpasibkaConfirmationMessage(string content, long chatId)
+        {
+            var htmlText = $"Вот что у нас получилось:\n\n{content}";
+            var inlineKeyboardMarkup = new InlineKeyboardMarkup(new[]
+            {
+                new InlineKeyboardButton("Отменить") {CallbackData = CancelSpasibka()},
+                new InlineKeyboardButton("Написать заново") { CallbackData = RestartTypingSpasibka() },
+                new InlineKeyboardButton("Отправить") {CallbackData = ApplySpasibka()},
+
+            });
+            await botClient.SendTextMessageAsync(chatId, htmlText, parseMode: ParseMode.Html,
+                replyMarkup: inlineKeyboardMarkup);
+
+        }
+
+        public async Task EditMessage(string content, long chatId, int messageId,
+            InlineKeyboardMarkup inlineKeyboardMarkup = null)
+        {
+            await botClient.EditMessageTextAsync(chatId, messageId, content, parseMode: ParseMode.Html,
+                replyMarkup: inlineKeyboardMarkup);
+        }
+
+        public async Task HideInlineKeyboard(ChatId chatId, int messageId)
+        {
+            await botClient.EditMessageReplyMarkupAsync(chatId, messageId);
+        }
+
+        public async Task DeleteMessage(int messageId, long chatId)
+        {
+            await botClient.DeleteMessageAsync(chatId, messageId);
+        }
+
+        private string CancelDeleteSpasibka()
+        {
+            return "/spasibka cancelDelete";
+        }
+        private string NextSpasibka()
+        {
+            return "/spasibka next";
+        }
+
+        private string PreviousSpasibka()
+        {
+            return "/spasibka previous";
+        }
+
+        private string DeleteSpasibka()
+        {
+            return "/spasibka delete";
+        }
+
+        private string ShowSpasibkaToDelete()
+        {
+            return "/spasibka showToDelete";
+        }
+
+        private string ShowAllSpasibki()
+        {
+            return "/spasibka showAll";
+        }
+
+        private string ShowAllSpasibki(Contact contact)
+        {
+            return $"/spasibka showAll {contact.Id}";
+        }
+
+        private string CancelSpasibka()
+        {
+            return "/spasibka cancel";
+        }
+
+        private string ApplySpasibka()
+        {
+            return "/spasibka confirm";
+        }
+
+        private string RestartTypingSpasibka()
+        {
+            return "/spasibka restart";
+        }
+
+        private string GetSpasibkiCallbackData(Contact receiver)
+        {
+            return $"/spasibka {receiver.Id}";
         }
 
         private string GetButtonCallbackData(Contact contact)
@@ -267,6 +422,11 @@ namespace fiitobot.Services
         public async Task OfferToSetHisPhoto(long chatId)
         {
             await Say("Тут могла бы быть твоя фотка, но ее нет. Пришли мне свою фотку, чтобы это исправить!", chatId);
+        }
+
+        public async Task StopCallbackQueryAnimation(CallbackQuery callbackQuery)
+        {
+            await botClient.AnswerCallbackQueryAsync(callbackQuery.Id);
         }
 
         public async Task ShowPhoto(Contact contact, PersonPhoto photo, long chatId, ContactType senderType)
