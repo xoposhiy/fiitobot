@@ -57,6 +57,7 @@ namespace fiitobot.Services
         Task ShowDemidovichTask(byte[] imageBytes, string exerciseNumber, long chatId);
         Task PromptChangePhoto(long chatId);
         Task OfferToSetHisPhoto(long chatId);
+        Task ShowSpasibkiButton(Contact contact, long chatId);
     }
 
     public class Presenter : IPresenter
@@ -218,12 +219,27 @@ namespace fiitobot.Services
                 var htmlText = FormatContactAsHtml(contact, detailsLevel);
                 await botClient.SendTextMessageAsync(chatId, htmlText, parseMode: ParseMode.Html,
                     replyMarkup: inlineKeyboardMarkup);
+                await ShowSpasibkiButton(contact, chatId);
             }
             else
             {
                 var htmlText = FormatContactAsHtml(contact, detailsLevel);
                 await botClient.SendTextMessageAsync(chatId, htmlText, parseMode: ParseMode.Html);
             }
+        }
+
+        public async Task ShowSpasibkiButton(Contact contact, long chatId)
+        {
+            await botClient.SendTextMessageAsync(chatId,
+                "А ещё, ты можешь поблагодарить человека, если есть за что",
+                parseMode: ParseMode.Html,
+                replyMarkup: new InlineKeyboardMarkup(new InlineKeyboardButton("Написать спасибку")
+                    {CallbackData = GetSpasibkiCallbackData(contact)}));
+        }
+
+        private string GetSpasibkiCallbackData(Contact contact)
+        {
+            return $"/spasibka {contact.Id}";
         }
 
         private string GetButtonCallbackData(Contact contact)
