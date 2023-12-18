@@ -212,19 +212,23 @@ namespace fiitobot.Services
         {
             if (contact.Type == ContactType.Student)
             {
-                var detailsButton = detailsLevel.HasFlag(ContactDetailsLevel.Details)
-                    ? new InlineKeyboardButton("Подробнее!") { CallbackData = GetButtonCallbackData(contact) }
-                    : null;
+                var lst = new List<InlineKeyboardButton>();
+                if (detailsLevel.HasFlag(ContactDetailsLevel.Details))
+                {
+                    lst.Add(new InlineKeyboardButton("Подробнее!")
+                        { CallbackData = GetButtonCallbackData(contact) });
+                }
 
-                var spasibkaButton = contact.TgId != chatId
-                    ? new InlineKeyboardButton("Написать спасибку!") { CallbackData = GetSpasibkiCallbackData(contact) }
-                    : null;
+                if (contact.TgId != chatId)
+                {
+                    lst.Add(new InlineKeyboardButton("Написать спасибку!")
+                        { CallbackData = GetSpasibkiCallbackData(contact) });
+                }
 
-                var inlineKeyboardMarkup = new InlineKeyboardMarkup(new[] { detailsButton, spasibkaButton });
+                var inlineKeyboardMarkup = new InlineKeyboardMarkup(lst.ToArray());
                 var htmlText = FormatContactAsHtml(contact, detailsLevel);
                 await botClient.SendTextMessageAsync(chatId, htmlText, parseMode: ParseMode.Html,
                     replyMarkup: inlineKeyboardMarkup);
-                // await ShowSpasibkiButton(contact, chatId);
             }
             else
             {
