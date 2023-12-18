@@ -63,6 +63,7 @@ namespace fiitobot.Services
     {
         private readonly ITelegramBotClient botClient;
         private readonly Settings settings;
+        private const string baseGoogleUrl = "https://calendar.google.com/calendar/embed?src=";
 
         public Presenter(ITelegramBotClient botClient, Settings settings)
         {
@@ -311,6 +312,9 @@ namespace fiitobot.Services
                     b.AppendLine($"🏫 Школа: <code>{contact.School}</code>");
                 if (!string.IsNullOrWhiteSpace(contact.City))
                     b.AppendLine($"🏙️ Откуда: <code>{contact.City}</code>");
+                if (!string.IsNullOrWhiteSpace(contact.GoogleCalendarId))
+                    b.AppendLine(
+                        $"<a href='{GetGoogleCalendarLinkById(contact.GoogleCalendarId)}'>Расписание в Google Calendar</a>");
                 if (detailsLevel.HasFlag(ContactDetailsLevel.Marks))
                 {
                     b.Append($"Поступление {FormatConcurs(contact.Concurs)}");
@@ -393,6 +397,11 @@ namespace fiitobot.Services
                 "Ин" => "сверх бюджетных мест",
                 _ => "неизвестно как 🤷‍"
             };
+        }
+
+        private string GetGoogleCalendarLinkById(string googleCalendarId)
+        {
+            return $"{baseGoogleUrl}{googleCalendarId}";
         }
 
         public async Task ShowContactsBy(string criteria, IList<Contact> people, long chatId)
