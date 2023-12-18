@@ -222,6 +222,7 @@ namespace fiitobot.Services
                 person.UpdateFromDetails(details);
                 var detailsLevel = person.GetDetailsLevelFor(asSelf ? person : sender);
                 await presenter.ShowContact(person, fromChatId, detailsLevel);
+                // await presenter.ShowSpasibkiButton(person, sender, fromChatId);
                 var selfUploadedPhoto = await photoRepo.TryGetModeratedPhoto(person.TgId);
                 if (selfUploadedPhoto != null)
                 {
@@ -286,12 +287,14 @@ namespace fiitobot.Services
                 {
                     var res = contacts[0];
                     var question = contacts.Length > 1 ? ("(?) " + query + " ") : "";
-                    resultLines.AppendLine(line + " " + res.Telegram + " " + question + res.FormatMnemonicGroup(DateTime.Now));
+                    resultLines.AppendLine(line + " " + res.Telegram + " " + question +
+                                           res.FormatMnemonicGroup(DateTime.Now));
                     found++;
                 }
                 else
                     resultLines.AppendLine(line);
             }
+
             if (found == 0) return false;
             await presenter.SayPlainText(string.Join("\n", resultLines), fromChatId);
             return true;

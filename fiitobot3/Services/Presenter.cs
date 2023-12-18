@@ -57,7 +57,7 @@ namespace fiitobot.Services
         Task ShowDemidovichTask(byte[] imageBytes, string exerciseNumber, long chatId);
         Task PromptChangePhoto(long chatId);
         Task OfferToSetHisPhoto(long chatId);
-        Task ShowSpasibkiButton(Contact contact, long chatId);
+        Task ShowSpasibkiButton(Contact personToSendTo, Contact sender, long chatId);
     }
 
     public class Presenter : IPresenter
@@ -212,14 +212,19 @@ namespace fiitobot.Services
         {
             if (contact.Type == ContactType.Student)
             {
-                var inlineKeyboardMarkup = detailsLevel.HasFlag(ContactDetailsLevel.Details)
-                    ? new InlineKeyboardMarkup(new InlineKeyboardButton("Подробнее!")
-                    { CallbackData = GetButtonCallbackData(contact) })
+                var detailsButton = detailsLevel.HasFlag(ContactDetailsLevel.Details)
+                    ? new InlineKeyboardButton("Подробнее!") { CallbackData = GetButtonCallbackData(contact) }
                     : null;
+
+                var spasibkaButton = contact.TgId != chatId
+                    ? new InlineKeyboardButton("Написать спасибку!") { CallbackData = GetSpasibkiCallbackData(contact) }
+                    : null;
+
+                var inlineKeyboardMarkup = new InlineKeyboardMarkup(new[] { detailsButton, spasibkaButton });
                 var htmlText = FormatContactAsHtml(contact, detailsLevel);
                 await botClient.SendTextMessageAsync(chatId, htmlText, parseMode: ParseMode.Html,
                     replyMarkup: inlineKeyboardMarkup);
-                await ShowSpasibkiButton(contact, chatId);
+                // await ShowSpasibkiButton(contact, chatId);
             }
             else
             {
@@ -228,18 +233,19 @@ namespace fiitobot.Services
             }
         }
 
-        public async Task ShowSpasibkiButton(Contact contact, long chatId)
+        public async Task ShowSpasibkiButton(Contact personToSendTo, Contact sender, long chatId) // можно выпилить
         {
-            await botClient.SendTextMessageAsync(chatId,
-                "А ещё, ты можешь поблагодарить человека, если есть за что",
-                parseMode: ParseMode.Html,
-                replyMarkup: new InlineKeyboardMarkup(new InlineKeyboardButton("Написать спасибку")
-                    {CallbackData = GetSpasibkiCallbackData(contact)}));
+            if (personToSendTo.Id != sender.Id)
+                await botClient.SendTextMessageAsync(chatId,
+                    "А ещё, ты можешь поблагодарить человека, если есть за что",
+                    parseMode: ParseMode.Html,
+                    replyMarkup: new InlineKeyboardMarkup(new InlineKeyboardButton("Написать спасибку")
+                        {CallbackData = GetSpasibkiCallbackData(personToSendTo)}));
         }
 
-        private string GetSpasibkiCallbackData(Contact contact)
+        private string GetSpasibkiCallbackData(Contact personToSendTo)
         {
-            return $"/spasibka {contact.Id}";
+            return $"/spasibka {personToSendTo.Id}";
         }
 
         private string GetButtonCallbackData(Contact contact)
