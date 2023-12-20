@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace fiitobot
 {
@@ -8,7 +8,8 @@ namespace fiitobot
         public string TgToken;
         public long DevopsChatId;
         public string SpreadSheetId;
-        public string GoogleAuthJson;
+        public string GoogleApiKey;
+		public string GoogleAuthJson;
         public string YandexCloudStaticKeyId;
         public string YandexCloudStaticKey;
         public string TgClientApiId;
