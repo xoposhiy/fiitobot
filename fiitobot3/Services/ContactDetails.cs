@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 using Newtonsoft.Json;
 using Telegram.Bot.Types;
 
@@ -9,13 +10,16 @@ namespace fiitobot.Services
 {
     public class ContactDetails
     {
-        public ContactDetails(long contactId, List<ContactDetail> details = null, List<SemesterMarks> semesters = null)
+        public ContactDetails(long contactId, List<ContactDetail> details = null, List<SemesterMarks> semesters = null,
+            DialogState dialogState = null)
         {
             ContactId = contactId;
             Details = details ?? new List<ContactDetail>();
             Semesters = semesters ?? new List<SemesterMarks>();
+            DialogState = dialogState ?? new DialogState();
         }
 
+        public DialogState DialogState;
         public readonly long ContactId;
         public long TelegramId;
         public string TelegramUsername;
@@ -67,5 +71,10 @@ namespace fiitobot.Services
     {
         GoogleSheet = 0,
         UsernameTgMessage = 1
+    }
+
+    public class DialogState
+    {
+        public string CommandHandlerName = "CommandHandlerName";
     }
 }
