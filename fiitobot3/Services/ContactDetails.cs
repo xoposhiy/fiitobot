@@ -19,15 +19,13 @@ namespace fiitobot.Services
             DialogState = dialogState ?? new DialogState();
         }
 
-        public DialogState DialogState;
         public readonly long ContactId;
         public long TelegramId;
         public string TelegramUsername;
         public List<SemesterMarks> Semesters;
         public TgUsernameSource TelegramUsernameSource;
         public DateTime LastUseTime;
-
-        // TODO dialogState
+        public DialogState DialogState;
         public List<ContactDetail> Details;
 
         public void UpdateOrAddMark(BrsStudentMark mark, int year, int yearPart, int courseNumber)
@@ -73,8 +71,43 @@ namespace fiitobot.Services
         UsernameTgMessage = 1
     }
 
+    public enum State
+    {
+        Default,
+        WaitingForContent,
+        WaitingForApply
+    }
+
     public class DialogState
     {
+        private State state;
+
+        public State State
+        {
+            get => state;
+            set
+            {
+                switch (value)
+                {
+                    case State.WaitingForContent:
+                        CommandHandlerName = "WaitingForContent";
+                        state = value;
+                        break;
+                    case State.WaitingForApply:
+                        CommandHandlerName = "WaitingForApply";
+                        state = value;
+                        break;
+                }
+            }
+        }
+
         public string CommandHandlerName = "CommandHandlerName";
+
+        public DialogState()
+        {
+            State = State.Default;
+        }
+
+        public ContactDetails Resivier;
     }
 }

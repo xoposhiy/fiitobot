@@ -213,6 +213,7 @@ namespace fiitobot.Services
             if (contact.Type == ContactType.Student)
             {
                 var lst = new List<InlineKeyboardButton>();
+
                 if (detailsLevel.HasFlag(ContactDetailsLevel.Details))
                 {
                     lst.Add(new InlineKeyboardButton("Подробнее!")
@@ -247,9 +248,9 @@ namespace fiitobot.Services
                         {CallbackData = GetSpasibkiCallbackData(personToSendTo)}));
         }
 
-        private string GetSpasibkiCallbackData(Contact personToSendTo)
+        private string GetSpasibkiCallbackData(Contact receiver)
         {
-            return $"/spasibka {personToSendTo.Id}";
+            return $"/spasibka {receiver.Id}";
         }
 
         private string GetButtonCallbackData(Contact contact)

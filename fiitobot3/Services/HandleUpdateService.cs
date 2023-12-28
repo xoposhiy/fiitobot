@@ -95,6 +95,12 @@ namespace fiitobot.Services
             if (messageFrom == null) return;
             var sender = await GetSenderContact(message.From);
             var fromChatId = message.Chat.Id;
+            var newMessage = CheckDialogState(sender, message.Text, out var continueHandling);
+            if (!continueHandling)
+            {
+                await HandlePlainText(newMessage, fromChatId, sender, silentOnNoResults);
+                return;
+            }
             var inGroupChat = messageFrom.Id != fromChatId;
             if (message.Type == MessageType.Text)
                 if (message.ForwardFrom != null)
@@ -106,6 +112,33 @@ namespace fiitobot.Services
             if (sender.ContactDetails.Changed)
                 await detailsRepo.Save(sender.ContactDetails);
         }
+
+        private string CheckDialogState(ContactWithDetails contactWithDetails, string messageText,
+            out bool continueHandling)
+        {
+            var details = contactWithDetails.ContactDetails;
+            string newMessage;
+            switch (details.DialogState.State)
+            {
+                case State.Default:
+                    continueHandling = true;
+                    return "";
+                case State.WaitingForContent:
+                    continueHandling = false;
+                    newMessage = "/spasibkaContent " + messageText;
+                    break;
+                case State.WaitingForApply:
+                    continueHandling = false;
+                    newMessage = "/spasibkaСonfirmation " + messageText;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+
+            return newMessage;
+        }
+
+
 
         private async Task HandlePhoto(Message message, Contact sender, long fromChatId)
         {
