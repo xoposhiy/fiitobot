@@ -69,7 +69,7 @@ namespace fiitobot.Services
 
         private async Task BotOnCallbackQuery(CallbackQuery callbackQuery)
         {
-            //if (!await EnsureHasAdminRights(callbackQuery.From, callbackQuery.Message!.Chat.Id)) return;
+            // if (!await EnsureHasAdminRights(callbackQuery.From, callbackQuery.Message!.Chat.Id)) return;
             var sender = await GetSenderContact(callbackQuery.From);
             await HandlePlainText(callbackQuery.Data!, callbackQuery.Message!.Chat.Id, sender);
             await presenter.StopCallbackQueryAnimation(callbackQuery);
@@ -95,12 +95,14 @@ namespace fiitobot.Services
             if (messageFrom == null) return;
             var sender = await GetSenderContact(message.From);
             var fromChatId = message.Chat.Id;
+
             var newMessage = CheckDialogState(sender, message.Text, out var continueHandling);
             if (!continueHandling)
             {
                 await HandlePlainText(newMessage, fromChatId, sender, silentOnNoResults);
                 return;
             }
+
             var inGroupChat = messageFrom.Id != fromChatId;
             if (message.Type == MessageType.Text)
                 if (message.ForwardFrom != null)
@@ -117,27 +119,27 @@ namespace fiitobot.Services
             out bool continueHandling)
         {
             var details = contactWithDetails.ContactDetails;
-            string newMessage;
+            string newMessage = "";
             switch (details.DialogState.State)
             {
                 case State.Default:
                     continueHandling = true;
-                    return "";
+                    return newMessage;
                 case State.WaitingForContent:
                     continueHandling = false;
-                    newMessage = "/spasibkaContent " + messageText;
+                    newMessage = "/SetSpasibkaContent " + messageText;
                     break;
                 case State.WaitingForApply:
                     continueHandling = false;
-                    newMessage = "/spasibkaСonfirmation " + messageText;
+                    newMessage = "/confirmationSpasibka " + messageText;
                     break;
                 default:
-                    throw new ArgumentOutOfRangeException();
+                    continueHandling = true;
+                    break;
             }
 
             return newMessage;
         }
-
 
 
         private async Task HandlePhoto(Message message, Contact sender, long fromChatId)
@@ -376,7 +378,7 @@ namespace fiitobot.Services
             {
                 return text.StartsWith(command)
                     ? (newSenderType, text.Replace(command, ""))
-                    : ((ContactType newSenderType, string restText)?)null;
+                    : ((ContactType newSenderType, string restText)?) null;
             }
 
             return

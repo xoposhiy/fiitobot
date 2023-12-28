@@ -63,7 +63,9 @@ namespace fiitobot
                     new DemidovichCommandHandler(presenter, demidovichService),
                     new DownloadMarksFromBrsCommandHandler(presenter, botDataRepository, detailsRepo, brsClient),
                     new DownloadMarksFromSpreadsheetsCommandHandler(presenter, marksReloadService),
-                    new SpasibkaStartCommandHandler(presenter, botDataRepository, detailsRepo)
+                    new SpasibkaStartCommandHandler(presenter, botDataRepository, detailsRepo),
+                    new SpasibkaSetContentCommandHandler(presenter, botDataRepository, detailsRepo),
+                    new SpasibkaСonfirmationCommandHandler(presenter, botDataRepository, detailsRepo)
                 };
                 var updateService = new HandleUpdateService(botDataRepository, namedPhotoDirectory, photoRepo, demidovichService, downloader, presenter, detailsRepo, commands);
                 updateService.Handle(update).Wait();

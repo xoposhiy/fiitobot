@@ -238,16 +238,6 @@ namespace fiitobot.Services
             }
         }
 
-        public async Task ShowSpasibkiButton(Contact personToSendTo, Contact sender, long chatId) // можно выпилить
-        {
-            if (personToSendTo.Id != sender.Id)
-                await botClient.SendTextMessageAsync(chatId,
-                    "А ещё, ты можешь поблагодарить человека, если есть за что",
-                    parseMode: ParseMode.Html,
-                    replyMarkup: new InlineKeyboardMarkup(new InlineKeyboardButton("Написать спасибку")
-                        {CallbackData = GetSpasibkiCallbackData(personToSendTo)}));
-        }
-
         private string GetSpasibkiCallbackData(Contact receiver)
         {
             return $"/spasibka {receiver.Id}";

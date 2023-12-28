@@ -108,6 +108,6 @@ namespace fiitobot.Services
             State = State.Default;
         }
 
-        public ContactDetails Resivier;
+        public ContactDetails Receiver;
     }
 }

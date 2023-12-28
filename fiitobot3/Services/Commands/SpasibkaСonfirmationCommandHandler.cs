@@ -16,7 +16,7 @@ namespace fiitobot.Services.Commands
             this.contactDetailsRepo = contactDetailsRepo;
         }
 
-        public string Command => "/spasibkaСonfirmation";
+        public string Command => "/confirmationSpasibka";
         public ContactType[] AllowedFor => ContactTypes.AllNotExternal;
 
         public Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
