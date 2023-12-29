@@ -19,9 +19,11 @@ namespace fiitobot.Services.Commands
         public string Command => "/confirmationSpasibka";
         public ContactType[] AllowedFor => ContactTypes.AllNotExternal;
 
-        public Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
+        public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
         {
-            throw new System.NotImplementedException();
+            var details = contactDetailsRepo.FindById(sender.Id).Result;
+            details.DialogState = new DialogState();
+            await contactDetailsRepo.Save(details);
         }
     }
 }

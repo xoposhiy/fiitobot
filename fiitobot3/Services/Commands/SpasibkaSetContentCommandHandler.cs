@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace fiitobot.Services.Commands
@@ -17,22 +18,30 @@ namespace fiitobot.Services.Commands
             this.contactDetailsRepo = contactDetailsRepo;
         }
 
-        public string Command => "/SetSpasibkaContent";
+        public string Command => "/setSpasibkaContent";
         public ContactType[] AllowedFor => ContactTypes.AllNotExternal;
 
         public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
         {
-            var query = text.Split(" ").Skip(0).ToArray();
-            var content = string.Join(' ', query);
-
             var senderDetails = contactDetailsRepo.FindById(sender.Id).Result;
-            var receiver = senderDetails.DialogState.Receiver;
+            try
+            {
+                var query = text.Split(" ").Skip(0).ToArray();
+                var content = string.Join(' ', query);
 
-            senderDetails.DialogState.State = State.WaitingForApply;
-            await presenter.Say($"Текст спасибки: {content}", fromChatId);
-            senderDetails.DialogState.State = State.WaitingForApply;
-            senderDetails.DialogState.CommandHandlerName = content;
-            await contactDetailsRepo.Save(senderDetails);
+                var receiver = senderDetails.DialogState.Receiver;
+
+                senderDetails.DialogState.State = State.WaitingForApply;
+                await presenter.ShowSpasibcaConfirmationMessage(sender, senderDetails, content, fromChatId);
+                // senderDetails.DialogState.CommandHandlerName = content;
+
+                await contactDetailsRepo.Save(senderDetails);
+            }
+            catch (Exception e)
+            {
+                senderDetails.DialogState = new DialogState();
+                throw;
+            }
         }
     }
 }

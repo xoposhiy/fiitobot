@@ -33,20 +33,28 @@ namespace fiitobot.Services.Commands
             // из IContactDetailsRepo.FindBy(ID) можно найти ContactDetails человека
             // с помощью S3ContactsDetailsRepo.Save(ContactDetails) можно сохранить ContactDetails человека
 
-            var query = text.Split(" ")[1];
+            // await presenter.Say(text, fromChatId);
             var senderDetails = contactDetailsRepo.FindById(sender.Id).Result;
-            if (!long.TryParse(query, out var receiverId))
+            try
             {
-                await presenter.Say(senderDetails.DialogState.CommandHandlerName, sender.TgId);
-                senderDetails.DialogState = new DialogState();
-            }
-            else
-            {
-                var receiver = contactDetailsRepo.FindById(receiverId).Result;
-                HandleCurrentState(receiver, senderDetails, fromChatId);
-            }
+                var query = text.Split(" ")[1];
+                if (!long.TryParse(query, out var receiverId))
+                {
+                    senderDetails.DialogState = new DialogState();
+                }
+                else
+                {
+                    var receiver = contactDetailsRepo.FindById(receiverId).Result;
+                    HandleCurrentState(receiver, senderDetails, fromChatId);
+                }
 
-            await contactDetailsRepo.Save(senderDetails);
+                await contactDetailsRepo.Save(senderDetails);
+            }
+            catch (Exception e)
+            {
+                senderDetails.DialogState = new DialogState();
+                throw;
+            }
         }
 
         private async void HandleCurrentState(ContactDetails receiver, ContactDetails sender, long fromChatId)
@@ -59,10 +67,15 @@ namespace fiitobot.Services.Commands
             catch (Exception e)
             {
                 sender.DialogState = new DialogState();
-                return;
+                throw;
             }
 
             await presenter.Say("Напишите текст спасибки", fromChatId);
+        }
+
+        public async void ResetSpasibkaState()
+        {
+
         }
     }
 }

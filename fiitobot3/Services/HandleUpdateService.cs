@@ -96,6 +96,7 @@ namespace fiitobot.Services
             var sender = await GetSenderContact(message.From);
             var fromChatId = message.Chat.Id;
 
+            await presenter.Say(sender.ContactDetails.DialogState.State.ToString(), fromChatId);
             var newMessage = CheckDialogState(sender, message.Text, out var continueHandling);
             if (!continueHandling)
             {
@@ -127,7 +128,7 @@ namespace fiitobot.Services
                     return newMessage;
                 case State.WaitingForContent:
                     continueHandling = false;
-                    newMessage = "/SetSpasibkaContent " + messageText;
+                    newMessage = "/setSpasibkaContent " + messageText;
                     break;
                 case State.WaitingForApply:
                     continueHandling = false;
