@@ -96,14 +96,14 @@ namespace fiitobot.Services
             var sender = await GetSenderContact(message.From);
             var fromChatId = message.Chat.Id;
 
-            await presenter.Say(sender.ContactDetails.DialogState.State.ToString(), fromChatId);
-            var newMessage = CheckDialogState(sender, message.Text, out var continueHandling);
-            if (!continueHandling)
-            {
-                await HandlePlainText(newMessage, fromChatId, sender, silentOnNoResults);
-                await presenter.Say(sender.ContactDetails.DialogState.State.ToString(), fromChatId);
-                return;
-            }
+            // await presenter.Say(sender.ContactDetails.DialogState.State.ToString(), fromChatId);
+            // var newMessage = CheckDialogState(sender, message.Text, out var continueHandling);
+            // if (!continueHandling)
+            // {
+            //     await HandlePlainText(newMessage, fromChatId, sender, silentOnNoResults);
+            //     await presenter.Say(sender.ContactDetails.DialogState.State.ToString(), fromChatId);
+            //     return;
+            // }
 
             var inGroupChat = messageFrom.Id != fromChatId;
             if (message.Type == MessageType.Text)
@@ -117,31 +117,31 @@ namespace fiitobot.Services
                 await detailsRepo.Save(sender.ContactDetails);
         }
 
-        private string CheckDialogState(ContactWithDetails contactWithDetails, string messageText,
-            out bool continueHandling)
-        {
-            var details = contactWithDetails.ContactDetails;
-            string newMessage = "";
-            switch (details.DialogState.State)
-            {
-                case State.Default:
-                    continueHandling = true;
-                    return newMessage;
-                case State.WaitingForContent:
-                    continueHandling = false;
-                    newMessage = "/setSpasibkaContent " + messageText;
-                    break;
-                case State.WaitingForApply:
-                    continueHandling = false;
-                    newMessage = "/confirmationSpasibka " + messageText;
-                    break;
-                default:
-                    continueHandling = true;
-                    break;
-            }
-
-            return newMessage;
-        }
+        // private string CheckDialogState(ContactWithDetails contactWithDetails, string messageText,
+        //     out bool continueHandling)
+        // {
+        //     var details = contactWithDetails.ContactDetails;
+        //     string newMessage = "";
+        //     switch (details.DialogState.State)
+        //     {
+        //         case State.Default:
+        //             continueHandling = true;
+        //             return newMessage;
+        //         case State.WaitingForContent:
+        //             continueHandling = false;
+        //             newMessage = "/setSpasibkaContent " + messageText;
+        //             break;
+        //         case State.WaitingForApply:
+        //             continueHandling = false;
+        //             newMessage = "/confirmationSpasibka " + messageText;
+        //             break;
+        //         default:
+        //             continueHandling = true;
+        //             break;
+        //     }
+        //
+        //     return newMessage;
+        // }
 
 
         private async Task HandlePhoto(Message message, Contact sender, long fromChatId)
@@ -218,13 +218,13 @@ namespace fiitobot.Services
                 sender = impersonatedUser ?? sender;
                 text = text.Replace(m.Value, "");
             }
-
+            // command взять из state (CommandHandlerName) или из текста, если его нет, то идём дальше. В state сохранить commandHandler
             var command = commands.FirstOrDefault(c => text.StartsWith(c.Command));
 
             if (command != null)
             {
                 if (sender.Type.IsOneOf(command.AllowedFor))
-                    await command.HandlePlainText(text, fromChatId, sender, silentOnNoResults);
+                    await command.HandlePlainText(text, fromChatId, sender, silentOnNoResults); // try catch here
                 else
                     await presenter.SayNoRights(fromChatId, sender.Type);
                 return;

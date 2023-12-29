@@ -34,7 +34,12 @@ namespace fiitobot.Services.Commands
             // с помощью S3ContactsDetailsRepo.Save(ContactDetails) можно сохранить ContactDetails человека
 
             // await presenter.Say(text, fromChatId);
+
             var senderDetails = contactDetailsRepo.FindById(sender.Id).Result;
+            if (senderDetails.DialogState.CommandHandlerName == Command) // пришли во второй раз или больше
+            {
+                //
+            }
             try
             {
                 var query = text.Split(" ")[1];
@@ -61,8 +66,9 @@ namespace fiitobot.Services.Commands
         {
             try
             {
-                senderDetails.DialogState.State = State.WaitingForContent;
-                senderDetails.DialogState.Receiver = receiver;
+                senderDetails.DialogState.CommandHandlerName = Command;
+                // senderDetails.DialogState.Receiver = receiver;
+                senderDetails.DialogState.CommandHandlerData = receiver.ContactId.ToString();
             }
             catch (Exception e)
             {

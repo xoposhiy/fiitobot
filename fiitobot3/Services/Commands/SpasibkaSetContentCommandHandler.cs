@@ -31,8 +31,8 @@ namespace fiitobot.Services.Commands
 
                 // var receiver = senderDetails.DialogState.Receiver;
 
-                senderDetails.DialogState.State = State.WaitingForApply;
-                presenter.ShowSpasibcaConfirmationMessage(sender, senderDetails, content, fromChatId);
+                // senderDetails.DialogState.State = State.WaitingForApply;
+                // presenter.ShowSpasibcaConfirmationMessage(sender, senderDetails, content, fromChatId);
                 // senderDetails.DialogState.CommandHandlerName = content;
 
                 await contactDetailsRepo.Save(senderDetails);

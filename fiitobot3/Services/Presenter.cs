@@ -248,8 +248,8 @@ namespace fiitobot.Services
             var htmlText = $"Вот что у нас получилось:\n\n{content}";
             var inlineKeyboardMarkup = new InlineKeyboardMarkup(new[]
             {
-                new InlineKeyboardButton("Написать заново") { CallbackData =
-                    RestartTypingSpasibka(sender, details.DialogState.Receiver.TelegramId) },
+                // new InlineKeyboardButton("Написать заново") { CallbackData =
+                //     RestartTypingSpasibka(sender, details.DialogState.Receiver.TelegramId) },
                 new InlineKeyboardButton("Подтвердить") {CallbackData = ApplySpasibka()}
             });
             await botClient.SendTextMessageAsync(chatId, htmlText, parseMode: ParseMode.Html,

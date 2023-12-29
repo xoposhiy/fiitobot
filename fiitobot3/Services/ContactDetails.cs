@@ -71,43 +71,19 @@ namespace fiitobot.Services
         UsernameTgMessage = 1
     }
 
-    public enum State
-    {
-        Default,
-        WaitingForContent,
-        WaitingForApply
-    }
+
 
     public class DialogState
     {
-        private State state;
 
-        public State State
-        {
-            get => state;
-            set
-            {
-                switch (value)
-                {
-                    case State.WaitingForContent:
-                        CommandHandlerName = "WaitingForContent";
-                        state = value;
-                        break;
-                    case State.WaitingForApply:
-                        CommandHandlerName = "WaitingForApply";
-                        state = value;
-                        break;
-                }
-            }
-        }
+        public string CommandHandlerName = "";
 
-        public string CommandHandlerName = "CommandHandlerName";
+        // можно хранить самосериализующийся объект
+        public string CommandHandlerData = ""; // сохраняем то что поняли из пользовательского сообщения: внутреннее состояние_ReceiverId_текст спасибки
 
         public DialogState()
         {
-            State = State.Default;
-        }
 
-        public ContactDetails Receiver;
+        }
     }
 }
