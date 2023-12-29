@@ -53,29 +53,31 @@ namespace fiitobot.Services.Commands
             catch (Exception e)
             {
                 senderDetails.DialogState = new DialogState();
-                throw;
+                await contactDetailsRepo.Save(senderDetails);
             }
         }
 
-        private async void HandleCurrentState(ContactDetails receiver, ContactDetails sender, long fromChatId)
+        private async void HandleCurrentState(ContactDetails receiver, ContactDetails senderDetails, long fromChatId)
         {
             try
             {
-                sender.DialogState.State = State.WaitingForContent;
-                sender.DialogState.Receiver = receiver;
+                senderDetails.DialogState.State = State.WaitingForContent;
+                senderDetails.DialogState.Receiver = receiver;
             }
             catch (Exception e)
             {
-                sender.DialogState = new DialogState();
-                throw;
+                senderDetails.DialogState = new DialogState();
+                await contactDetailsRepo.Save(senderDetails);
             }
 
             await presenter.Say("Напишите текст спасибки", fromChatId);
         }
 
-        public async void ResetSpasibkaState()
+        public async void ResetSpasibkaState(Contact sender)
         {
-
+            var senderDetails = contactDetailsRepo.FindById(sender.Id).Result;
+            senderDetails.DialogState = new DialogState();
+            await contactDetailsRepo.Save(senderDetails);
         }
     }
 }

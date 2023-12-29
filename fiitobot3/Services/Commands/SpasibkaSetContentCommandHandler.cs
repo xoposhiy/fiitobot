@@ -26,13 +26,13 @@ namespace fiitobot.Services.Commands
             var senderDetails = contactDetailsRepo.FindById(sender.Id).Result;
             try
             {
-                var query = text.Split(" ").Skip(0).ToArray();
+                var query = text.Split(" ").Skip(1).ToArray();
                 var content = string.Join(' ', query);
 
-                var receiver = senderDetails.DialogState.Receiver;
+                // var receiver = senderDetails.DialogState.Receiver;
 
                 senderDetails.DialogState.State = State.WaitingForApply;
-                await presenter.ShowSpasibcaConfirmationMessage(sender, senderDetails, content, fromChatId);
+                presenter.ShowSpasibcaConfirmationMessage(sender, senderDetails, content, fromChatId);
                 // senderDetails.DialogState.CommandHandlerName = content;
 
                 await contactDetailsRepo.Save(senderDetails);
@@ -40,6 +40,7 @@ namespace fiitobot.Services.Commands
             catch (Exception e)
             {
                 senderDetails.DialogState = new DialogState();
+                await contactDetailsRepo.Save(senderDetails);
                 throw;
             }
         }

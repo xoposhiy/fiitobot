@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using fiitobot.Services.Commands;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -59,7 +60,7 @@ namespace fiitobot.Services
         Task OfferToSetHisPhoto(long chatId);
         Task StopCallbackQueryAnimation(CallbackQuery callbackQuery);
 
-        Task ShowSpasibcaConfirmationMessage(Contact contact, ContactDetails details, string content,
+        Task ShowSpasibcaConfirmationMessage(Contact sender, ContactDetails details, string content,
             long chatId);
     }
 
@@ -241,14 +242,14 @@ namespace fiitobot.Services
             }
         }
 
-        public async Task ShowSpasibcaConfirmationMessage(Contact contact, ContactDetails details, string content,
+        public async Task ShowSpasibcaConfirmationMessage(Contact sender, ContactDetails details, string content,
             long chatId)
         {
             var htmlText = $"Вот что у нас получилось:\n\n{content}";
             var inlineKeyboardMarkup = new InlineKeyboardMarkup(new[]
             {
                 new InlineKeyboardButton("Написать заново") { CallbackData =
-                    RestartTypingSpasibka(details.DialogState.Receiver.TelegramId) },
+                    RestartTypingSpasibka(sender, details.DialogState.Receiver.TelegramId) },
                 new InlineKeyboardButton("Подтвердить") {CallbackData = ApplySpasibka()}
             });
             await botClient.SendTextMessageAsync(chatId, htmlText, parseMode: ParseMode.Html,
@@ -260,9 +261,15 @@ namespace fiitobot.Services
             return "/confirmationSpasibka";
         }
 
-        private string RestartTypingSpasibka(long tgId)
+        private string RestartTypingSpasibka(Contact sender, long tgId)
         {
+            ResetSpasibkaState(sender);
             return $"/spasibka {tgId}";
+        }
+
+        private void ResetSpasibkaState(Contact sender)
+        {
+
         }
 
         private string GetSpasibkiCallbackData(Contact receiver)

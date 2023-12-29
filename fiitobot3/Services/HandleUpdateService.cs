@@ -101,6 +101,7 @@ namespace fiitobot.Services
             if (!continueHandling)
             {
                 await HandlePlainText(newMessage, fromChatId, sender, silentOnNoResults);
+                await presenter.Say(sender.ContactDetails.DialogState.State.ToString(), fromChatId);
                 return;
             }
 
