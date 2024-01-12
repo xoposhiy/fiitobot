@@ -40,66 +40,59 @@ namespace fiitobot.Services.Commands
 
             try
             {
-                if (dialogState.CommandHandlerLine.Length == 0)
+                var inpt = text.Split(" ");
+                if (inpt.Length > 1 && long.TryParse(inpt[1], out var receiverId))
                 {
-                    var query = text.Split(" ")[1];
-                    if (!long.TryParse(query, out var receiverId))
-                    {
-                        senderDetails.DialogState = new DialogState();
-                        throw new ArgumentException();
-                    }
+                    senderDetails.DialogState = new DialogState();
                     senderDetails.DialogState.CommandHandlerLine = "/spasibka waitingForContent";
                     senderDetails.DialogState.CommandHandlerData = $"{receiverId}";
-                    await presenter.Say("Напишите текст спасибки", fromChatId);
                     await contactDetailsRepo.Save(senderDetails);
+                    await presenter.Say("Напишите текст спасибки", fromChatId);
                     return;
                 }
 
-                switch (dialogState.CommandHandlerLine.Split(' ')[1])
+
+                if (dialogState.CommandHandlerLine.Length > 0)
                 {
-                    case "waitingForContent":
+                    if (dialogState.CommandHandlerLine.Split(' ')[1] == "waitingForContent")
+                    {
                         var data = dialogState.CommandHandlerData.Split(' ');
                         if (data.Length != 1)
                             throw new ArgumentException();
                         var rcvrId = long.Parse(data.First());
-                        var content = text.Skip(2).ToString();
+                        var content = text;
                         senderDetails.DialogState.CommandHandlerData = $"{rcvrId} {content}";
                         senderDetails.DialogState.CommandHandlerLine = $"{Command} waitingForApply";
                         await presenter.ShowSpasibcaConfirmationMessage(content, fromChatId);
-                        break;
-                    // case "waitingForApply":
-                    //     break;
-                    // case "confirm":
-                    //     await presenter.Say("done", fromChatId);
-                    //     break;
-                    // case "restart":
-                    //     var d = senderDetails.DialogState.CommandHandlerData.Split(' ');
-                    //     senderDetails.DialogState.CommandHandlerLine = "/spasibka waitingForContent";
-                    //     senderDetails.DialogState.CommandHandlerData = $"{d.First()}";
-                    //     await presenter.Say("Напишите текст спасибки", fromChatId);
-                    //     break;
+                    }
 
-                    default:
+                    else // callbacks
+                    {
                         var query = text.Split(" ")[1];
                         switch (query)
                         {
+                            case "cancel":
+                                if (senderDetails.DialogState.CommandHandlerData.Length == 0) return;
+                                senderDetails.DialogState = new DialogState();
+                                await presenter.Say("Спасибка отменена", fromChatId);
+                                break;
                             case "confirm":
+                                if (senderDetails.DialogState.CommandHandlerData.Length == 0) return;
                                 await presenter.Say("done", fromChatId);
                                 senderDetails.DialogState = new DialogState();
                                 break;
                             case "restart":
+                                if (senderDetails.DialogState.CommandHandlerData.Length == 0) return;
                                 var dt = senderDetails.DialogState.CommandHandlerData.Split(' ');
                                 senderDetails.DialogState.CommandHandlerLine = "/spasibka waitingForContent";
                                 senderDetails.DialogState.CommandHandlerData = $"{dt.First()}";
-                                await contactDetailsRepo.Save(senderDetails);
                                 await presenter.Say("Напишите текст спасибки", fromChatId);
                                 break;
                             default:
                                 senderDetails.DialogState = new DialogState();
                                 break;
                         }
-
-                        break;
+                    }
                 }
 
                 await contactDetailsRepo.Save(senderDetails);

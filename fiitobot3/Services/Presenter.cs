@@ -248,10 +248,17 @@ namespace fiitobot.Services
             {
                 new InlineKeyboardButton("Написать заново") { CallbackData =
                     RestartTypingSpasibka() },
-                new InlineKeyboardButton("Подтвердить") {CallbackData = ApplySpasibka()}
+                new InlineKeyboardButton("Подтвердить") {CallbackData = ApplySpasibka()},
+                new InlineKeyboardButton("Отменить") {CallbackData = CancelSpasibka()}
+
             });
             await botClient.SendTextMessageAsync(chatId, htmlText, parseMode: ParseMode.Html,
                 replyMarkup: inlineKeyboardMarkup);
+        }
+
+        private string CancelSpasibka()
+        {
+            return "/spasibka cancel";
         }
 
         private string ApplySpasibka()

@@ -96,15 +96,6 @@ namespace fiitobot.Services
             var sender = await GetSenderContact(message.From);
             var fromChatId = message.Chat.Id;
 
-            // await presenter.Say(sender.ContactDetails.DialogState.State.ToString(), fromChatId);
-            // var newMessage = CheckDialogState(sender, message.Text, out var continueHandling);
-            // if (!continueHandling)
-            // {
-            //     await HandlePlainText(newMessage, fromChatId, sender, silentOnNoResults);
-            //     await presenter.Say(sender.ContactDetails.DialogState.State.ToString(), fromChatId);
-            //     return;
-            // }
-
             var inGroupChat = messageFrom.Id != fromChatId;
             if (message.Type == MessageType.Text)
                 if (message.ForwardFrom != null)
@@ -116,33 +107,6 @@ namespace fiitobot.Services
             if (sender.ContactDetails.Changed)
                 await detailsRepo.Save(sender.ContactDetails);
         }
-
-        // private string CheckDialogState(ContactWithDetails contactWithDetails, string messageText,
-        //     out bool continueHandling)
-        // {
-        //     var details = contactWithDetails.ContactDetails;
-        //     string newMessage = "";
-        //     switch (details.DialogState.State)
-        //     {
-        //         case State.Default:
-        //             continueHandling = true;
-        //             return newMessage;
-        //         case State.WaitingForContent:
-        //             continueHandling = false;
-        //             newMessage = "/setSpasibkaContent " + messageText;
-        //             break;
-        //         case State.WaitingForApply:
-        //             continueHandling = false;
-        //             newMessage = "/confirmationSpasibka " + messageText;
-        //             break;
-        //         default:
-        //             continueHandling = true;
-        //             break;
-        //     }
-        //
-        //     return newMessage;
-        // }
-
 
         private async Task HandlePhoto(Message message, Contact sender, long fromChatId)
         {
@@ -225,10 +189,16 @@ namespace fiitobot.Services
             IChatCommandHandler command;
 
             if (contactDetails.DialogState.CommandHandlerLine.Length > 0)
+            {
+                // await presenter.Say("DialogState.CommandHandlerLine.Length > 0", fromChatId);
                 command = commands.FirstOrDefault(c =>
-                    text.StartsWith(contactDetails.DialogState.CommandHandlerLine));
+                    c.Command.StartsWith(contactDetails.DialogState.CommandHandlerLine.Split(' ').First()));
+            }
             else
+            {
+                // await presenter.Say("DialogState.CommandHandlerLine.Length == 0", fromChatId);
                 command = commands.FirstOrDefault(c => text.StartsWith(c.Command));
+            }
 
             if (command != null)
             {
