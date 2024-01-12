@@ -4,13 +4,13 @@ using System.Threading.Tasks;
 
 namespace fiitobot.Services.Commands
 {
-    public class SpasibkaStartCommandHandler : IChatCommandHandler
+    public class SpasibkaCommandHandler : IChatCommandHandler
     {
         private readonly IPresenter presenter;
         private readonly IBotDataRepository botDataRepo;
         private readonly IContactDetailsRepo contactDetailsRepo;
 
-        public SpasibkaStartCommandHandler(IPresenter presenter, IBotDataRepository botDataRepo,
+        public SpasibkaCommandHandler(IPresenter presenter, IBotDataRepository botDataRepo,
             IContactDetailsRepo contactDetailsRepo)
         {
             this.presenter = presenter;
@@ -31,8 +31,9 @@ namespace fiitobot.Services.Commands
 
             try
             {
-                var inpt = text.Split(" ");
-                if (inpt.Length > 1 && long.TryParse(inpt[1], out var receiverId))
+                // если зашли впервые
+                var input = text.Split(" ");
+                if (input.Length > 1 && long.TryParse(input[1], out var receiverId))
                 {
                     senderDetails.DialogState = new DialogState();
                     senderDetails.DialogState.CommandHandlerLine = "/spasibka waitingForContent";
@@ -57,7 +58,8 @@ namespace fiitobot.Services.Commands
                         await presenter.ShowSpasibcaConfirmationMessage(content, fromChatId);
                     }
 
-                    else // callbacks
+                    // callbacks
+                    else
                     {
                         var query = text.Split(" ")[1];
                         switch (query)
@@ -67,11 +69,7 @@ namespace fiitobot.Services.Commands
                                 senderDetails.DialogState = new DialogState();
                                 await presenter.Say("Спасибка отменена", fromChatId);
                                 break;
-                            case "confirm":
-                                if (senderDetails.DialogState.CommandHandlerData.Length == 0) return;
-                                await presenter.Say("done", fromChatId);
-                                senderDetails.DialogState = new DialogState();
-                                break;
+
                             case "restart":
                                 if (senderDetails.DialogState.CommandHandlerData.Length == 0) return;
                                 var dt = senderDetails.DialogState.CommandHandlerData.Split(' ');
@@ -79,6 +77,19 @@ namespace fiitobot.Services.Commands
                                 senderDetails.DialogState.CommandHandlerData = $"{dt.First()}";
                                 await presenter.Say("Напишите текст спасибки", fromChatId);
                                 break;
+
+                            case "confirm":
+                                if (senderDetails.DialogState.CommandHandlerData.Length == 0) return;
+                                var rcvId = long.Parse(senderDetails.DialogState.CommandHandlerData.Split(' ')[0]);
+                                var s = senderDetails.DialogState.CommandHandlerData
+                                    .Split(' ')
+                                    .Skip(1);
+                                var spasibka = string.Join(' ', s);
+                                SendSpasibka(rcvId, sender, spasibka);
+                                await presenter.Say("Спасибка отправлена получателю", fromChatId);
+                                senderDetails.DialogState = new DialogState();
+                                break;
+
                             default:
                                 senderDetails.DialogState = new DialogState();
                                 break;
@@ -95,6 +106,14 @@ namespace fiitobot.Services.Commands
                 await contactDetailsRepo.Save(senderDetails);
                 throw;
             }
+        }
+
+        private void SendSpasibka(long receiverId, Contact sender, string spasibka)
+        {
+            var receiver = contactDetailsRepo.FindById(receiverId).Result;
+            presenter.Say(
+                $"Вам пришла спасибка от: {sender.FirstName} {sender.LastName}. Вот что вам пишут:\n\n{spasibka}",
+                sender.TgId);
         }
     }
 }

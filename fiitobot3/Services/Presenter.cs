@@ -248,7 +248,7 @@ namespace fiitobot.Services
             {
                 new InlineKeyboardButton("Написать заново") { CallbackData =
                     RestartTypingSpasibka() },
-                new InlineKeyboardButton("Подтвердить") {CallbackData = ApplySpasibka()},
+                new InlineKeyboardButton("Отправить") {CallbackData = ApplySpasibka()},
                 new InlineKeyboardButton("Отменить") {CallbackData = CancelSpasibka()}
 
             });
