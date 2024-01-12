@@ -1,17 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using Telegram.Bot.Types.Enums;
-using TL;
-using Yandex.Cloud.Mdb.Elasticsearch.V1;
 
 namespace fiitobot.Services.Commands
 {
-    public class
-        SpasibkaStartCommandHandler : IChatCommandHandler // self recovery: при ошибке скидывать в начальный стейт
+    public class SpasibkaStartCommandHandler : IChatCommandHandler
     {
         private readonly IPresenter presenter;
         private readonly IBotDataRepository botDataRepo;
@@ -32,8 +25,6 @@ namespace fiitobot.Services.Commands
         {
             // из IContactDetailsRepo.FindBy(ID) можно найти ContactDetails человека
             // с помощью S3ContactsDetailsRepo.Save(ContactDetails) можно сохранить ContactDetails человека
-
-            // await presenter.Say(text, fromChatId);
 
             var senderDetails = contactDetailsRepo.FindById(sender.Id).Result;
             var dialogState = senderDetails.DialogState;
