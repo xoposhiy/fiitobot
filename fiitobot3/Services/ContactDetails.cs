@@ -76,10 +76,11 @@ namespace fiitobot.Services
     public class DialogState
     {
 
-        public string CommandHandlerName = "";
+        public string CommandHandlerLine = "";
 
         // можно хранить самосериализующийся объект
-        public string CommandHandlerData = ""; // сохраняем то что поняли из пользовательского сообщения: внутреннее состояние_ReceiverId_текст спасибки
+        public string CommandHandlerData = ""; // сохраняем то что поняли из пользовательского сообщения:
+                                               // внутреннее_состояние ReceiverId текст_спасибки
 
         public DialogState()
         {

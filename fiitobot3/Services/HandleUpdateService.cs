@@ -218,8 +218,17 @@ namespace fiitobot.Services
                 sender = impersonatedUser ?? sender;
                 text = text.Replace(m.Value, "");
             }
-            // command взять из state (CommandHandlerName) или из текста, если его нет, то идём дальше. В state сохранить commandHandler
-            var command = commands.FirstOrDefault(c => text.StartsWith(c.Command));
+
+            var contactDetails = senderWithDetails.ContactDetails;
+            // command взять из state (CommandHandlerLine) или из текста, если его нет, то идём дальше.
+            // В state сохранить commandHandler
+            IChatCommandHandler command;
+
+            if (contactDetails.DialogState.CommandHandlerLine.Length > 0)
+                command = commands.FirstOrDefault(c =>
+                    text.StartsWith(contactDetails.DialogState.CommandHandlerLine));
+            else
+                command = commands.FirstOrDefault(c => text.StartsWith(c.Command));
 
             if (command != null)
             {

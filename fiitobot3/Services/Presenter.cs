@@ -60,8 +60,7 @@ namespace fiitobot.Services
         Task OfferToSetHisPhoto(long chatId);
         Task StopCallbackQueryAnimation(CallbackQuery callbackQuery);
 
-        Task ShowSpasibcaConfirmationMessage(Contact sender, ContactDetails details, string content,
-            long chatId);
+        Task ShowSpasibcaConfirmationMessage(string content, long chatId);
     }
 
     public class Presenter : IPresenter
@@ -242,14 +241,13 @@ namespace fiitobot.Services
             }
         }
 
-        public async Task ShowSpasibcaConfirmationMessage(Contact sender, ContactDetails details, string content,
-            long chatId)
+        public async Task ShowSpasibcaConfirmationMessage(string content, long chatId)
         {
             var htmlText = $"Вот что у нас получилось:\n\n{content}";
             var inlineKeyboardMarkup = new InlineKeyboardMarkup(new[]
             {
-                // new InlineKeyboardButton("Написать заново") { CallbackData =
-                //     RestartTypingSpasibka(sender, details.DialogState.Receiver.TelegramId) },
+                new InlineKeyboardButton("Написать заново") { CallbackData =
+                    RestartTypingSpasibka() },
                 new InlineKeyboardButton("Подтвердить") {CallbackData = ApplySpasibka()}
             });
             await botClient.SendTextMessageAsync(chatId, htmlText, parseMode: ParseMode.Html,
@@ -258,18 +256,12 @@ namespace fiitobot.Services
 
         private string ApplySpasibka()
         {
-            return "/confirmationSpasibka";
+            return "/spasibka confirm";
         }
 
-        private string RestartTypingSpasibka(Contact sender, long tgId)
+        private string RestartTypingSpasibka()
         {
-            ResetSpasibkaState(sender);
-            return $"/spasibka {tgId}";
-        }
-
-        private void ResetSpasibkaState(Contact sender)
-        {
-
+            return "/spasibka restart";
         }
 
         private string GetSpasibkiCallbackData(Contact receiver)

@@ -36,54 +36,81 @@ namespace fiitobot.Services.Commands
             // await presenter.Say(text, fromChatId);
 
             var senderDetails = contactDetailsRepo.FindById(sender.Id).Result;
-            if (senderDetails.DialogState.CommandHandlerName == Command) // пришли во второй раз или больше
-            {
-                //
-            }
+            var dialogState = senderDetails.DialogState;
+
             try
             {
-                var query = text.Split(" ")[1];
-                if (!long.TryParse(query, out var receiverId))
+                if (dialogState.CommandHandlerLine.Length == 0)
                 {
-                    senderDetails.DialogState = new DialogState();
+                    var query = text.Split(" ")[1];
+                    if (!long.TryParse(query, out var receiverId))
+                    {
+                        senderDetails.DialogState = new DialogState();
+                        throw new ArgumentException();
+                    }
+                    senderDetails.DialogState.CommandHandlerLine = "/spasibka waitingForContent";
+                    senderDetails.DialogState.CommandHandlerData = $"{receiverId}";
+                    await presenter.Say("Напишите текст спасибки", fromChatId);
+                    await contactDetailsRepo.Save(senderDetails);
+                    return;
                 }
-                else
+
+                switch (dialogState.CommandHandlerLine.Split(' ')[1])
                 {
-                    var receiver = contactDetailsRepo.FindById(receiverId).Result;
-                    HandleCurrentState(receiver, senderDetails, fromChatId);
+                    case "waitingForContent":
+                        var data = dialogState.CommandHandlerData.Split(' ');
+                        if (data.Length != 1)
+                            throw new ArgumentException();
+                        var rcvrId = long.Parse(data.First());
+                        var content = text.Skip(2).ToString();
+                        senderDetails.DialogState.CommandHandlerData = $"{rcvrId} {content}";
+                        senderDetails.DialogState.CommandHandlerLine = $"{Command} waitingForApply";
+                        await presenter.ShowSpasibcaConfirmationMessage(content, fromChatId);
+                        break;
+                    // case "waitingForApply":
+                    //     break;
+                    // case "confirm":
+                    //     await presenter.Say("done", fromChatId);
+                    //     break;
+                    // case "restart":
+                    //     var d = senderDetails.DialogState.CommandHandlerData.Split(' ');
+                    //     senderDetails.DialogState.CommandHandlerLine = "/spasibka waitingForContent";
+                    //     senderDetails.DialogState.CommandHandlerData = $"{d.First()}";
+                    //     await presenter.Say("Напишите текст спасибки", fromChatId);
+                    //     break;
+
+                    default:
+                        var query = text.Split(" ")[1];
+                        switch (query)
+                        {
+                            case "confirm":
+                                await presenter.Say("done", fromChatId);
+                                senderDetails.DialogState = new DialogState();
+                                break;
+                            case "restart":
+                                var dt = senderDetails.DialogState.CommandHandlerData.Split(' ');
+                                senderDetails.DialogState.CommandHandlerLine = "/spasibka waitingForContent";
+                                senderDetails.DialogState.CommandHandlerData = $"{dt.First()}";
+                                await contactDetailsRepo.Save(senderDetails);
+                                await presenter.Say("Напишите текст спасибки", fromChatId);
+                                break;
+                            default:
+                                senderDetails.DialogState = new DialogState();
+                                break;
+                        }
+
+                        break;
                 }
 
                 await contactDetailsRepo.Save(senderDetails);
             }
             catch (Exception e)
             {
+                Console.WriteLine(e);
                 senderDetails.DialogState = new DialogState();
                 await contactDetailsRepo.Save(senderDetails);
+                throw;
             }
-        }
-
-        private async void HandleCurrentState(ContactDetails receiver, ContactDetails senderDetails, long fromChatId)
-        {
-            try
-            {
-                senderDetails.DialogState.CommandHandlerName = Command;
-                // senderDetails.DialogState.Receiver = receiver;
-                senderDetails.DialogState.CommandHandlerData = receiver.ContactId.ToString();
-            }
-            catch (Exception e)
-            {
-                senderDetails.DialogState = new DialogState();
-                await contactDetailsRepo.Save(senderDetails);
-            }
-
-            await presenter.Say("Напишите текст спасибки", fromChatId);
-        }
-
-        public async void ResetSpasibkaState(Contact sender)
-        {
-            var senderDetails = contactDetailsRepo.FindById(sender.Id).Result;
-            senderDetails.DialogState = new DialogState();
-            await contactDetailsRepo.Save(senderDetails);
         }
     }
 }
