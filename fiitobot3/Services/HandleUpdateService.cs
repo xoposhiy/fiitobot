@@ -190,13 +190,11 @@ namespace fiitobot.Services
 
             if (contactDetails.DialogState.CommandHandlerLine.Length > 0)
             {
-                // await presenter.Say("DialogState.CommandHandlerLine.Length > 0", fromChatId);
                 command = commands.FirstOrDefault(c =>
                     c.Command.StartsWith(contactDetails.DialogState.CommandHandlerLine.Split(' ').First()));
             }
             else
             {
-                // await presenter.Say("DialogState.CommandHandlerLine.Length == 0", fromChatId);
                 command = commands.FirstOrDefault(c => text.StartsWith(c.Command));
             }
 
