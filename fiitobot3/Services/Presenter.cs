@@ -234,7 +234,7 @@ namespace fiitobot.Services
 
         public async Task ShowContact(Contact contact, long chatId, ContactDetailsLevel detailsLevel)
         {
-            var htmlText = FormatContactAsHtml(contact, detailsLevel);
+            var htmlText = FormatContactAsHtml(contact, detailsLevel, contact.TgId == chatId);
 
             if (contact.Type == ContactType.Student)
             {
@@ -242,9 +242,6 @@ namespace fiitobot.Services
                     ? new InlineKeyboardMarkup(new InlineKeyboardButton("Подробнее!")
                     { CallbackData = GetButtonCallbackData(contact) })
                     : null;
-
-                if (contact.TgId == chatId)
-                    htmlText = FormatContactAsHtml(contact, detailsLevel, true);
 
                 await botClient.SendTextMessageAsync(chatId, htmlText, parseMode: ParseMode.Html,
                     replyMarkup: inlineKeyboardMarkup);

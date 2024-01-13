@@ -253,7 +253,7 @@ namespace fiitobot.Services
                 return;
             }
 
-            if (text.StartsWith("др"))
+            if (text.ToLower().StartsWith("др"))
             {
                 if (sender.Type == ContactType.Student)
                 {
@@ -400,18 +400,18 @@ namespace fiitobot.Services
         {
             return date switch
             {
-                "01" => "Январь",
-                "02" => "Февраль",
-                "03" => "Март",
-                "04" => "Апрель",
-                "05" => "Май",
-                "06" => "Июнь",
-                "07" => "Июль",
-                "08" => "Август",
-                "09" => "Сентябрь",
-                "10" => "Октябрь",
-                "11" => "Ноябрь",
-                "12" => "Декабрь",
+                "01" => "январе",
+                "02" => "феврале",
+                "03" => "марте",
+                "04" => "апреле",
+                "05" => "мае",
+                "06" => "июне",
+                "07" => "июле",
+                "08" => "августе",
+                "09" => "сентябре",
+                "10" => "октябре",
+                "11" => "ноябре",
+                "12" => "декабре",
                 _ => "fail"
             };
         }
@@ -539,7 +539,7 @@ namespace fiitobot.Services
             {
                 if (FormatDateToMonth(text) != "fail")
                 {
-                    await presenter.ShowContactsBy(FormatDateToMonth(text), res, chatId);
+                    await presenter.ShowContactsBy($"Дни рождения в {FormatDateToMonth(text)}", res, chatId);
                 }
                 else
                 {
