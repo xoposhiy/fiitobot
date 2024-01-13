@@ -1,12 +1,15 @@
 ﻿using System;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using fiitobot.GoogleSpreadsheet;
 using fiitobot.Services.Commands;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
+using Telegram.Bot.Types.ReplyMarkups;
 
 namespace fiitobot.Services
 {
@@ -181,6 +184,30 @@ namespace fiitobot.Services
                 text = text.Replace(m.Value, "");
             }
 
+            var fullBirthDate = Regex.Match(text, @"^(0[1-9]|[12][0-9]|3[01])\.(0[1-9]|1[012])");
+            var birthDate = FormatMonthToDate(text);
+            if (birthDate != "fail" || fullBirthDate.Success)
+            {
+                var allContacts = botDataRepo.GetData().AllContacts;
+
+                var impersonatedUser = allContacts.FirstOrDefault(c => c.Id.ToString() == sender.Id.ToString());
+                sender = impersonatedUser ?? sender;
+
+                if (fullBirthDate.Success)
+                {
+                    await presenter.ShowBirthDateActions(sender, fromChatId, text);
+                    return;
+                }
+
+                if (birthDate != "fail")
+                {
+                    if (!await ShowContactsListBy(birthDate, c => c.BirthDate.Split(".")[1], fromChatId, true))
+                        await presenter.SayNoResults(fromChatId);
+
+                    return;
+                }
+            }
+
             var command = commands.FirstOrDefault(c => text.StartsWith(c.Command));
 
             if (command != null)
@@ -202,6 +229,85 @@ namespace fiitobot.Services
                 return;
             }
 
+            if (text.StartsWith("/changed"))
+            {
+                var date = text.Split(" ")[1];
+
+                if (IsValidDate(date))
+                {
+                    sender.UpdateBirthDate(botDataRepo, sender, date);
+
+                    await presenter.Say("Данные успешно изменены!", fromChatId);
+                    return;
+                }
+
+                await presenter.Say("Неверный формат или значение даты(" +
+                                    "\nУкажите допустимую дату в формате ДД.ММ или ДД.ММ.ГГГГ", fromChatId);
+                return;
+            }
+
+            if (text.StartsWith("/find"))
+            {
+                var date = text.Split(" ")[1];
+
+                if (!await ShowContactsListBy(date, c => c.BirthDate, fromChatId))
+                    await presenter.SayNoResults(fromChatId);
+                return;
+            }
+
+            if (text.StartsWith("др"))
+            {
+                if (sender.Type == ContactType.Student)
+                {
+                    if (!await ShowContactsListBy(
+                            sender.FormatMnemonicGroup(DateTime.Now, false),
+                            c => c.FormatMnemonicGroup(DateTime.Now, false),
+                            fromChatId,
+                            true))
+                        await presenter.SayNoResults(fromChatId);
+                    return;
+                }
+
+                await presenter.Say("Информация по др одногруппников доступна только студентам." +
+                                    "\n\nВы можете поискать др студентов и преподавателей по названию месяца, например \"сентябрь\".", fromChatId);
+                return;
+            }
+
+            if (text.StartsWith("/stat_birthDate"))
+            {
+                var statCount = botDataRepo.GetData().Students.Count(s => !string.IsNullOrEmpty(s.BirthDate) && s.BirthDate != "no");
+
+                await presenter.Say($"{statCount} людей указали когда у них день рождения.", fromChatId);
+                return;
+            }
+
+            if (text.StartsWith("/no_birthDate"))
+            {
+                sender.UpdateBirthDate(botDataRepo, sender, "no");
+
+                await presenter.Say("Данные о твоем др теперь недоступны" +
+                                    "\n\nТы в любой момент можешь добавить др, написав нужную дату в формате ДД.ММ или ДД.ММ.ГГГГ", fromChatId);
+                return;
+            }
+
+            if (text.StartsWith("/no_notification"))
+            {
+                sender.UpdateBirthDate(botDataRepo, sender, null, false);
+
+                await presenter.Say("Уведомления больше не будут приходить тебе в личные сообщения." +
+                                    "\n\nТы в любой момент можешь вернуть их, написав /send_notification", fromChatId);
+                return;
+            }
+
+            if (text.StartsWith("/send_notification"))
+            {
+                sender.UpdateBirthDate(botDataRepo, sender, null, true);
+
+                await presenter.Say("Теперь ты будешь получать уведомления о др своих одногруппников!" +
+                                    "\n\nТы в любой момент можешь отключить их, написав /no_notification", fromChatId);
+                return;
+            }
+
             if (text.StartsWith("/"))
                 return;
 
@@ -217,7 +323,15 @@ namespace fiitobot.Services
             foreach (var person in contacts.Take(maxResultsCount))
             {
                 if (person.TgId == fromChatId || asSelf)
+                {
                     await SayCompliment(person, fromChatId);
+
+                    if (string.IsNullOrEmpty(sender.BirthDate))
+                    {
+                        await presenter.AskForBirthDate(fromChatId);
+                    }
+                }
+
                 var details = detailsRepo.FindById(person.Id).Result;
                 person.UpdateFromDetails(details);
                 var detailsLevel = person.GetDetailsLevelFor(asSelf ? person : sender);
@@ -269,6 +383,59 @@ namespace fiitobot.Services
                 if (!foundAnswer && !silentOnNoResults)
                     await presenter.SayNoResults(fromChatId);
             }
+
+            if (string.IsNullOrEmpty(sender.BirthDate))
+            {
+                await presenter.AskForBirthDate(fromChatId);
+            }
+        }
+
+        private bool IsValidDate(string dateString)
+        {
+            DateTime tempDate;
+            string[] formats = { "dd.MM", "dd.MM.yyyy" };
+
+            return DateTime.TryParseExact(dateString, formats, CultureInfo.InvariantCulture, DateTimeStyles.None, out tempDate);
+        }
+
+        private string FormatDateToMonth(string date)
+        {
+            return date switch
+            {
+                "01" => "Январь",
+                "02" => "Февраль",
+                "03" => "Март",
+                "04" => "Апрель",
+                "05" => "Май",
+                "06" => "Июнь",
+                "07" => "Июль",
+                "08" => "Август",
+                "09" => "Сентябрь",
+                "10" => "Октябрь",
+                "11" => "Ноябрь",
+                "12" => "Декабрь",
+                _ => "fail"
+            };
+        }
+
+        private string FormatMonthToDate(string month)
+        {
+            return month.ToLower() switch
+            {
+                "январь" => "01",
+                "февраль" => "02",
+                "март" => "03",
+                "апрель" => "04",
+                "май" => "05",
+                "июнь" => "06",
+                "июль" => "07",
+                "август" => "08",
+                "сентябрь" => "09",
+                "октябрь" => "10",
+                "ноябрь" => "11",
+                "декабрь" => "12",
+                _ => "fail"
+            };
         }
 
         private async Task<bool> TryHandleAsRequestAsMultilineList(string text, BotData data, long fromChatId)
@@ -306,6 +473,12 @@ namespace fiitobot.Services
             var detailsLevel = person.GetDetailsLevelFor(sender);
             await SayCompliment(person, sender.TgId);
             await presenter.ShowContact(person, sender.TgId, detailsLevel);
+
+            if (string.IsNullOrEmpty(sender.BirthDate))
+            {
+                await presenter.AskForBirthDate(sender.TgId);
+            }
+
             return true;
         }
 
@@ -350,14 +523,34 @@ namespace fiitobot.Services
                 ?? (senderType, text);
         }
 
-        private async Task<bool> ShowContactsListBy(string text, Func<Contact, string> getProperty, long chatId)
+        private async Task<bool> ShowContactsListBy(string text, Func<Contact, string> getProperty, long chatId, bool isBirth=false)
         {
             var botData = botDataRepo.GetData();
             var contacts = botData.AllContacts.Select(p => p).ToList();
+            if (isBirth)
+                contacts = contacts
+                    .Where(c => !string.IsNullOrEmpty(c.BirthDate) && c.BirthDate != "no")
+                    .ToList();
+
             var res = contacts.Where(c => SmartContains(getProperty(c) ?? "", text))
                 .ToList();
             if (res.Count == 0) return false;
             var bestGroup = res.GroupBy(getProperty).MaxBy(g => g.Count());
+
+            if (isBirth)
+            {
+                if (FormatDateToMonth(text) != "fail")
+                {
+                    await presenter.ShowContactsBy(FormatDateToMonth(text), res, chatId);
+                }
+                else
+                {
+                    await presenter.ShowContactsBy($"Дни рождения {text}", res, chatId);
+                }
+
+                return true;
+            }
+
             await presenter.ShowContactsBy(bestGroup.Key, res, chatId);
             return true;
         }

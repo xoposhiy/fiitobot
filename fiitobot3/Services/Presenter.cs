@@ -59,6 +59,8 @@ namespace fiitobot.Services
         Task OfferToSetHisPhoto(long chatId);
         Task ShowIfItIsDemidovichTask(string callbackData, long fromChatId);
         Task SendFile(byte[] content, string filename, string caption, long fromChatId);
+        Task AskForBirthDate(long chatId);
+        Task ShowBirthDateActions(Contact sender, long chatId, string text);
     }
 
     public class Presenter : IPresenter
@@ -153,10 +155,12 @@ namespace fiitobot.Services
                 await SayNoRights(chatId, senderType);
             else
             {
-                var b = new StringBuilder("Напиши что-нибудь и я найду кого-нибудь из ФИИТ :)\nЯ понимаю имена, фамилии, юзернеймы Telegram, школы, города, компании и всякое.");
+                var b = new StringBuilder("Напиши что-нибудь и я найду кого-нибудь из ФИИТ :)\nЯ понимаю имена, фамилии, месяца, юзернеймы Telegram, школы, города, компании и всякое.");
                 b.Append("\n\nЕщё можешь прислать мне свою фотографию, и её будут видеть все, кто запросит твой контакт у фиитобота.");
                 b.Append("\n\nМожно написать номер задачи из Демидовича, и я пришлю формулировку задачи.");
                 b.Append("\n\nА если прислать мне номер учебной группы ФИИТ, то я сконвертирую ее из ФТ- формата в МЕН- формат или наоборот.");
+                b.Append("\n\nТакже ты можешь написать свой день рождения в формате ДД.ММ.ГГГГ (можно без года), добавить его, и другие студенты смогут тебя поздравить.");
+                b.Append("\nА можешь найти других студентов по их др в формате, написанном выше.");
                 if (senderType.IsOneOf(ContactType.Administration))
                     b.AppendLine(
                         "\n\nВ любом другом чате напиши @fiitobot и после пробела начни писать фамилию. Я покажу, кого я знаю с такой фамилией, и после выбора конкретного студента, запощу карточку про студента в чат." +
@@ -170,7 +174,8 @@ namespace fiitobot.Services
                         .AppendLine("/tell @user message — отправляет message @user-у от имени фиитобота.")
                         .AppendLine("/as_student ... — как это выглядит для студента.")
                         .AppendLine("/as_staff ... — как это выглядит для препода.")
-                        .AppendLine("/as_external ... —  как это выглядит для внешних.");
+                        .AppendLine("/as_external ... —  как это выглядит для внешних.")
+                        .AppendLine("/stat_birthDate —  получить количество людей, указавших др.");
 
                 await botClient.SendTextMessageAsync(chatId, b.ToString(), parseMode: ParseMode.Html);
             }
@@ -209,23 +214,55 @@ namespace fiitobot.Services
                 .Replace(">", "&gt;");
         }
 
+        public async Task ShowBirthDateActions(Contact sender, long chatId, string text)
+        {
+            var inlineKeyboardMarkup = new InlineKeyboardMarkup(new []
+                {
+                    new InlineKeyboardButton("Да")
+                        { CallbackData = GetBirthDateCallbackData(text) },
+                    new InlineKeyboardButton("Найти людей")
+                        { CallbackData = GetCallbackData(text) }
+                }
+            );
+
+            var htmlText = "Хотите установить эту дату в качестве др?" +
+                           "\n\nМожете поискать др одногруппников по слову \"др\" или остальных по названию месяца";
+
+            await botClient.SendTextMessageAsync(chatId, htmlText, parseMode: ParseMode.Html,
+                replyMarkup: inlineKeyboardMarkup);
+        }
+
         public async Task ShowContact(Contact contact, long chatId, ContactDetailsLevel detailsLevel)
         {
+            var htmlText = FormatContactAsHtml(contact, detailsLevel);
+
             if (contact.Type == ContactType.Student)
             {
                 var inlineKeyboardMarkup = detailsLevel.HasFlag(ContactDetailsLevel.Details)
                     ? new InlineKeyboardMarkup(new InlineKeyboardButton("Подробнее!")
                     { CallbackData = GetButtonCallbackData(contact) })
                     : null;
-                var htmlText = FormatContactAsHtml(contact, detailsLevel);
+
+                if (contact.TgId == chatId)
+                    htmlText = FormatContactAsHtml(contact, detailsLevel, true);
+
                 await botClient.SendTextMessageAsync(chatId, htmlText, parseMode: ParseMode.Html,
                     replyMarkup: inlineKeyboardMarkup);
             }
             else
             {
-                var htmlText = FormatContactAsHtml(contact, detailsLevel);
                 await botClient.SendTextMessageAsync(chatId, htmlText, parseMode: ParseMode.Html);
             }
+        }
+
+        private string GetBirthDateCallbackData(string text)
+        {
+            return $"/changed {text}";
+        }
+
+        private string GetCallbackData(string text)
+        {
+            return $"/find {text}";
         }
 
         private string GetButtonCallbackData(Contact contact)
@@ -282,6 +319,14 @@ namespace fiitobot.Services
             await botClient.SendDocumentAsync(fromChatId, new InputFileStream(new MemoryStream(content), filename), caption:caption);
         }
 
+        public async Task AskForBirthDate(long chatId)
+        {
+            await Say("Мы заметили, что у вас не указан день рождения :( " +
+                      "\nУкажите его в формате ДД.ММ или ДД.ММ.ГГГГ, пожалуйста " +
+                      "\n\nОн будет виден другим студентам ФИИТа и они смогут вас поздравить!" +
+                      "\n\nЕсли не хотите указывать день рождения, то напишите /no_birthDate и данное сообщение вас больше не побеспокоит ;)", chatId);
+        }
+
         public async Task ShowPhoto(Contact contact, PersonPhoto photo, long chatId, ContactType senderType)
         {
             var caption = senderType.IsOneOf(ContactType.Administration)
@@ -312,7 +357,7 @@ namespace fiitobot.Services
                 await botClient.SendTextMessageAsync(chatId, "Простите, эта команда не для вас.", parseMode: ParseMode.Html);
         }
 
-        public string FormatContactAsHtml(Contact contact, ContactDetailsLevel detailsLevel)
+        public string FormatContactAsHtml(Contact contact, ContactDetailsLevel detailsLevel, bool isSelf=false)
         {
             var b = new StringBuilder();
             b.AppendLine($"<b>{contact.LastName} {contact.FirstName} {contact.Patronymic}</b>");
@@ -331,6 +376,14 @@ namespace fiitobot.Services
                         b.Append($" c рейтингом {contact.EnrollRating}");
                 }
 
+                if (!string.IsNullOrWhiteSpace(contact.BirthDate) && contact.BirthDate != "no")
+                {
+                    b.AppendLine();
+                    b.AppendLine(isSelf
+                        ? $"Дата рождения: {contact.BirthDate}  /no_birthDate"
+                        : $"Дата рождения: {contact.BirthDate}");
+                }
+
                 if (!string.IsNullOrWhiteSpace(contact.Status) && contact.Status != "Активный")
                 {
                     b.AppendLine();
@@ -341,12 +394,28 @@ namespace fiitobot.Services
             {
                 b.AppendLine($"Команда ФИИТ");
                 b.AppendLine($"Чем занимается: {contact.FiitJob}");
+
+                if (!string.IsNullOrWhiteSpace(contact.BirthDate) && contact.BirthDate != "no")
+                {
+                    b.AppendLine();
+                    b.AppendLine(isSelf
+                        ? $"Дата рождения: {contact.BirthDate}  /no_birthDate"
+                        : $"Дата рождения: {contact.BirthDate}");
+                }
             }
             else if (contact.Type == ContactType.Staff)
             {
                 b.AppendLine($"{contact.FiitJob}");
                 if (!string.IsNullOrWhiteSpace(contact.MainCompany))
                     b.AppendLine($"Основное место работы: {contact.MainCompany}");
+
+                if (!string.IsNullOrWhiteSpace(contact.BirthDate) && contact.BirthDate != "no")
+                {
+                    b.AppendLine();
+                    b.AppendLine(isSelf
+                        ? $"Дата рождения: {contact.BirthDate}  /no_birthDate"
+                        : $"Дата рождения: {contact.BirthDate}");
+                }
             }
 
             b.AppendLine();
@@ -540,6 +609,9 @@ namespace fiitobot.Services
                 ContactType.Staff => p.FiitJob,
                 _ => p.Type.ToString()
             };
+
+            if (!string.IsNullOrEmpty(p.BirthDate) && p.BirthDate != "no")
+                return $"<code>{p.LastName} {p.FirstName} {p.BirthDate}</code> {p.Telegram} {who}";
             return $"<code>{p.LastName} {p.FirstName}</code> {p.Telegram} {who}";
         }
 
