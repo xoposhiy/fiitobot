@@ -60,7 +60,8 @@ namespace fiitobot.Services
         Task OfferToSetHisPhoto(long chatId);
         Task StopCallbackQueryAnimation(CallbackQuery callbackQuery);
 
-        Task ShowSpasibcaConfirmationMessage(string content, long chatId);
+        Task ShowSpasibkaConfirmationMessage(string content, long chatId);
+        Task ShowSpasibkaToReceiver(long receiverTgId, string content);
     }
 
     public class Presenter : IPresenter
@@ -241,19 +242,34 @@ namespace fiitobot.Services
             }
         }
 
-        public async Task ShowSpasibcaConfirmationMessage(string content, long chatId)
+        public async Task ShowSpasibkaToReceiver(long receiverTgId, string content)
+        {
+            var inlineKeyboardMarkup = new InlineKeyboardMarkup(new[]
+            {
+                new InlineKeyboardButton("Посмотреть все спасибки") { CallbackData = ShowAllSpasibki() },
+            });
+
+            await botClient.SendTextMessageAsync(receiverTgId, content, parseMode: ParseMode.Html,
+                replyMarkup: inlineKeyboardMarkup);
+        }
+
+        public async Task ShowSpasibkaConfirmationMessage(string content, long chatId)
         {
             var htmlText = $"Вот что у нас получилось:\n\n{content}";
             var inlineKeyboardMarkup = new InlineKeyboardMarkup(new[]
             {
-                new InlineKeyboardButton("Написать заново") { CallbackData =
-                    RestartTypingSpasibka() },
+                new InlineKeyboardButton("Отменить") {CallbackData = CancelSpasibka()},
+                new InlineKeyboardButton("Написать заново") { CallbackData = RestartTypingSpasibka() },
                 new InlineKeyboardButton("Отправить") {CallbackData = ApplySpasibka()},
-                new InlineKeyboardButton("Отменить") {CallbackData = CancelSpasibka()}
 
             });
             await botClient.SendTextMessageAsync(chatId, htmlText, parseMode: ParseMode.Html,
                 replyMarkup: inlineKeyboardMarkup);
+        }
+
+        private string ShowAllSpasibki()
+        {
+            return "/spasibka showAll";
         }
 
         private string CancelSpasibka()

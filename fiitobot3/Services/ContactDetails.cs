@@ -11,12 +11,13 @@ namespace fiitobot.Services
     public class ContactDetails
     {
         public ContactDetails(long contactId, List<ContactDetail> details = null, List<SemesterMarks> semesters = null,
-            DialogState dialogState = null)
+            DialogState dialogState = null, List<Spasibka> spasibki = null)
         {
             ContactId = contactId;
             Details = details ?? new List<ContactDetail>();
             Semesters = semesters ?? new List<SemesterMarks>();
             DialogState = dialogState ?? new DialogState();
+            Spasibki = spasibki ?? new List<Spasibka>();
         }
 
         public readonly long ContactId;
@@ -27,6 +28,7 @@ namespace fiitobot.Services
         public DateTime LastUseTime;
         public DialogState DialogState;
         public List<ContactDetail> Details;
+        public List<Spasibka> Spasibki;
 
         public void UpdateOrAddMark(BrsStudentMark mark, int year, int yearPart, int courseNumber)
         {
@@ -78,13 +80,25 @@ namespace fiitobot.Services
 
         public string CommandHandlerLine = "";
 
-        // можно хранить самосериализующийся объект
-        public string CommandHandlerData = ""; // сохраняем то что поняли из пользовательского сообщения:
-                                               // внутреннее_состояние ReceiverId текст_спасибки
+        // сохраняем то что поняли из пользовательского сообщения:
+        // внутреннее_состояние ReceiverId текст_спасибки
+        public string CommandHandlerData = "";
 
         public DialogState()
         {
 
+        }
+    }
+
+    public class Spasibka
+    {
+        public readonly Contact Sender;
+        public readonly string Content;
+
+        public Spasibka(Contact sender, string content)
+        {
+            Sender = sender;
+            Content = content;
         }
     }
 }
