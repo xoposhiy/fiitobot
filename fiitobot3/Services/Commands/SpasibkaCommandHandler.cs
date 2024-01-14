@@ -8,14 +8,11 @@ namespace fiitobot.Services.Commands
     public class SpasibkaCommandHandler : IChatCommandHandler
     {
         private readonly IPresenter presenter;
-        private readonly IBotDataRepository botDataRepo;
         private readonly IContactDetailsRepo contactDetailsRepo;
 
-        public SpasibkaCommandHandler(IPresenter presenter, IBotDataRepository botDataRepo,
-            IContactDetailsRepo contactDetailsRepo)
+        public SpasibkaCommandHandler(IPresenter presenter, IContactDetailsRepo contactDetailsRepo)
         {
             this.presenter = presenter;
-            this.botDataRepo = botDataRepo;
             this.contactDetailsRepo = contactDetailsRepo;
         }
 
@@ -69,11 +66,11 @@ namespace fiitobot.Services.Commands
                         // foreach (var spasibka in details.Spasibki)
                         // {
                         //     var from = spasibka.Sender;
-                        //     content.Append($"От `{from.FirstLastName()}`:\n{spasibka.Content}\n\n");
+                        //     content.Append($"От <code>{from.FirstLastName()}</code>:\n{spasibka.Content}\n\n");
                         // }
 
-                        var ssw = details.Spasibki.GroupBy(spasibka => spasibka.Sender);
-                        foreach (var group in details.Spasibki.GroupBy(spasibka => spasibka.Sender.FirstLastName()))
+                        foreach (var group in
+                                 details.Spasibki.GroupBy(spasibka => spasibka.Sender.FirstLastName()))
                         {
                             content.Append($"От <code>{group.Key}</code>:\n");
                             var i = 1;
@@ -91,77 +88,17 @@ namespace fiitobot.Services.Commands
                         return;
                 }
 
-
-                if (dialogState.CommandHandlerLine.Length > 0)
+                if (dialogState.CommandHandlerLine.Length > 0 &&
+                    dialogState.CommandHandlerLine.Split(' ')[1] == "waitingForContent")
                 {
-                    if (dialogState.CommandHandlerLine.Split(' ')[1] == "waitingForContent")
-                    {
-                        var data = dialogState.CommandHandlerData.Split(' ');
-                        if (data.Length != 1)
-                            throw new ArgumentException();
-                        var rcvrId = long.Parse(data.First());
-                        var content = text;
-                        senderDetails.DialogState.CommandHandlerData = $"{rcvrId} {content}";
-                        senderDetails.DialogState.CommandHandlerLine = $"{Command} waitingForApply";
-                        await presenter.ShowSpasibkaConfirmationMessage(content, fromChatId);
-                    }
-
-                    // // callbacks
-                    // else
-                    // {
-                    //     var query = text.Split(" ")[1];
-                    //     switch (query)
-                    //     {
-                    //         case "cancel":
-                    //             if (senderDetails.DialogState.CommandHandlerData.Length == 0) return;
-                    //             senderDetails.DialogState = new DialogState();
-                    //             await presenter.Say("Спасибка отменена", fromChatId);
-                    //             break;
-                    //
-                    //         case "restart":
-                    //             if (senderDetails.DialogState.CommandHandlerData.Length == 0) return;
-                    //             var dt = senderDetails.DialogState.CommandHandlerData.Split(' ');
-                    //             senderDetails.DialogState.CommandHandlerLine = "/spasibka waitingForContent";
-                    //             senderDetails.DialogState.CommandHandlerData = $"{dt.First()}";
-                    //             await presenter.Say("Напишите текст спасибки", fromChatId);
-                    //             break;
-                    //
-                    //         case "confirm":
-                    //             if (senderDetails.DialogState.CommandHandlerData.Length == 0) return;
-                    //             var rcvId = long.Parse(senderDetails.DialogState.CommandHandlerData.Split(' ')[0]);
-                    //             var s = senderDetails.DialogState.CommandHandlerData
-                    //                 .Split(' ')
-                    //                 .Skip(1);
-                    //             var spska = string.Join(' ', s);
-                    //             SendSpasibka(rcvId, sender, spska, fromChatId);
-                    //             await presenter.Say("Спасибка отправлена получателю", fromChatId);
-                    //             senderDetails.DialogState = new DialogState();
-                    //             break;
-                    //
-                    //         case "showAll":
-                    //             var details = await contactDetailsRepo.FindById(sender.Id);
-                    //             if (details.Spasibki.Count == 0)
-                    //             {
-                    //             }
-                    //             else
-                    //             {
-                    //                 var content = new StringBuilder();
-                    //                 foreach (var spasibka in details.Spasibki)
-                    //                 {
-                    //                     var from = spasibka.Sender;
-                    //                     content.Append($"От {from.FirstName} {from.LastName}:\n{spasibka.Content}\n\n");
-                    //                 }
-                    //
-                    //                 await presenter.Say(content.ToString(), fromChatId);
-                    //             }
-                    //
-                    //             break;
-                    //
-                    //         default:
-                    //             senderDetails.DialogState = new DialogState();
-                    //             break;
-                    //     }
-                    // }
+                    var data = dialogState.CommandHandlerData.Split(' ');
+                    if (data.Length != 1)
+                        throw new ArgumentException();
+                    var rcvrId = long.Parse(data.First());
+                    var content = text;
+                    senderDetails.DialogState.CommandHandlerData = $"{rcvrId} {content}";
+                    senderDetails.DialogState.CommandHandlerLine = $"{Command} waitingForApply";
+                    await presenter.ShowSpasibkaConfirmationMessage(content, fromChatId);
                 }
 
                 // если зашли впервые
