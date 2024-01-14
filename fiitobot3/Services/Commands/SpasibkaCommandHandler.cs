@@ -66,25 +66,25 @@ namespace fiitobot.Services.Commands
                     case "/spasibka showAll":
                         var details = await contactDetailsRepo.FindById(sender.Id);
                         var content = new StringBuilder();
-                        foreach (var spasibka in details.Spasibki)
-                        {
-                            var from = spasibka.Sender;
-                            content.Append($"От `{from.FirstLastName()}`:\n{spasibka.Content}\n\n");
-                        }
-
-                        // var ssw = details.Spasibki.GroupBy(spasibka => spasibka.Sender);
-                        // foreach (var group in details.Spasibki.GroupBy(spasibka => spasibka.Sender))
+                        // foreach (var spasibka in details.Spasibki)
                         // {
-                        //     content.Append($"От <code>{group.Key.FirstLastName()}</code>:\n");
-                        //     var i = 1;
-                        //     foreach (var spasibka in group)
-                        //     {
-                        //         content.Append($"{i}. {spasibka.Content}\n");
-                        //         i++;
-                        //     }
-                        //
-                        //     content.Append("\n\n");
+                        //     var from = spasibka.Sender;
+                        //     content.Append($"От `{from.FirstLastName()}`:\n{spasibka.Content}\n\n");
                         // }
+
+                        var ssw = details.Spasibki.GroupBy(spasibka => spasibka.Sender);
+                        foreach (var group in details.Spasibki.GroupBy(spasibka => spasibka.Sender.FirstLastName()))
+                        {
+                            content.Append($"От <code>{group.Key}</code>:\n");
+                            var i = 1;
+                            foreach (var spasibka in group)
+                            {
+                                content.Append($"{i}. {spasibka.Content}\n");
+                                i++;
+                            }
+
+                            content.Append("\n\n");
+                        }
 
                         await presenter.Say(content.ToString(), fromChatId);
 
