@@ -72,6 +72,7 @@ namespace fiitobot.Services
             // if (!await EnsureHasAdminRights(callbackQuery.From, callbackQuery.Message!.Chat.Id)) return;
             var sender = await GetSenderContact(callbackQuery.From);
             await HandlePlainText(callbackQuery.Data!, callbackQuery.Message!.Chat.Id, sender);
+            await presenter.HideInlineKeyboard(callbackQuery.Message.Chat.Id, callbackQuery.Message.MessageId);
             await presenter.StopCallbackQueryAnimation(callbackQuery);
         }
 

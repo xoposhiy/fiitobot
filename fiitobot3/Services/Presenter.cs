@@ -62,6 +62,7 @@ namespace fiitobot.Services
 
         Task ShowSpasibkaConfirmationMessage(string content, long chatId);
         Task ShowSpasibkaToReceiver(long receiverTgId, string content);
+        Task HideInlineKeyboard(ChatId chatId, int messageId);
     }
 
     public class Presenter : IPresenter
@@ -216,21 +217,28 @@ namespace fiitobot.Services
         {
             if (contact.Type == ContactType.Student)
             {
-                var lst = new List<InlineKeyboardButton>();
+                var keyboardButtons = new List<InlineKeyboardButton>();
 
                 if (detailsLevel.HasFlag(ContactDetailsLevel.Details))
                 {
-                    lst.Add(new InlineKeyboardButton("Подробнее!")
+                    keyboardButtons.Add(new InlineKeyboardButton("Подробнее!")
                         { CallbackData = GetButtonCallbackData(contact) });
                 }
 
                 if (contact.TgId != chatId)
                 {
-                    lst.Add(new InlineKeyboardButton("Написать спасибку!")
+                    keyboardButtons.Add(new InlineKeyboardButton("Написать спасибку!")
                         { CallbackData = GetSpasibkiCallbackData(contact) });
+                    keyboardButtons.Add( new InlineKeyboardButton("Посмотреть спасибки")
+                        { CallbackData = ShowAllSpasibki(contact) });
+                }
+                else
+                {
+                    keyboardButtons.Add( new InlineKeyboardButton("Посмотреть мои спасибки")
+                        { CallbackData = ShowAllSpasibki() });
                 }
 
-                var inlineKeyboardMarkup = new InlineKeyboardMarkup(lst.ToArray());
+                var inlineKeyboardMarkup = new InlineKeyboardMarkup(keyboardButtons.ToArray());
                 var htmlText = FormatContactAsHtml(contact, detailsLevel);
                 await botClient.SendTextMessageAsync(chatId, htmlText, parseMode: ParseMode.Html,
                     replyMarkup: inlineKeyboardMarkup);
@@ -265,11 +273,22 @@ namespace fiitobot.Services
             });
             await botClient.SendTextMessageAsync(chatId, htmlText, parseMode: ParseMode.Html,
                 replyMarkup: inlineKeyboardMarkup);
+
+        }
+
+        public async Task HideInlineKeyboard(ChatId chatId, int messageId)
+        {
+            await botClient.EditMessageReplyMarkupAsync(chatId, messageId);
         }
 
         private string ShowAllSpasibki()
         {
             return "/spasibka showAll";
+        }
+
+        private string ShowAllSpasibki(Contact contact)
+        {
+            return $"/spasibka showAll {contact.Id}";
         }
 
         private string CancelSpasibka()

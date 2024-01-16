@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using TL.Methods;
 
 namespace fiitobot.Services.Commands
 {
@@ -29,8 +31,15 @@ namespace fiitobot.Services.Commands
 
             try
             {
-                switch (text)
+                var switcherText = text.Split(' ');
+                switch (string.Join(' ', switcherText.Take(2)))
                 {
+                    case "/spasibka clear":
+                        senderDetails.Spasibki = new List<Spasibka>();
+                        await presenter.Say("Спасибки очищены", fromChatId);
+                        await contactDetailsRepo.Save(senderDetails);
+                        return;
+
                     case "/spasibka cancel":
                         if (senderDetails.DialogState.CommandHandlerData.Length == 0) return;
                         senderDetails.DialogState = new DialogState();
@@ -52,7 +61,9 @@ namespace fiitobot.Services.Commands
                         var rcvId = long.Parse(senderDetails.DialogState.CommandHandlerData.Split(' ')[0]);
                         var s = senderDetails.DialogState.CommandHandlerData
                             .Split(' ')
-                            .Skip(1);
+                            .Skip(1)
+                            .ToArray();
+                        if (s.Length == 0) return;
                         var spska = string.Join(' ', s);
                         await SendSpasibka(rcvId, sender, spska);
                         await presenter.Say("Спасибка отправлена получателю", fromChatId);
@@ -61,13 +72,14 @@ namespace fiitobot.Services.Commands
                         return;
 
                     case "/spasibka showAll":
-                        var details = await contactDetailsRepo.FindById(sender.Id);
                         var content = new StringBuilder();
-                        // foreach (var spasibka in details.Spasibki)
-                        // {
-                        //     var from = spasibka.Sender;
-                        //     content.Append($"От <code>{from.FirstLastName()}</code>:\n{spasibka.Content}\n\n");
-                        // }
+                        ContactDetails details;
+
+                        if (switcherText.Length == 3 && long.TryParse(switcherText[2], out var contactId))
+                            details = await contactDetailsRepo.FindById(contactId);
+
+                        else
+                            details = await contactDetailsRepo.FindById(sender.Id);
 
                         foreach (var group in
                                  details.Spasibki.GroupBy(spasibka => spasibka.Sender.FirstLastName()))
@@ -83,7 +95,16 @@ namespace fiitobot.Services.Commands
                             content.Append("\n\n");
                         }
 
-                        await presenter.Say(content.ToString(), fromChatId);
+                        // TODO: помещать максимум по 7-10 спасибок в страницу + возможность листать строницы
+                        var toSend = content.ToString();
+
+                        if (toSend.Length != 0)
+                            await presenter.Say(toSend, fromChatId);
+                        else
+                            await presenter.Say(
+                                "У вас пока нет спасибок :(\n" +
+                                                "Но вы можете отправить их тому, кого есть за что благодарить!",
+                                fromChatId);
 
                         return;
                 }
@@ -101,8 +122,9 @@ namespace fiitobot.Services.Commands
                     await presenter.ShowSpasibkaConfirmationMessage(content, fromChatId);
                 }
 
-                // если зашли впервые
                 var input = text.Split(" ");
+
+                // если зашли впервые
                 if (input.Length > 1 && long.TryParse(input[1], out var receiverId))
                 {
                     senderDetails.DialogState = new DialogState
@@ -132,7 +154,7 @@ namespace fiitobot.Services.Commands
 
             await presenter.ShowSpasibkaToReceiver(
                 receiverDetails.TelegramId,
-                $"Вам пришла спасибка от: {sender.FirstLastName()}. Вот что вам пишут:\n\n{spasibka}");
+                $"Вам пришла спасибка от: <code>{sender.FirstLastName()}</code>. Вот что вам пишут:\n\n{spasibka}");
         }
     }
 }
