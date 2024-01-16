@@ -23,9 +23,6 @@ namespace fiitobot.Services.Commands
 
         public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
         {
-            // из IContactDetailsRepo.FindBy(ID) можно найти ContactDetails человека
-            // с помощью S3ContactsDetailsRepo.Save(ContactDetails) можно сохранить ContactDetails человека
-
             var senderDetails = contactDetailsRepo.FindById(sender.Id).Result;
             var dialogState = senderDetails.DialogState;
 
@@ -41,14 +38,14 @@ namespace fiitobot.Services.Commands
                         return;
 
                     case "/spasibka cancel":
-                        if (senderDetails.DialogState.CommandHandlerData.Length == 0) return;
+                        if (dialogState.CommandHandlerData.Length == 0) return;
                         senderDetails.DialogState = new DialogState();
                         await presenter.Say("Спасибка отменена", fromChatId);
                         await contactDetailsRepo.Save(senderDetails);
                         return;
 
                     case "/spasibka restart":
-                        if (senderDetails.DialogState.CommandHandlerData.Length == 0) return;
+                        if (dialogState.CommandHandlerData.Length == 0) return;
                         var id = senderDetails.DialogState.CommandHandlerData.Split(' ').First();
                         senderDetails.DialogState.CommandHandlerLine = "/spasibka waitingForContent";
                         senderDetails.DialogState.CommandHandlerData = $"{id}";
@@ -57,7 +54,7 @@ namespace fiitobot.Services.Commands
                         return;
 
                     case "/spasibka confirm":
-                        if (senderDetails.DialogState.CommandHandlerData.Length == 0) return;
+                        if (dialogState.CommandHandlerData.Length == 0) return;
                         var rcvId = long.Parse(senderDetails.DialogState.CommandHandlerData.Split(' ')[0]);
                         var s = senderDetails.DialogState.CommandHandlerData
                             .Split(' ')
@@ -65,8 +62,8 @@ namespace fiitobot.Services.Commands
                             .ToArray();
                         if (s.Length == 0) return;
                         var spska = string.Join(' ', s);
-                        await SendSpasibka(rcvId, sender, spska);
-                        await presenter.Say("Спасибка отправлена получателю", fromChatId);
+                        await ConfirmAndSendSpasibka(rcvId, sender, spska);
+                        await presenter.Say("Спасибка отправлена получателю!", fromChatId);
                         senderDetails.DialogState = new DialogState();
                         await contactDetailsRepo.Save(senderDetails);
                         return;
@@ -104,7 +101,7 @@ namespace fiitobot.Services.Commands
                             content.Append("\n\n");
                         }
 
-                        // TODO: помещать максимум по 7-10 спасибок в страницу + возможность листать строницы
+                        // TODO: помещать максимум по 15-20 спасибок в страницу + возможность листать строницы-
                         var toSend = content.ToString();
 
                         if (toSend.Length != 0)
@@ -152,7 +149,7 @@ namespace fiitobot.Services.Commands
             }
         }
 
-        private async Task SendSpasibka(long receiverId, Contact sender, string spasibka)
+        private async Task ConfirmAndSendSpasibka(long receiverId, Contact sender, string spasibka)
         {
             var receiverDetails = contactDetailsRepo.FindById(receiverId).Result;
             receiverDetails.Spasibki.Add(new Spasibka(sender, spasibka));
