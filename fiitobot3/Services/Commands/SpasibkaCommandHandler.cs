@@ -74,12 +74,21 @@ namespace fiitobot.Services.Commands
                     case "/spasibka showAll":
                         var content = new StringBuilder();
                         ContactDetails details;
+                        string errorMessage;
 
                         if (switcherText.Length == 3 && long.TryParse(switcherText[2], out var contactId))
+                        {
                             details = await contactDetailsRepo.FindById(contactId);
+                            errorMessage = "У этого пользователя пока нет спасибок :(\n" +
+                                           "Но вы можете поблагодарить его за что-нибудь!";
+                        }
 
                         else
+                        {
                             details = await contactDetailsRepo.FindById(sender.Id);
+                            errorMessage = "У вас пока нет спасибок :(\n" +
+                                           "Но вы можете отправить их тому, кого есть за что благодарить!";
+                        }
 
                         foreach (var group in
                                  details.Spasibki.GroupBy(spasibka => spasibka.Sender.FirstLastName()))
@@ -101,10 +110,7 @@ namespace fiitobot.Services.Commands
                         if (toSend.Length != 0)
                             await presenter.Say(toSend, fromChatId);
                         else
-                            await presenter.Say(
-                                "У вас пока нет спасибок :(\n" +
-                                                "Но вы можете отправить их тому, кого есть за что благодарить!",
-                                fromChatId);
+                            await presenter.Say(errorMessage, fromChatId);
 
                         return;
                 }
