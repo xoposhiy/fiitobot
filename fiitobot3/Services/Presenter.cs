@@ -61,7 +61,7 @@ namespace fiitobot.Services
         Task StopCallbackQueryAnimation(CallbackQuery callbackQuery);
 
         Task ShowSpasibkaConfirmationMessage(string content, long chatId);
-        Task ShowSpasibkaToReceiver(long receiverTgId, string content);
+        Task ShowSpasibkaToReceiver(string content, long receiverTgId);
         Task HideInlineKeyboard(ChatId chatId, int messageId);
     }
 
@@ -250,7 +250,7 @@ namespace fiitobot.Services
             }
         }
 
-        public async Task ShowSpasibkaToReceiver(long receiverTgId, string content)
+        public async Task ShowSpasibkaToReceiver(string content, long receiverTgId)
         {
             var inlineKeyboardMarkup = new InlineKeyboardMarkup(new[]
             {

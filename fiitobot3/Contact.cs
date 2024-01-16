@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using fiitobot.Services;
@@ -142,6 +143,19 @@ namespace fiitobot
             }
             else
                 throw new Exception($"Unsupported group format {group}");
+        }
+    }
+
+    public class ContactComparer : IEqualityComparer<Contact>
+    {
+        public bool Equals(Contact x, Contact y)
+        {
+            return x != null && y != null && x.FirstLastName() == y.FirstLastName();
+        }
+
+        public int GetHashCode(Contact obj)
+        {
+            return obj.FirstLastName().GetHashCode();
         }
     }
 

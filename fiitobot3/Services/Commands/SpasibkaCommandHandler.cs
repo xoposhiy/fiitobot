@@ -88,9 +88,11 @@ namespace fiitobot.Services.Commands
                         }
 
                         foreach (var group in
-                                 details.Spasibki.GroupBy(spasibka => spasibka.Sender.FirstLastName()))
+                                 details.Spasibki.GroupBy(spasibka => spasibka.Sender, new ContactComparer()))
                         {
-                            content.Append($"От <code>{group.Key}</code>:\n");
+                            content.Append($"От <code>{group.Key.FirstLastName()}</code> {group.Key.Telegram}:\n");
+                            // content.Append($"От [{group.Key.FirstLastName()}]({group.Key.Telegram}):\n");
+
                             var i = 1;
                             foreach (var spasibka in group)
                             {
@@ -156,8 +158,9 @@ namespace fiitobot.Services.Commands
             await contactDetailsRepo.Save(receiverDetails);
 
             await presenter.ShowSpasibkaToReceiver(
-                receiverDetails.TelegramId,
-                $"Вам пришла спасибка от: <code>{sender.FirstLastName()}</code>. Вот что вам пишут:\n\n{spasibka}");
+                $"Вам пришла спасибка от: <code>{sender.FirstLastName()}</code> {sender.Telegram}." +
+                $" Вот что вам пишут:\n\n{spasibka}",
+                receiverDetails.TelegramId);
         }
     }
 }
