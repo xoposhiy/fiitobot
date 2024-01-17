@@ -11,7 +11,7 @@ namespace fiitobot.Services
         private const string StaffSheetName = "Staff";
         private const string StudentsSheetName = "Students";
         private const string AdminSheetName = "Administrators";
-        private const string Range = "A1:Z";
+        private const string Range = "A1:ZZ";
         private const string baseGoogleUrl = "https://calendar.google.com/calendar/embed?src=";
         private readonly object locker = new object();
         private readonly GSheetClient sheetClient;
@@ -94,6 +94,11 @@ namespace fiitobot.Services
                     c => c.Id, (newContact, currentContact) => (newContact, currentContact));
             foreach (var (newContact, oldContact) in pairs)
             {
+                //TODO обобщить: пометить часть полей как хранящиеся только в S3 и отсутствующие в гугл-таблице
+                //Пока что такие BirthDate и ReceiveBirthdayNotifications - то, что пользователи указывают сами.
+                newContact.BirthDate = oldContact.BirthDate;
+                newContact.ReceiveBirthdayNotifications = oldContact.ReceiveBirthdayNotifications;
+
                 // Мы поменяли username в Google Sheets → Надо перезаписать все в details, если там другой username
                 if (newContact.Telegram != oldContact.Telegram)
                 {

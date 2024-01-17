@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -214,21 +212,14 @@ namespace fiitobot.Services
                 return;
             if (await TryHandleAsRequestAsMultilineList(text, data, fromChatId))
                 return;
-            if (await TryHandleAsBirthdayCommands(text, sender, fromChatId, new DateUtils()))
+            if (await TryHandleAsBirthdayCommands(text, sender, fromChatId))
                 return;
             var contacts = data.SearchContacts(text);
             const int maxResultsCount = 1;
             foreach (var person in contacts.Take(maxResultsCount))
             {
                 if (person.TgId == fromChatId || asSelf)
-                {
                     await SayCompliment(person, fromChatId);
-
-                    if (string.IsNullOrEmpty(sender.BirthDate))
-                    {
-                        await presenter.AskForBirthDate(fromChatId);
-                    }
-                }
 
                 var details = detailsRepo.FindById(person.Id).Result;
                 person.UpdateFromDetails(details);
@@ -349,29 +340,23 @@ namespace fiitobot.Services
             return false;
         }
 
-        private async Task<bool> TryHandleAsBirthdayCommands(string text, Contact sender, long fromChatId, DateUtils dateUtils)
+        private async Task<bool> TryHandleAsBirthdayCommands(string text, Contact sender, long fromChatId)
         {
             var fullBirthDate = Regex.Match(text, @"^(0[1-9]|[12][0-9]|3[01])\.(0[1-9]|1[012])");
-            var birthDate = dateUtils.TryParseMonthNumber(text, out var monthString);
-
-            if (birthDate || fullBirthDate.Success)
+            if (fullBirthDate.Success)
             {
-                if (fullBirthDate.Success)
-                {
-                    await presenter.ShowBirthDateActions(sender, fromChatId, text);
-                    return true;
-                }
-
-                if (Regex.IsMatch(monthString, @"^\d+$"))
-                {
-                    if (!await ShowContactsListBy(monthString, c => c.BirthDate.Split(".")[1], fromChatId, true))
-                        await presenter.SayNoResults(fromChatId);
-
-                    return true;
-                }
+                await presenter.ShowBirthDateActions(sender, fromChatId, text);
+                return true;
             }
 
-            if (text.ToLower().StartsWith("др"))
+            if (DateUtils.TryParseMonthName(text, out var monthNumber))
+            {
+                if (!await ShowContactsListBy(monthNumber, c => c.BirthDate.Split(".")[1], fromChatId, true))
+                    await presenter.SayNoResults(fromChatId);
+                return true;
+            }
+
+            if (text.Equals("др", StringComparison.OrdinalIgnoreCase))
             {
                 if (sender.Type == ContactType.Student)
                 {
@@ -412,7 +397,6 @@ namespace fiitobot.Services
 
         private async Task<bool> ShowContactsListBy(string text, Func<Contact, string> getProperty, long chatId, bool isBirth=false)
         {
-            var dateUtils = new DateUtils();
             var botData = botDataRepo.GetData();
             var contacts = botData.AllContacts.Select(p => p).ToList();
             if (isBirth)
@@ -427,13 +411,13 @@ namespace fiitobot.Services
 
             if (isBirth)
             {
-                if (dateUtils.TryParseMonthNumber(text, out var monthName))
+                if (DateUtils.TryParseMonthNumber(text, out var monthName))
                 {
-                    await presenter.ShowContactsBy($"{monthName} - месяц, в котором родились", res, chatId);
+                    await presenter.ShowContactsBy($"{monthName} — месяц, в котором родились", res, chatId);
                 }
                 else
                 {
-                    await presenter.ShowContactsBy($"Дни рождения {text}", res, chatId);
+                    await presenter.ShowContactsBy($"Дни рождения '{text}'", res, chatId);
                 }
 
                 return true;

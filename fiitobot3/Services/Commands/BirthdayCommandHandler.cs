@@ -11,13 +11,11 @@ namespace fiitobot.Services.Commands
     {
         private readonly IPresenter presenter;
         private readonly IBotDataRepository botDataRepo;
-        private readonly DateUtils dateUtils;
 
-        public SaveBirthdayCommandHandler(IPresenter presenter, IBotDataRepository botDataRepo, DateUtils dateUtils)
+        public SaveBirthdayCommandHandler(IPresenter presenter, IBotDataRepository botDataRepo)
         {
             this.presenter = presenter;
             this.botDataRepo = botDataRepo;
-            this.dateUtils = dateUtils;
         }
 
         public string Command => "/bd_save";
@@ -26,11 +24,12 @@ namespace fiitobot.Services.Commands
         {
             var date = text.Split(" ")[1];
 
-            if (dateUtils.IsValidDate(date))
+            if (DateUtils.IsValidDate(date))
             {
                 botDataRepo.UpdateContact(sender.Id, c => c.BirthDate = date);
 
-                await presenter.Say("Данные успешно изменены!", fromChatId);
+                await presenter.Say("Отлично! Теперь твой ДР отображается в профиле!" +
+                                    "\n\nКстати! Если прислать мне слово \"др\", я покажу дни рождения одногруппников. А если прислать название месяца — всех именинников в этом месяце", fromChatId);
                 return;
             }
 
@@ -60,6 +59,7 @@ namespace fiitobot.Services.Commands
                 await presenter.SayNoResults(fromChatId);
         }
 
+        //TODO Дублирование с HandleUpdateService
         private async Task<bool> ShowContactsListBy(string text, Func<Contact, string> getProperty, long chatId)
         {
             var botData = botDataRepo.GetData();
@@ -74,6 +74,7 @@ namespace fiitobot.Services.Commands
             return true;
         }
 
+        //TODO Дублирование с HandleUpdateService.
         private bool SmartContains(string value, string query)
         {
             return new Regex($@"\b{Regex.Escape(query)}\b", RegexOptions.IgnoreCase).IsMatch(value);
@@ -92,10 +93,10 @@ namespace fiitobot.Services.Commands
         }
 
         public string Command => "/bd_stats";
-        public ContactType[] AllowedFor => new[] { ContactType.Administration, ContactType.Staff };
+        public ContactType[] AllowedFor => new[] { ContactType.Administration };
         public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
         {
-            var statCount = botDataRepo.GetData().Students.Count(s => !string.IsNullOrEmpty(s.BirthDate) && s.BirthDate != "no");
+            var statCount = botDataRepo.GetData().AllContacts.Count(s => !string.IsNullOrEmpty(s.BirthDate) && s.BirthDate != "no");
 
             await presenter.Say($"{statCount} людей указали когда у них день рождения.", fromChatId);
         }
@@ -167,44 +168,40 @@ namespace fiitobot.Services.Commands
         }
     }
 
-    public class DateUtils
+    public static class DateUtils
     {
-        public bool TryParseMonthNumber(string monthString, out string monthName)
+        private static readonly Dictionary<string, string> MonthNames = new Dictionary<string, string>
         {
-            var monthNames = new Dictionary<string, string>()
-            {
-                {"01", "Январь"},
-                {"02", "Февраль"},
-                {"03", "Март"},
-                {"04", "Апрель"},
-                {"05", "Май"},
-                {"06", "Июнь"},
-                {"07", "Июль"},
-                {"08", "Август"},
-                {"09", "Сентябрь"},
-                {"10", "Октябрь"},
-                {"11", "Ноябрь"},
-                {"12", "Декабрь"}
-            };
+            {"01", "Январь"},
+            {"02", "Февраль"},
+            {"03", "Март"},
+            {"04", "Апрель"},
+            {"05", "Май"},
+            {"06", "Июнь"},
+            {"07", "Июль"},
+            {"08", "Август"},
+            {"09", "Сентябрь"},
+            {"10", "Октябрь"},
+            {"11", "Ноябрь"},
+            {"12", "Декабрь"}
+        };
 
-            if (monthNames.ContainsKey(monthString))
-            {
-                monthName = monthNames[monthString];
-                return true;
-            }
-
-            monthName = monthNames.FirstOrDefault(x =>
-                x.Value == char.ToUpper(monthString[0]) + monthString.Substring(1).ToLower()).Key;
-
-            return monthName != null;
+        public static bool TryParseMonthName(string text, out string monthNumber)
+        {
+            monthNumber = MonthNames
+                .Where(kv => kv.Value.Equals(text, StringComparison.OrdinalIgnoreCase))
+                .Select(kv => kv.Key)
+                .FirstOrDefault();
+            return monthNumber != null;
         }
 
-        public bool IsValidDate(string dateString)
-        {
-            DateTime tempDate;
-            string[] formats = { "dd.MM", "dd.MM.yyyy" };
+        public static bool TryParseMonthNumber(string monthString, out string monthName) =>
+            MonthNames.TryGetValue(monthString, out monthName);
 
-            return DateTime.TryParseExact(dateString, formats, CultureInfo.InvariantCulture, DateTimeStyles.None, out tempDate);
+        public static bool IsValidDate(string dateString)
+        {
+            string[] formats = { "dd.MM", "dd.MM.yyyy" };
+            return DateTime.TryParseExact(dateString, formats, CultureInfo.InvariantCulture, DateTimeStyles.None, out _);
         }
     }
 }

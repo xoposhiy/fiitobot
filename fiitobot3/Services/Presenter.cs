@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using fiitobot.Services.Commands;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -68,7 +67,7 @@ namespace fiitobot.Services
     {
         private readonly ITelegramBotClient botClient;
         private readonly Settings settings;
-        private const string baseGoogleUrl = "https://calendar.google.com/calendar/embed?src=";
+        private const string BaseGoogleUrl = "https://calendar.google.com/calendar/embed?src=";
 
         public Presenter(ITelegramBotClient botClient, Settings settings)
         {
@@ -220,7 +219,6 @@ namespace fiitobot.Services
 
         public async Task ShowBirthDateActions(Contact sender, long chatId, string text)
         {
-            var dateUtils = new DateUtils();
             var inlineKeyboardMarkup = new InlineKeyboardMarkup(new []
                 {
                     new InlineKeyboardButton("Сохрани как мой ДР")
@@ -230,8 +228,7 @@ namespace fiitobot.Services
                 }
             );
 
-            var htmlText = $"{text} - похоже на чей-то др. Что с ним сделать?" +
-                           "\n\nМожете поискать др одногруппников по слову \"др\" или остальных по названию месяца";
+            var htmlText = $"{text} - похоже на чей-то др. Что с ним сделать?";
 
             await botClient.SendTextMessageAsync(chatId, htmlText, parseMode: ParseMode.Html,
                 replyMarkup: inlineKeyboardMarkup);
@@ -323,10 +320,9 @@ namespace fiitobot.Services
 
         public async Task AskForBirthDate(long chatId)
         {
-            await Say("Мы заметили, что у вас не указан день рождения :( " +
-                      "\nУкажите его в формате ДД.ММ или ДД.ММ.ГГГГ, пожалуйста " +
-                      "\n\nОн будет виден другим студентам ФИИТа и они смогут вас поздравить!" +
-                      "\n\nЕсли не хотите указывать день рождения, то напишите /bd_remove и данное сообщение вас больше не побеспокоит ;)", chatId);
+            await Say("Кстати, а когда у тебя день рождения?" +
+                      "\nНапиши мне свою дату рождения в формате ДД.ММ или ДД.ММ.ГГГГ и она станет видна другим студентам ФИИТ. Возможно, они захотят тебя поздравить!" +
+                      "\n\nЕсли не любишь поздравления, то нажми на /bd_remove я больше не буду тебя беспокоить.", chatId);
         }
 
         public async Task ShowPhoto(Contact contact, PersonPhoto photo, long chatId, ContactType senderType)
@@ -484,7 +480,7 @@ namespace fiitobot.Services
 
         private string GetGoogleCalendarLinkById(string googleCalendarId)
         {
-            return $"{baseGoogleUrl}{googleCalendarId}";
+            return $"{BaseGoogleUrl}{googleCalendarId}";
         }
 
         public async Task ShowContactsBy(string criteria, IList<Contact> people, long chatId)

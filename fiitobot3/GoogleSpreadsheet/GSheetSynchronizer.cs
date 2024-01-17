@@ -24,7 +24,7 @@ namespace fiitobot.GoogleSpreadsheet
         {
             Fields = typeof(TRecord).GetFields(BindingFlags.Public | BindingFlags.Instance);
         }
-        
+
         public GSheetSynchronizer(GSheet sheet, Expression<Func<TRecord, TId>> getId)
         {
             this.sheet = sheet;
@@ -127,6 +127,8 @@ namespace fiitobot.GoogleSpreadsheet
         {
             if (string.IsNullOrWhiteSpace(value))
                 return type.GetDefaultValue();
+            if (type == typeof(bool))
+                return value.Equals("true", StringComparison.OrdinalIgnoreCase);
             if (type == typeof(string))
                 return value;
             if (type == typeof(int))

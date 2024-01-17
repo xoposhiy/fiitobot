@@ -63,7 +63,7 @@ namespace fiitobot
                     new DemidovichCommandHandler(presenter, demidovichService),
                     new DownloadMarksFromBrsCommandHandler(presenter, botDataRepository, detailsRepo, brsClient),
                     new DownloadMarksFromSpreadsheetsCommandHandler(presenter, marksReloadService),
-                    new SaveBirthdayCommandHandler(presenter, botDataRepository, new DateUtils()),
+                    new SaveBirthdayCommandHandler(presenter, botDataRepository),
                     new FindBirthdayCommandHandler(presenter, botDataRepository),
                     new StatBirthdayCommandHandler(presenter, botDataRepository),
                     new RemoveBirthdayCommandHandler(presenter, botDataRepository),
