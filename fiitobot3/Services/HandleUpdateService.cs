@@ -72,8 +72,8 @@ namespace fiitobot.Services
             // if (!await EnsureHasAdminRights(callbackQuery.From, callbackQuery.Message!.Chat.Id)) return;
             var sender = await GetSenderContact(callbackQuery.From);
             await HandlePlainText(callbackQuery.Data!, callbackQuery.Message!.Chat.Id, sender);
-            await presenter.HideInlineKeyboard(callbackQuery.Message.Chat.Id, callbackQuery.Message.MessageId);
             await presenter.StopCallbackQueryAnimation(callbackQuery);
+            await presenter.HideInlineKeyboard(callbackQuery.Message.Chat.Id, callbackQuery.Message.MessageId);
         }
 
         private async Task BotOnInlineQuery(InlineQuery inlineQuery)
@@ -192,7 +192,7 @@ namespace fiitobot.Services
             if (contactDetails.DialogState.CommandHandlerLine.Length > 0)
             {
                 command = commands.FirstOrDefault(c =>
-                    c.Command.StartsWith(contactDetails.DialogState.CommandHandlerLine.Split(' ').First()));
+                    contactDetails.DialogState.CommandHandlerLine.StartsWith(c.Command));
             }
             else
             {
@@ -238,7 +238,6 @@ namespace fiitobot.Services
                 person.UpdateFromDetails(details);
                 var detailsLevel = person.GetDetailsLevelFor(asSelf ? person : sender);
                 await presenter.ShowContact(person, fromChatId, detailsLevel);
-                // await presenter.ShowSpasibkiButton(person, sender, fromChatId);
                 var selfUploadedPhoto = await photoRepo.TryGetModeratedPhoto(person.TgId);
                 if (selfUploadedPhoto != null)
                 {

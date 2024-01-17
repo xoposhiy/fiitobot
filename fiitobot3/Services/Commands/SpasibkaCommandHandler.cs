@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using TL.Methods;
 
 namespace fiitobot.Services.Commands
 {
@@ -28,8 +27,8 @@ namespace fiitobot.Services.Commands
 
             try
             {
-                var switcherText = text.Split(' ');
-                switch (string.Join(' ', switcherText.Take(2)))
+                var callback = text.Split(' ');
+                switch (string.Join(' ', callback.Take(2)))
                 {
                     case "/spasibka clear":
                         senderDetails.Spasibki = new List<Spasibka>();
@@ -73,13 +72,12 @@ namespace fiitobot.Services.Commands
                         ContactDetails details;
                         string errorMessage;
 
-                        if (switcherText.Length == 3 && long.TryParse(switcherText[2], out var contactId))
+                        if (callback.Length == 3 && long.TryParse(callback[2], out var contactId))
                         {
                             details = await contactDetailsRepo.FindById(contactId);
                             errorMessage = "У этого пользователя пока нет спасибок :(\n" +
                                            "Но вы можете поблагодарить его за что-нибудь!";
                         }
-
                         else
                         {
                             details = await contactDetailsRepo.FindById(sender.Id);
@@ -114,6 +112,7 @@ namespace fiitobot.Services.Commands
                         return;
                 }
 
+                // пришёл текст спасибки
                 if (dialogState.CommandHandlerLine.Length > 0 &&
                     dialogState.CommandHandlerLine.Split(' ')[1] == "waitingForContent")
                 {
@@ -122,19 +121,22 @@ namespace fiitobot.Services.Commands
                         throw new ArgumentException();
                     var rcvrId = long.Parse(data.First());
                     var content = text;
-                    senderDetails.DialogState.CommandHandlerData = $"{rcvrId} {content}";
+
+                    // установить пустое поле, чтобы можно было делать новые запросы в бота на стадии подтверждения спасибки
                     senderDetails.DialogState.CommandHandlerLine = $"{Command} waitingForApply";
+                    senderDetails.DialogState.CommandHandlerData = $"{rcvrId} {content}";
+
                     await presenter.ShowSpasibkaConfirmationMessage(content, fromChatId);
                 }
 
                 var input = text.Split(" ");
 
-                // если зашли впервые
+                // зашли впервые
                 if (input.Length > 1 && long.TryParse(input[1], out var receiverId))
                 {
                     senderDetails.DialogState = new DialogState
                     {
-                        CommandHandlerLine = "/spasibka waitingForContent",
+                        CommandHandlerLine = $"{Command} waitingForContent",
                         CommandHandlerData = $"{receiverId}"
                     };
                     await presenter.Say("Напишите текст спасибки", fromChatId);

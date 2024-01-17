@@ -59,7 +59,6 @@ namespace fiitobot.Services
         Task PromptChangePhoto(long chatId);
         Task OfferToSetHisPhoto(long chatId);
         Task StopCallbackQueryAnimation(CallbackQuery callbackQuery);
-
         Task ShowSpasibkaConfirmationMessage(string content, long chatId);
         Task ShowSpasibkaToReceiver(string content, long receiverTgId);
         Task HideInlineKeyboard(ChatId chatId, int messageId);
@@ -215,39 +214,36 @@ namespace fiitobot.Services
 
         public async Task ShowContact(Contact contact, long chatId, ContactDetailsLevel detailsLevel)
         {
+            var keyboardButtons = new List<InlineKeyboardButton>();
+            string htmlText;
+
             if (contact.Type == ContactType.Student)
             {
-                var keyboardButtons = new List<InlineKeyboardButton>();
-
                 if (detailsLevel.HasFlag(ContactDetailsLevel.Details))
-                {
                     keyboardButtons.Add(new InlineKeyboardButton("Подробнее!")
                         { CallbackData = GetButtonCallbackData(contact) });
-                }
 
-                if (contact.TgId != chatId)
-                {
-                    keyboardButtons.Add(new InlineKeyboardButton("Написать спасибку!")
-                        { CallbackData = GetSpasibkiCallbackData(contact) });
-                    keyboardButtons.Add( new InlineKeyboardButton("Посмотреть спасибки")
-                        { CallbackData = ShowAllSpasibki(contact) });
-                }
-                else
-                {
-                    keyboardButtons.Add( new InlineKeyboardButton("Посмотреть мои спасибки")
-                        { CallbackData = ShowAllSpasibki() });
-                }
-
-                var inlineKeyboardMarkup = new InlineKeyboardMarkup(keyboardButtons.ToArray());
-                var htmlText = FormatContactAsHtml(contact, detailsLevel);
-                await botClient.SendTextMessageAsync(chatId, htmlText, parseMode: ParseMode.Html,
-                    replyMarkup: inlineKeyboardMarkup);
+                htmlText = FormatContactAsHtml(contact, detailsLevel);
             }
+
             else
+                htmlText = FormatContactAsHtml(contact, detailsLevel);
+
+            if (contact.TgId != chatId)
             {
-                var htmlText = FormatContactAsHtml(contact, detailsLevel);
-                await botClient.SendTextMessageAsync(chatId, htmlText, parseMode: ParseMode.Html);
+                keyboardButtons.Add(new InlineKeyboardButton("Написать спасибку!")
+                    { CallbackData = GetSpasibkiCallbackData(contact) });
+                keyboardButtons.Add( new InlineKeyboardButton("Посмотреть спасибки")
+                    { CallbackData = ShowAllSpasibki(contact) });
             }
+
+            else
+                keyboardButtons.Add( new InlineKeyboardButton("Посмотреть мои спасибки")
+                    { CallbackData = ShowAllSpasibki() });
+
+            var inlineKeyboardMarkup = new InlineKeyboardMarkup(keyboardButtons.ToArray());
+            await botClient.SendTextMessageAsync(chatId, htmlText, parseMode: ParseMode.Html,
+                replyMarkup: inlineKeyboardMarkup);
         }
 
         public async Task ShowSpasibkaToReceiver(string content, long receiverTgId)
@@ -263,7 +259,7 @@ namespace fiitobot.Services
 
         public async Task ShowSpasibkaConfirmationMessage(string content, long chatId)
         {
-            var htmlText = $"Вот что у нас получилось:\n\n{content}";
+            var htmlText = $"Вот что у нас получилось:\n{content}";
             var inlineKeyboardMarkup = new InlineKeyboardMarkup(new[]
             {
                 new InlineKeyboardButton("Отменить") {CallbackData = CancelSpasibka()},

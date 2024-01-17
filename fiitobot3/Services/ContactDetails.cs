@@ -77,17 +77,11 @@ namespace fiitobot.Services
 
     public class DialogState
     {
-
+        // сохраняем строку команды, которая должна вызываться на следующем этапе
         public string CommandHandlerLine = "";
 
-        // сохраняем то что поняли из пользовательского сообщения:
-        // внутреннее_состояние ReceiverId текст_спасибки
+        // сохраняем то что поняли из пользовательского сообщения: внутреннее_состояние ReceiverId текст_спасибки
         public string CommandHandlerData = "";
-
-        public DialogState()
-        {
-
-        }
     }
 
     public class Spasibka
