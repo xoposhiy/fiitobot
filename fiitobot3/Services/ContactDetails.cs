@@ -94,17 +94,18 @@ namespace fiitobot.Services
 
     public class Spasibka
     {
-        public readonly Contact Sender;
+        public readonly long SenderContactId;
         public readonly string Content;
-        public readonly string Date;
+        public readonly DateTime PostDate;
 
-        public Spasibka(Contact sender, string content)
+        public Spasibka(long senderContactId, string content, DateTime postDate)
         {
-            Sender = sender;
+            SenderContactId = senderContactId;
             Content = content;
             // TimeZoneInfo cstZone = TimeZoneInfo.FindSystemTimeZoneById("Russian Standard Time");
-            Date = Convert.ToString(DateTime.UtcNow.AddHours(5)
-                .ToString("dd.MM.yyyy:HH:mm"), CultureInfo.InvariantCulture);
+            PostDate = postDate;
+            // PostDate = Convert.ToString(postDate
+            //     .ToString("dd.MM.yyyy:HH:mm"), CultureInfo.InvariantCulture);
         }
     }
 }

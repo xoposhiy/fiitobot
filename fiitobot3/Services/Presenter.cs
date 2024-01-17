@@ -66,8 +66,6 @@ namespace fiitobot.Services
             bool previous = false, bool next = false);
         Task EditMessage(string content, long chatId, int messageId,
             InlineKeyboardMarkup inlineKeyboardMarkup = null);
-        Task DeleteMessage(int messageId, long chatId);
-        Task HideInlineKeyboard(ChatId chatId, int messageId);
     }
 
     public class Presenter : IPresenter

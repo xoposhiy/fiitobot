@@ -102,12 +102,12 @@ namespace fiitobot.Services.Commands
                     var id = senderDetails.DialogState.CommandHandlerData.Split(' ').First();
                     senderDetails.DialogState.CommandHandlerLine = "/spasibka waitingForContent";
                     senderDetails.DialogState.CommandHandlerData = $"{id}";
-                    await presenter.Say("Напишите текст спасибки", fromChatId);
-                    await contactDetailsRepo.Save(senderDetails);
-
                     if (senderDetails.DialogState.MessageId == null)
                         throw new NullReferenceException();
-                    await presenter.HideInlineKeyboard(fromChatId, (int)senderDetails.DialogState.MessageId);
+
+                    await presenter.EditMessage("Напишите текст спасибки", fromChatId,
+                        (int)senderDetails.DialogState.MessageId);
+                    await contactDetailsRepo.Save(senderDetails);
                     return;
 
                 case "/spasibka confirm":
@@ -119,11 +119,11 @@ namespace fiitobot.Services.Commands
                         .ToArray();
                     if (s.Length == 0) return;
                     var spska = string.Join(' ', s);
-                    await ConfirmAndSendSpasibka(rcvId, sender, spska);
-                    await presenter.Say("Спасибка отправлена получателю!", fromChatId);
-                    if (senderDetails.DialogState.MessageId == null)
-                        throw new NullReferenceException();
-                    await presenter.HideInlineKeyboard(fromChatId, (int)senderDetails.DialogState.MessageId);
+                    await ConfirmAndSendSpasibka(rcvId, sender, spska, fromChatId);
+
+                    // if (senderDetails.DialogState.MessageId == null)
+                    //     throw new NullReferenceException();
+                    // await presenter.HideInlineKeyboard(fromChatId, (int)senderDetails.DialogState.MessageId);
                     senderDetails.DialogState = new DialogState();
                     await contactDetailsRepo.Save(senderDetails);
                     return;
@@ -143,7 +143,6 @@ namespace fiitobot.Services.Commands
                 var rcvrId = long.Parse(data.First());
                 var content = text;
 
-                // установить пустое поле, чтобы можно было делать новые запросы в бота на стадии подтверждения спасибки
                 senderDetails.DialogState.CommandHandlerLine = $"{Command} waitingForApply";
                 senderDetails.DialogState.CommandHandlerData = $"{rcvrId} {content}";
 
@@ -214,16 +213,23 @@ namespace fiitobot.Services.Commands
                 await presenter.Say(errorMessage, fromChatId);
         }
 
-        private async Task ConfirmAndSendSpasibka(long receiverId, Contact sender, string spasibka)
+        private async Task ConfirmAndSendSpasibka(long receiverId, Contact sender, string content, long fromChatId)
         {
             var receiverDetails = contactDetailsRepo.FindById(receiverId).Result;
-            receiverDetails.Spasibki.Add(new Spasibka(sender, spasibka));
+            receiverDetails.Spasibki.Add(new Spasibka(sender.Id, content, DateTime.UtcNow.AddHours(5)));
             await contactDetailsRepo.Save(receiverDetails);
+
+            if (senderDetails.DialogState.MessageId == null)
+                throw new NullReferenceException();
 
             await presenter.NotifyReceiverAboutNewSpasibka(
                 $"Вам пришла спасибка от <code>{sender.FirstLastName()}</code> {sender.Telegram}." +
-                $" Вот что вам пишут:\n\n«{spasibka}»",
+                $" Вот что вам пишут:\n\n«{content}»",
                 receiverDetails.TelegramId);
+
+            await presenter.EditMessage("Спасибка отправлена, получатель получил уведомление!",
+                fromChatId,
+                (int)senderDetails.DialogState.MessageId);
         }
 
         private async Task ShowOneSpasibkaToDelete(long fromChatId)
@@ -240,7 +246,7 @@ namespace fiitobot.Services.Commands
                 next: senderDetails.DialogState.IdxSpasibkaToDelete - 1 >= 0);
         }
 
-        private async Task ShowMessageAboutDeletedSpasibka( long fromChatId)
+        private async Task ShowMessageAboutDeletedSpasibka(long fromChatId)
         {
             if (senderDetails.DialogState.MessageId == null)
                 throw new NullReferenceException();
@@ -251,8 +257,11 @@ namespace fiitobot.Services.Commands
 
         private string FormatSpasibka(Spasibka spasibka, string lineSeparator)
         {
-            var res = $"<code>{spasibka.Sender.FirstLastName()}</code> {spasibka.Sender.Telegram}:" +
-                      $"{lineSeparator}«{spasibka.Content}»\n<code>{spasibka.Date}</code>";
+            var botData = botDataRepository.GetData();
+            var sender = botData.AllContacts.FirstOrDefault(contact => contact.Id == spasibka.SenderContactId);
+
+            var res = $"<code>{sender?.FirstLastName()}</code> {sender?.Telegram}:" +
+                      $"{lineSeparator}«{spasibka.Content}»\n<code>{spasibka.PostDate:yyyy.MM.dd-hh:mm}</code>";
             return res;
         }
     }
