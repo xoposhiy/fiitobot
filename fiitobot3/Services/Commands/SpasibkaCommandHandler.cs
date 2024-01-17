@@ -10,11 +10,14 @@ namespace fiitobot.Services.Commands
     {
         private readonly IPresenter presenter;
         private readonly IContactDetailsRepo contactDetailsRepo;
+        private readonly BotDataRepository botDataRepository;
 
-        public SpasibkaCommandHandler(IPresenter presenter, IContactDetailsRepo contactDetailsRepo)
+        public SpasibkaCommandHandler(IPresenter presenter, IContactDetailsRepo contactDetailsRepo,
+            BotDataRepository botDataRepository)
         {
             this.presenter = presenter;
             this.contactDetailsRepo = contactDetailsRepo;
+            this.botDataRepository = botDataRepository;
         }
 
         public string Command => "/spasibka";
@@ -24,133 +27,183 @@ namespace fiitobot.Services.Commands
         {
             var senderDetails = contactDetailsRepo.FindById(sender.Id).Result;
             var dialogState = senderDetails.DialogState;
+            var callback = text.Split(' ');
 
-            try
+            switch (string.Join(' ', callback.Take(2)))
             {
-                var callback = text.Split(' ');
-                switch (string.Join(' ', callback.Take(2)))
-                {
-                    case "/spasibka clear":
-                        senderDetails.Spasibki = new List<Spasibka>();
-                        await presenter.Say("Спасибки очищены", fromChatId);
-                        await contactDetailsRepo.Save(senderDetails);
-                        return;
+                // case "/spasibka clearAll":
+                //     var botData = botDataRepository.GetData();
+                //     foreach (var contact in botData.AllContacts)
+                //     {
+                //         var contactDetails = await contactDetailsRepo.FindById(contact.Id);
+                //         if (contactDetails == null) continue;
+                //         contactDetails.Spasibki = new List<Spasibka>();
+                //         await contactDetailsRepo.Save(contactDetails);
+                //     }
+                //
+                //     await presenter.Say("Все спасибки удалены", fromChatId);
+                //     return;
 
-                    case "/spasibka cancel":
-                        if (dialogState.CommandHandlerData.Length == 0) return;
-                        senderDetails.DialogState = new DialogState();
-                        await presenter.Say("Спасибка отменена", fromChatId);
-                        await contactDetailsRepo.Save(senderDetails);
-                        return;
+                case "/spasibka clear":
+                    senderDetails.Spasibki = new List<Spasibka>();
+                    await presenter.Say("Ваши спасибки очищены", fromChatId);
+                    await contactDetailsRepo.Save(senderDetails);
+                    return;
 
-                    case "/spasibka restart":
-                        if (dialogState.CommandHandlerData.Length == 0) return;
-                        var id = senderDetails.DialogState.CommandHandlerData.Split(' ').First();
-                        senderDetails.DialogState.CommandHandlerLine = "/spasibka waitingForContent";
-                        senderDetails.DialogState.CommandHandlerData = $"{id}";
-                        await presenter.Say("Напишите текст спасибки", fromChatId);
-                        await contactDetailsRepo.Save(senderDetails);
-                        return;
+                case "/spasibka delete":
+                    senderDetails.Spasibki.RemoveAt(senderDetails.DialogState.IdxSpasibkaToDelete);
+                    await ShowMessageAboutDeletedSpasibka(senderDetails, fromChatId);
+                    senderDetails.DialogState.MessageId = null;
+                    await contactDetailsRepo.Save(senderDetails);
+                    return;
 
-                    case "/spasibka confirm":
-                        if (dialogState.CommandHandlerData.Length == 0) return;
-                        var rcvId = long.Parse(senderDetails.DialogState.CommandHandlerData.Split(' ')[0]);
-                        var s = senderDetails.DialogState.CommandHandlerData
-                            .Split(' ')
-                            .Skip(1)
-                            .ToArray();
-                        if (s.Length == 0) return;
-                        var spska = string.Join(' ', s);
-                        await ConfirmAndSendSpasibka(rcvId, sender, spska);
-                        await presenter.Say("Спасибка отправлена получателю!", fromChatId);
-                        senderDetails.DialogState = new DialogState();
-                        await contactDetailsRepo.Save(senderDetails);
-                        return;
+                case "/spasibka showToDelete":
+                    senderDetails.DialogState.IdxSpasibkaToDelete = senderDetails.Spasibki.Count - 1;
+                    await contactDetailsRepo.Save(senderDetails);
+                    await ShowOneSpasibkaToDelete(senderDetails, fromChatId);
+                    return;
 
-                    case "/spasibka showAll":
-                        var content = new StringBuilder();
-                        ContactDetails details;
-                        string errorMessage;
-
-                        if (callback.Length == 3 && long.TryParse(callback[2], out var contactId))
-                        {
-                            details = await contactDetailsRepo.FindById(contactId);
-                            errorMessage = "У этого пользователя пока нет спасибок :(\n" +
-                                           "Но вы можете поблагодарить его за что-нибудь!";
-                        }
-                        else
-                        {
-                            details = await contactDetailsRepo.FindById(sender.Id);
-                            errorMessage = "У вас пока нет спасибок :(\n" +
-                                           "Но вы можете отправить их тому, кого есть за что благодарить!";
-                        }
-
-                        foreach (var group in
-                                 details.Spasibki.GroupBy(spasibka => spasibka.Sender, new ContactComparer()))
-                        {
-                            content.Append($"От <code>{group.Key.FirstLastName()}</code> {group.Key.Telegram}:\n");
-                            // content.Append($"От [{group.Key.FirstLastName()}]({group.Key.Telegram}):\n");
-
-                            var i = 1;
-                            foreach (var spasibka in group)
-                            {
-                                content.Append($"{i}. {spasibka.Content}\n");
-                                i++;
-                            }
-
-                            content.Append("\n\n");
-                        }
-
-                        // TODO: помещать максимум по 15-20 спасибок в страницу + возможность листать строницы-
-                        var toSend = content.ToString();
-
-                        if (toSend.Length != 0)
-                            await presenter.Say(toSend, fromChatId);
-                        else
-                            await presenter.Say(errorMessage, fromChatId);
-
-                        return;
-                }
-
-                // пришёл текст спасибки
-                if (dialogState.CommandHandlerLine.Length > 0 &&
-                    dialogState.CommandHandlerLine.Split(' ')[1] == "waitingForContent")
-                {
-                    var data = dialogState.CommandHandlerData.Split(' ');
-                    if (data.Length != 1)
-                        throw new ArgumentException();
-                    var rcvrId = long.Parse(data.First());
-                    var content = text;
-
-                    // установить пустое поле, чтобы можно было делать новые запросы в бота на стадии подтверждения спасибки
-                    senderDetails.DialogState.CommandHandlerLine = $"{Command} waitingForApply";
-                    senderDetails.DialogState.CommandHandlerData = $"{rcvrId} {content}";
-
-                    await presenter.ShowSpasibkaConfirmationMessage(content, fromChatId);
-                }
-
-                var input = text.Split(" ");
-
-                // зашли впервые
-                if (input.Length > 1 && long.TryParse(input[1], out var receiverId))
-                {
-                    senderDetails.DialogState = new DialogState
+                case "/spasibka cancelDelete":
+                    if (senderDetails.DialogState.MessageId == null)
                     {
-                        CommandHandlerLine = $"{Command} waitingForContent",
-                        CommandHandlerData = $"{receiverId}"
-                    };
-                    await presenter.Say("Напишите текст спасибки", fromChatId);
-                }
+                        throw new NullReferenceException();
+                    }
 
-                await contactDetailsRepo.Save(senderDetails);
+                    await presenter.DeleteMessage((int)senderDetails.DialogState.MessageId, fromChatId);
+                    await ShowAll(callback, sender, fromChatId);
+                    return;
+
+                case "/spasibka next":
+                    if (dialogState.IdxSpasibkaToDelete - 1 < 0) return;
+                    senderDetails.DialogState.IdxSpasibkaToDelete -= 1;
+                    await contactDetailsRepo.Save(senderDetails);
+                    await ShowOneSpasibkaToDelete(senderDetails, fromChatId);
+                    return;
+
+                case "/spasibka previous":
+                    if (dialogState.IdxSpasibkaToDelete + 1 > senderDetails.Spasibki.Count - 1) return;
+                    senderDetails.DialogState.IdxSpasibkaToDelete += 1;
+                    await contactDetailsRepo.Save(senderDetails);
+                    await ShowOneSpasibkaToDelete(senderDetails, fromChatId);
+                    return;
+
+                case "/spasibka cancel":
+                    if (dialogState.CommandHandlerData.Length == 0) return;
+                    if (senderDetails.DialogState.MessageId == null)
+                        throw new NullReferenceException();
+                    await presenter.HideInlineKeyboard(fromChatId, (int)senderDetails.DialogState.MessageId);
+                    senderDetails.DialogState = new DialogState();
+                    await presenter.Say("Спасибка отменена", fromChatId);
+                    await contactDetailsRepo.Save(senderDetails);
+
+                    return;
+
+                case "/spasibka restart":
+                    if (dialogState.CommandHandlerData.Length == 0) return;
+                    var id = senderDetails.DialogState.CommandHandlerData.Split(' ').First();
+                    senderDetails.DialogState.CommandHandlerLine = "/spasibka waitingForContent";
+                    senderDetails.DialogState.CommandHandlerData = $"{id}";
+                    await presenter.Say("Напишите текст спасибки", fromChatId);
+                    await contactDetailsRepo.Save(senderDetails);
+
+                    if (senderDetails.DialogState.MessageId == null)
+                        throw new NullReferenceException();
+                    await presenter.HideInlineKeyboard(fromChatId, (int)senderDetails.DialogState.MessageId);
+                    return;
+
+                case "/spasibka confirm":
+                    if (dialogState.CommandHandlerData.Length == 0) return;
+                    var rcvId = long.Parse(senderDetails.DialogState.CommandHandlerData.Split(' ')[0]);
+                    var s = senderDetails.DialogState.CommandHandlerData
+                        .Split(' ')
+                        .Skip(1)
+                        .ToArray();
+                    if (s.Length == 0) return;
+                    var spska = string.Join(' ', s);
+                    await ConfirmAndSendSpasibka(rcvId, sender, spska);
+                    await presenter.Say("Спасибка отправлена получателю!", fromChatId);
+                    if (senderDetails.DialogState.MessageId == null)
+                        throw new NullReferenceException();
+                    await presenter.HideInlineKeyboard(fromChatId, (int)senderDetails.DialogState.MessageId);
+                    senderDetails.DialogState = new DialogState();
+                    await contactDetailsRepo.Save(senderDetails);
+                    return;
+
+                case "/spasibka showAll":
+                    await ShowAll(callback, sender, fromChatId);
+                    return;
             }
-            catch (Exception e)
+
+            // пришёл текст спасибки
+            if (dialogState.CommandHandlerLine.Length > 0 &&
+                dialogState.CommandHandlerLine.Split(' ')[1] == "waitingForContent")
             {
-                Console.WriteLine(e);
-                senderDetails.DialogState = new DialogState();
-                await contactDetailsRepo.Save(senderDetails);
-                throw;
+                var data = dialogState.CommandHandlerData.Split(' ');
+                if (data.Length != 1)
+                    throw new ArgumentException();
+                var rcvrId = long.Parse(data.First());
+                var content = text;
+
+                // установить пустое поле, чтобы можно было делать новые запросы в бота на стадии подтверждения спасибки
+                senderDetails.DialogState.CommandHandlerLine = $"{Command} waitingForApply";
+                senderDetails.DialogState.CommandHandlerData = $"{rcvrId} {content}";
+
+                await presenter.ShowSpasibkaConfirmationMessage(content, fromChatId);
             }
+
+            var input = text.Split(" ");
+
+            // зашли впервые
+            if (input.Length > 1 && long.TryParse(input[1], out var receiverId))
+            {
+                senderDetails.DialogState = new DialogState
+                {
+                    CommandHandlerLine = $"{Command} waitingForContent",
+                    CommandHandlerData = $"{receiverId}"
+                };
+                await presenter.Say("Напишите текст спасибки", fromChatId);
+            }
+
+            await contactDetailsRepo.Save(senderDetails);
+        }
+
+        private async Task ShowAll(string[] callback, Contact sender, long fromChatId)
+        {
+            var content = new StringBuilder();
+            ContactDetails details;
+            string errorMessage;
+            var canDelete = false;
+
+            if (callback.Length == 3 && long.TryParse(callback[2], out var contactId))
+            {
+                details = await contactDetailsRepo.FindById(contactId);
+                errorMessage = "У этого пользователя пока нет спасибок :(\n" +
+                               "Но вы можете поблагодарить его за что-нибудь!";
+            }
+            else
+            {
+                canDelete = true;
+                details = await contactDetailsRepo.FindById(sender.Id);
+                errorMessage = "У вас пока нет спасибок :(\n" +
+                               "Но вы можете отправить их тому, кого есть за что благодарить!";
+            }
+
+            var spasibkaLst = details.Spasibki;
+            var i = 1;
+
+            for (var j = spasibkaLst.Count - 1; j >= 0; j--)
+            {
+                content.Append($"{i}) От {FormatSpasibka(spasibkaLst[j], "\n")}\n\n");
+                i++;
+            }
+
+            // TODO: помещать максимум по 15-20 спасибок в страницу + возможность листать строницы
+            var toSend = content.ToString();
+
+            if (toSend.Length != 0)
+                await presenter.ShowAllSpasibkaList(toSend, fromChatId, canDelete);
+            else
+                await presenter.Say(errorMessage, fromChatId);
         }
 
         private async Task ConfirmAndSendSpasibka(long receiverId, Contact sender, string spasibka)
@@ -159,10 +212,44 @@ namespace fiitobot.Services.Commands
             receiverDetails.Spasibki.Add(new Spasibka(sender, spasibka));
             await contactDetailsRepo.Save(receiverDetails);
 
-            await presenter.ShowSpasibkaToReceiver(
-                $"Вам пришла спасибка от: <code>{sender.FirstLastName()}</code> {sender.Telegram}." +
-                $" Вот что вам пишут:\n\n{spasibka}",
+            await presenter.NotifyReceiverAboutNewSpasibka(
+                $"Вам пришла спасибка от <code>{sender.FirstLastName()}</code> {sender.Telegram}." +
+                $" Вот что вам пишут:\n\n«{spasibka}»",
                 receiverDetails.TelegramId);
+        }
+
+        private async Task ShowOneSpasibkaToDelete(ContactDetails senderDetails, long fromChatId)
+        {
+            var spasibka = senderDetails.Spasibki[senderDetails.DialogState.IdxSpasibkaToDelete];
+            var content = FormatSpasibka(spasibka, "\n\n");
+
+            if (senderDetails.DialogState.MessageId == null)
+            {
+                throw new NullReferenceException();
+            }
+
+            var messageId = (int)senderDetails.DialogState.MessageId;
+            await presenter.ShowOneSpasibkaFromList(content, fromChatId, messageId,
+                previous: senderDetails.DialogState.IdxSpasibkaToDelete + 1 < senderDetails.Spasibki.Count,
+                next: senderDetails.DialogState.IdxSpasibkaToDelete - 1 >= 0);
+        }
+
+        private async Task ShowMessageAboutDeletedSpasibka(ContactDetails senderDetails, long fromChatId)
+        {
+            if (senderDetails.DialogState.MessageId == null)
+            {
+                throw new NullReferenceException();
+            }
+
+            await presenter.ShowMessageAboutDeletedSpasibka("Спасибка удалена!", fromChatId,
+                (int)senderDetails.DialogState.MessageId);
+        }
+
+        private string FormatSpasibka(Spasibka spasibka, string lineSeparator)
+        {
+            var res = $"<code>{spasibka.Sender.FirstLastName()}</code> {spasibka.Sender.Telegram}:" +
+                      $"{lineSeparator}«{spasibka.Content}»\n<code>{spasibka.Date}</code>";
+            return res;
         }
     }
 }

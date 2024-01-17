@@ -1,6 +1,7 @@
 ﻿using fiitobot.Services.Commands;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text.Json.Nodes;
 using Newtonsoft.Json;
@@ -82,17 +83,28 @@ namespace fiitobot.Services
 
         // сохраняем то что поняли из пользовательского сообщения: внутреннее_состояние ReceiverId текст_спасибки
         public string CommandHandlerData = "";
+
+        // нужен для сохранения индекса в листе на удаление, когда листаем список
+        // понимаю, что не очень хорошо, но больше некуда засунуть этот индекс
+
+        public int IdxSpasibkaToDelete;
+        // айди сообщения, на котором нажали кнопку
+        public int? MessageId;
     }
 
     public class Spasibka
     {
         public readonly Contact Sender;
         public readonly string Content;
+        public readonly string Date;
 
         public Spasibka(Contact sender, string content)
         {
             Sender = sender;
             Content = content;
+            // TimeZoneInfo cstZone = TimeZoneInfo.FindSystemTimeZoneById("Russian Standard Time");
+            Date = Convert.ToString(DateTime.UtcNow.AddHours(5)
+                .ToString("dd.MM.yyyy:HH:mm"), CultureInfo.InvariantCulture);
         }
     }
 }

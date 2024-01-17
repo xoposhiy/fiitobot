@@ -71,9 +71,10 @@ namespace fiitobot.Services
         {
             // if (!await EnsureHasAdminRights(callbackQuery.From, callbackQuery.Message!.Chat.Id)) return;
             var sender = await GetSenderContact(callbackQuery.From);
-            await HandlePlainText(callbackQuery.Data!, callbackQuery.Message!.Chat.Id, sender);
+            await HandlePlainText(callbackQuery.Data!, callbackQuery.Message!.Chat.Id, sender,
+                messageMessageId: callbackQuery.Message.MessageId);
             await presenter.StopCallbackQueryAnimation(callbackQuery);
-            await presenter.HideInlineKeyboard(callbackQuery.Message.Chat.Id, callbackQuery.Message.MessageId);
+            // await presenter.HideInlineKeyboard(callbackQuery.Message.Chat.Id, callbackQuery.Message.MessageId);
         }
 
         private async Task BotOnInlineQuery(InlineQuery inlineQuery)
@@ -167,7 +168,8 @@ namespace fiitobot.Services
         }
 
         public async Task HandlePlainText(string text, long fromChatId, ContactWithDetails senderWithDetails,
-            bool silentOnNoResults = false)
+            bool silentOnNoResults = false,
+            int? messageMessageId = null)
         {
             var sender = senderWithDetails.Contact;
             var asSelf = text.Contains("/as_self");
@@ -189,6 +191,11 @@ namespace fiitobot.Services
             // В state сохранить commandHandler
             IChatCommandHandler command;
 
+            if (messageMessageId != null)
+            {
+                contactDetails.DialogState.MessageId = messageMessageId;
+                await detailsRepo.Save(contactDetails);
+            }
             if (contactDetails.DialogState.CommandHandlerLine.Length > 0)
             {
                 command = commands.FirstOrDefault(c =>
@@ -202,7 +209,18 @@ namespace fiitobot.Services
             if (command != null)
             {
                 if (sender.Type.IsOneOf(command.AllowedFor))
-                    await command.HandlePlainText(text, fromChatId, sender, silentOnNoResults); // try catch here
+                {
+                    try
+                    {
+                        await command.HandlePlainText(text, fromChatId, sender, silentOnNoResults);
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine(e);
+                        await detailsRepo.Save(contactDetails);
+                        throw;
+                    }
+                }
                 else
                     await presenter.SayNoRights(fromChatId, sender.Type);
                 return;

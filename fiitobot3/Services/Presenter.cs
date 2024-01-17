@@ -60,7 +60,12 @@ namespace fiitobot.Services
         Task OfferToSetHisPhoto(long chatId);
         Task StopCallbackQueryAnimation(CallbackQuery callbackQuery);
         Task ShowSpasibkaConfirmationMessage(string content, long chatId);
-        Task ShowSpasibkaToReceiver(string content, long receiverTgId);
+        Task NotifyReceiverAboutNewSpasibka(string content, long chatId);
+        Task ShowAllSpasibkaList(string content, long chatId, bool canDelete = false);
+        Task ShowOneSpasibkaFromList(string content, long chatId, int messageId,
+            bool previous = false, bool next = false);
+        Task ShowMessageAboutDeletedSpasibka(string content, long chatId, int messageId);
+        Task DeleteMessage(int messageId, long chatId);
         Task HideInlineKeyboard(ChatId chatId, int messageId);
     }
 
@@ -238,7 +243,7 @@ namespace fiitobot.Services
             }
 
             else
-                keyboardButtons.Add( new InlineKeyboardButton("Посмотреть мои спасибки")
+                keyboardButtons.Add(new InlineKeyboardButton("Посмотреть мои спасибки")
                     { CallbackData = ShowAllSpasibki() });
 
             var inlineKeyboardMarkup = new InlineKeyboardMarkup(keyboardButtons.ToArray());
@@ -246,20 +251,57 @@ namespace fiitobot.Services
                 replyMarkup: inlineKeyboardMarkup);
         }
 
-        public async Task ShowSpasibkaToReceiver(string content, long receiverTgId)
+        public async Task NotifyReceiverAboutNewSpasibka(string content, long chatId)
         {
             var inlineKeyboardMarkup = new InlineKeyboardMarkup(new[]
             {
                 new InlineKeyboardButton("Посмотреть все спасибки") { CallbackData = ShowAllSpasibki() },
             });
 
-            await botClient.SendTextMessageAsync(receiverTgId, content, parseMode: ParseMode.Html,
+            await botClient.SendTextMessageAsync(chatId, content, parseMode: ParseMode.Html,
                 replyMarkup: inlineKeyboardMarkup);
+        }
+
+        public async Task ShowAllSpasibkaList(string content, long chatId, bool canDelete = false)
+        {
+            var inlineKeyboardMarkup =
+                canDelete ? new InlineKeyboardMarkup(new[]
+                    {
+                        new InlineKeyboardButton("Выбрать для удаления") { CallbackData = ShowSpasibkaToDelete() },
+                    })
+                : null;
+
+            await botClient.SendTextMessageAsync(chatId, content, parseMode: ParseMode.Html,
+                replyMarkup: inlineKeyboardMarkup);
+        }
+
+        public async Task ShowOneSpasibkaFromList(string content, long chatId, int messageId,
+            bool previous = false, bool next = false)
+        {
+            var keyboardButtons = new List<InlineKeyboardButton>();
+
+            if (previous)
+                keyboardButtons.Add(new InlineKeyboardButton("Предыдущая") { CallbackData = PreviousSpasibka() });
+
+            keyboardButtons.Add(new InlineKeyboardButton("Отменить") { CallbackData = CancelDeleteSpasibka() });
+            keyboardButtons.Add(new InlineKeyboardButton("Удалить спасибку") { CallbackData = DeleteSpasibka() });
+
+            if (next)
+                keyboardButtons.Add(new InlineKeyboardButton("Следующая") { CallbackData = NextSpasibka() });
+
+            var inlineKeyboardMarkup = new InlineKeyboardMarkup(keyboardButtons.ToArray());
+            await botClient.EditMessageTextAsync(chatId, messageId, content, parseMode: ParseMode.Html,
+                replyMarkup: inlineKeyboardMarkup);
+        }
+
+        public async Task ShowMessageAboutDeletedSpasibka(string content, long chatId, int messageId)
+        {
+            await botClient.EditMessageTextAsync(chatId, messageId, content, parseMode: ParseMode.Html);
         }
 
         public async Task ShowSpasibkaConfirmationMessage(string content, long chatId)
         {
-            var htmlText = $"Вот что у нас получилось:\n{content}";
+            var htmlText = $"Вот что у нас получилось:\n\n{content}";
             var inlineKeyboardMarkup = new InlineKeyboardMarkup(new[]
             {
                 new InlineKeyboardButton("Отменить") {CallbackData = CancelSpasibka()},
@@ -275,6 +317,35 @@ namespace fiitobot.Services
         public async Task HideInlineKeyboard(ChatId chatId, int messageId)
         {
             await botClient.EditMessageReplyMarkupAsync(chatId, messageId);
+        }
+
+        public async Task DeleteMessage(int messageId, long chatId)
+        {
+            await botClient.DeleteMessageAsync(chatId, messageId);
+        }
+
+        private string CancelDeleteSpasibka()
+        {
+            return "/spasibka cancelDelete";
+        }
+        private string NextSpasibka()
+        {
+            return "/spasibka next";
+        }
+
+        private string PreviousSpasibka()
+        {
+            return "/spasibka previous";
+        }
+
+        private string DeleteSpasibka()
+        {
+            return "/spasibka delete";
+        }
+
+        private string ShowSpasibkaToDelete()
+        {
+            return "/spasibka showToDelete";
         }
 
         private string ShowAllSpasibki()

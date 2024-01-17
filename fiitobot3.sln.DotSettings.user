@@ -2,4 +2,5 @@
 	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=87d5e71d_002D3236_002D48b9_002Db1ee_002D4c21f1f8b332/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="GetContacts" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
   &lt;Project Location="C:\work\fiitobot3\tests" Presentation="&amp;lt;tests&amp;gt;" /&gt;&#xD;
 &lt;/SessionState&gt;</s:String>
+	<s:Boolean x:Key="/Default/UserDictionary/Words/=cntnt/@EntryIndexedValue">True</s:Boolean>
 	</wpf:ResourceDictionary>
