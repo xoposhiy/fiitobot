@@ -84,17 +84,17 @@ namespace fiitobot.Services.Commands
                     if (dialogState.IdxSpasibkaToDelete + 1 > senderDetails.Spasibki.Count - 1) return;
                     senderDetails.DialogState.IdxSpasibkaToDelete += 1;
                     await contactDetailsRepo.Save(senderDetails);
-                    await ShowOneSpasibkaToDelete(fromChatId);                   return;
+                    await ShowOneSpasibkaToDelete(fromChatId);
+                    return;
 
                 case "/spasibka cancel":
                     if (dialogState.CommandHandlerData.Length == 0) return;
                     if (senderDetails.DialogState.MessageId == null)
                         throw new NullReferenceException();
-                    await presenter.HideInlineKeyboard(fromChatId, (int)senderDetails.DialogState.MessageId);
+                    await presenter.EditMessage("Спасибка отменена", fromChatId,
+                        (int)senderDetails.DialogState.MessageId);
                     senderDetails.DialogState = new DialogState();
-                    await presenter.Say("Спасибка отменена", fromChatId);
                     await contactDetailsRepo.Save(senderDetails);
-
                     return;
 
                 case "/spasibka restart":
