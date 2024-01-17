@@ -51,6 +51,7 @@ namespace fiitobot
         public string MainCompany = "";
         public string Status = "";
         public double? CurrentRating;
+        public string GoogleCalendarId = "";
 
         public bool IsGraduated(DateTime now)
         {
