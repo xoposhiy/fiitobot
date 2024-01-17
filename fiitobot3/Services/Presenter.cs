@@ -61,10 +61,11 @@ namespace fiitobot.Services
         Task StopCallbackQueryAnimation(CallbackQuery callbackQuery);
         Task ShowSpasibkaConfirmationMessage(string content, long chatId);
         Task NotifyReceiverAboutNewSpasibka(string content, long chatId);
-        Task ShowAllSpasibkaList(string content, long chatId, bool canDelete = false);
+        Task ShowAllSpasibkaList(string content, long chatId, bool canEdit = false);
         Task ShowOneSpasibkaFromList(string content, long chatId, int messageId,
             bool previous = false, bool next = false);
-        Task ShowMessageAboutDeletedSpasibka(string content, long chatId, int messageId);
+        Task EditMessage(string content, long chatId, int messageId,
+            InlineKeyboardMarkup inlineKeyboardMarkup = null);
         Task DeleteMessage(int messageId, long chatId);
         Task HideInlineKeyboard(ChatId chatId, int messageId);
     }
@@ -262,10 +263,10 @@ namespace fiitobot.Services
                 replyMarkup: inlineKeyboardMarkup);
         }
 
-        public async Task ShowAllSpasibkaList(string content, long chatId, bool canDelete = false)
+        public async Task ShowAllSpasibkaList(string content, long chatId, bool canEdit = false)
         {
             var inlineKeyboardMarkup =
-                canDelete ? new InlineKeyboardMarkup(new[]
+                canEdit ? new InlineKeyboardMarkup(new[]
                     {
                         new InlineKeyboardButton("Выбрать для удаления") { CallbackData = ShowSpasibkaToDelete() },
                     })
@@ -294,11 +295,6 @@ namespace fiitobot.Services
                 replyMarkup: inlineKeyboardMarkup);
         }
 
-        public async Task ShowMessageAboutDeletedSpasibka(string content, long chatId, int messageId)
-        {
-            await botClient.EditMessageTextAsync(chatId, messageId, content, parseMode: ParseMode.Html);
-        }
-
         public async Task ShowSpasibkaConfirmationMessage(string content, long chatId)
         {
             var htmlText = $"Вот что у нас получилось:\n\n{content}";
@@ -312,6 +308,13 @@ namespace fiitobot.Services
             await botClient.SendTextMessageAsync(chatId, htmlText, parseMode: ParseMode.Html,
                 replyMarkup: inlineKeyboardMarkup);
 
+        }
+
+        public async Task EditMessage(string content, long chatId, int messageId,
+            InlineKeyboardMarkup inlineKeyboardMarkup = null)
+        {
+            await botClient.EditMessageTextAsync(chatId, messageId, content, parseMode: ParseMode.Html,
+                replyMarkup: inlineKeyboardMarkup);
         }
 
         public async Task HideInlineKeyboard(ChatId chatId, int messageId)

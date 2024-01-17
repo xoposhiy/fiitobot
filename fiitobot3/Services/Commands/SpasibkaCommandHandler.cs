@@ -11,6 +11,7 @@ namespace fiitobot.Services.Commands
         private readonly IPresenter presenter;
         private readonly IContactDetailsRepo contactDetailsRepo;
         private readonly BotDataRepository botDataRepository;
+        private ContactDetails senderDetails;
 
         public SpasibkaCommandHandler(IPresenter presenter, IContactDetailsRepo contactDetailsRepo,
             BotDataRepository botDataRepository)
@@ -25,7 +26,7 @@ namespace fiitobot.Services.Commands
 
         public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
         {
-            var senderDetails = contactDetailsRepo.FindById(sender.Id).Result;
+            senderDetails = contactDetailsRepo.FindById(sender.Id).Result;
             var dialogState = senderDetails.DialogState;
             var callback = text.Split(' ');
 
@@ -52,7 +53,7 @@ namespace fiitobot.Services.Commands
 
                 case "/spasibka delete":
                     senderDetails.Spasibki.RemoveAt(senderDetails.DialogState.IdxSpasibkaToDelete);
-                    await ShowMessageAboutDeletedSpasibka(senderDetails, fromChatId);
+                    await ShowMessageAboutDeletedSpasibka(fromChatId);
                     senderDetails.DialogState.MessageId = null;
                     await contactDetailsRepo.Save(senderDetails);
                     return;
@@ -60,7 +61,7 @@ namespace fiitobot.Services.Commands
                 case "/spasibka showToDelete":
                     senderDetails.DialogState.IdxSpasibkaToDelete = senderDetails.Spasibki.Count - 1;
                     await contactDetailsRepo.Save(senderDetails);
-                    await ShowOneSpasibkaToDelete(senderDetails, fromChatId);
+                    await ShowOneSpasibkaToDelete(fromChatId);
                     return;
 
                 case "/spasibka cancelDelete":
@@ -69,23 +70,21 @@ namespace fiitobot.Services.Commands
                         throw new NullReferenceException();
                     }
 
-                    await presenter.DeleteMessage((int)senderDetails.DialogState.MessageId, fromChatId);
-                    await ShowAll(callback, sender, fromChatId);
+                    await ShowAll(callback, sender, fromChatId, true);
                     return;
 
                 case "/spasibka next":
                     if (dialogState.IdxSpasibkaToDelete - 1 < 0) return;
                     senderDetails.DialogState.IdxSpasibkaToDelete -= 1;
                     await contactDetailsRepo.Save(senderDetails);
-                    await ShowOneSpasibkaToDelete(senderDetails, fromChatId);
+                    await ShowOneSpasibkaToDelete(fromChatId);
                     return;
 
                 case "/spasibka previous":
                     if (dialogState.IdxSpasibkaToDelete + 1 > senderDetails.Spasibki.Count - 1) return;
                     senderDetails.DialogState.IdxSpasibkaToDelete += 1;
                     await contactDetailsRepo.Save(senderDetails);
-                    await ShowOneSpasibkaToDelete(senderDetails, fromChatId);
-                    return;
+                    await ShowOneSpasibkaToDelete(fromChatId);                   return;
 
                 case "/spasibka cancel":
                     if (dialogState.CommandHandlerData.Length == 0) return;
@@ -167,12 +166,12 @@ namespace fiitobot.Services.Commands
             await contactDetailsRepo.Save(senderDetails);
         }
 
-        private async Task ShowAll(string[] callback, Contact sender, long fromChatId)
+        private async Task ShowAll(string[] callback, Contact sender, long fromChatId, bool editMessage = false)
         {
             var content = new StringBuilder();
             ContactDetails details;
             string errorMessage;
-            var canDelete = false;
+            var canEdit = false;
 
             if (callback.Length == 3 && long.TryParse(callback[2], out var contactId))
             {
@@ -182,7 +181,7 @@ namespace fiitobot.Services.Commands
             }
             else
             {
-                canDelete = true;
+                canEdit = true;
                 details = await contactDetailsRepo.FindById(sender.Id);
                 errorMessage = "У вас пока нет спасибок :(\n" +
                                "Но вы можете отправить их тому, кого есть за что благодарить!";
@@ -201,7 +200,16 @@ namespace fiitobot.Services.Commands
             var toSend = content.ToString();
 
             if (toSend.Length != 0)
-                await presenter.ShowAllSpasibkaList(toSend, fromChatId, canDelete);
+            {
+                if (editMessage)
+                {
+                    if (senderDetails.DialogState.MessageId == null)
+                        throw new NullReferenceException();
+                    await presenter.EditMessage(toSend, fromChatId, (int)senderDetails.DialogState.MessageId);
+                }
+                else
+                    await presenter.ShowAllSpasibkaList(toSend, fromChatId, canEdit);
+            }
             else
                 await presenter.Say(errorMessage, fromChatId);
         }
@@ -218,15 +226,13 @@ namespace fiitobot.Services.Commands
                 receiverDetails.TelegramId);
         }
 
-        private async Task ShowOneSpasibkaToDelete(ContactDetails senderDetails, long fromChatId)
+        private async Task ShowOneSpasibkaToDelete(long fromChatId)
         {
             var spasibka = senderDetails.Spasibki[senderDetails.DialogState.IdxSpasibkaToDelete];
             var content = FormatSpasibka(spasibka, "\n\n");
 
             if (senderDetails.DialogState.MessageId == null)
-            {
                 throw new NullReferenceException();
-            }
 
             var messageId = (int)senderDetails.DialogState.MessageId;
             await presenter.ShowOneSpasibkaFromList(content, fromChatId, messageId,
@@ -234,14 +240,12 @@ namespace fiitobot.Services.Commands
                 next: senderDetails.DialogState.IdxSpasibkaToDelete - 1 >= 0);
         }
 
-        private async Task ShowMessageAboutDeletedSpasibka(ContactDetails senderDetails, long fromChatId)
+        private async Task ShowMessageAboutDeletedSpasibka( long fromChatId)
         {
             if (senderDetails.DialogState.MessageId == null)
-            {
                 throw new NullReferenceException();
-            }
 
-            await presenter.ShowMessageAboutDeletedSpasibka("Спасибка удалена!", fromChatId,
+            await presenter.EditMessage("Спасибка удалена!", fromChatId,
                 (int)senderDetails.DialogState.MessageId);
         }
 
