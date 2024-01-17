@@ -45,6 +45,7 @@ namespace fiitobot
                 var studentsDownloader = new UrfuStudentsDownloader(settings);
                 var demidovichService = new DemidovichService(settings.CreateDemidovichBucketService());
                 var brsClient = new BrsClient(BrsClient.IsFiitOfficialGroup);
+                var faqRepo = new S3FAQRepo(settings.CreateFaqBucketService());
                 var commands = new IChatCommandHandler[]
                 {
                     new StartCommandHandler(presenter, botDataRepository),
@@ -64,7 +65,7 @@ namespace fiitobot
                     new DownloadMarksFromBrsCommandHandler(presenter, botDataRepository, detailsRepo, brsClient),
                     new DownloadMarksFromSpreadsheetsCommandHandler(presenter, marksReloadService)
                 };
-                var updateService = new HandleUpdateService(botDataRepository, namedPhotoDirectory, photoRepo, demidovichService, downloader, presenter, detailsRepo, commands);
+                var updateService = new HandleUpdateService(botDataRepository, namedPhotoDirectory, photoRepo, demidovichService, downloader, presenter, detailsRepo, commands, faqRepo);
                 updateService.Handle(update).Wait();
                 if (GetSender(update) != settings.DevopsChatId)
                     client.SendTextMessageAsync(settings.DevopsChatId, presenter.FormatIncomingUpdate(update), null, parseMode: ParseMode.Html);

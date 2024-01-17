@@ -9,6 +9,8 @@ using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.InlineQueryResults;
 using Telegram.Bot.Types.ReplyMarkups;
+using fiitobot.Services.Commands;
+using Microsoft.Extensions.Logging;
 using Update = Telegram.Bot.Types.Update;
 
 namespace fiitobot.Services
@@ -38,6 +40,7 @@ namespace fiitobot.Services
         Task SayNoRights(long chatId, ContactType senderType);
         Task SayBeMoreSpecific(long chatId);
         Task InlineSearchResults(string inlineQueryId, Contact[] foundContacts);
+        Task InlineFaqResults(string inlineQueryId, IEnumerable<Faq> faqs);
         Task ShowDetails(ContactWithDetails contact, long chatId);
         Task SayReloadStarted(long chatId);
         Task SayReloaded(BotData botData, long chatId);
@@ -63,11 +66,20 @@ namespace fiitobot.Services
 
     public class Presenter : IPresenter
     {
+        private readonly ILogger logger;
         private readonly ITelegramBotClient botClient;
         private readonly Settings settings;
+        private readonly S3FAQRepo S3FAQRepo;
+        /*
+        private DocsService docsService;
+        */
 
         public Presenter(ITelegramBotClient botClient, Settings settings)
         {
+            using ILoggerFactory factory = LoggerFactory.Create(builder => builder.AddConsole());
+            logger = factory.CreateLogger("HandleUpdateService");
+            S3FAQRepo = new S3FAQRepo(settings.CreateFaqBucketService());
+            S3FAQRepo.StartUploading();
             this.botClient = botClient;
             this.settings = settings;
         }
@@ -80,6 +92,14 @@ namespace fiitobot.Services
                     {
                         ParseMode = ParseMode.Html
                     }));
+            await botClient.AnswerInlineQueryAsync(inlineQueryId, results, 60);
+        }
+
+        public async Task InlineFaqResults(string inlineQueryId, IEnumerable<Faq> faqs)
+        {
+            var results = faqs.Select(faq =>
+                new InlineQueryResultArticle(faq.GetHashCode().ToString(), $"{faq.Question}",
+                    new InputTextMessageContent($"{faq.Question}\n\n{faq.Answer}")));
             await botClient.AnswerInlineQueryAsync(inlineQueryId, results, 60);
         }
 

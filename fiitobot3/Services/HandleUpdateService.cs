@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using fiitobot.Services.Commands;
+using Microsoft.Extensions.Logging;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -20,6 +22,8 @@ namespace fiitobot.Services
         private readonly INamedPhotoDirectory namedPhotoDirectory;
         private readonly IPhotoRepository photoRepo;
         private readonly IPresenter presenter;
+        private readonly IFAQRepo faqRepo;
+        private readonly ILogger logger;
 
         public HandleUpdateService(IBotDataRepository botDataRepo,
             INamedPhotoDirectory namedPhotoDirectory,
@@ -28,7 +32,8 @@ namespace fiitobot.Services
             ITelegramFileDownloader fileDownloader,
             IPresenter presenter,
             IContactDetailsRepo detailsRepo,
-            IChatCommandHandler[] commands)
+            IChatCommandHandler[] commands,
+            IFAQRepo faqRepo)
         {
             this.botDataRepo = botDataRepo;
             this.namedPhotoDirectory = namedPhotoDirectory;
@@ -38,6 +43,10 @@ namespace fiitobot.Services
             this.detailsRepo = detailsRepo;
             this.commands = commands;
             this.fileDownloader = fileDownloader;
+            this.faqRepo = faqRepo;
+
+            using ILoggerFactory factory = LoggerFactory.Create(builder => builder.AddConsole());
+            logger = factory.CreateLogger("HandleUpdateService");
         }
 
         public async Task Handle(Update update)
@@ -76,7 +85,23 @@ namespace fiitobot.Services
 
         private async Task BotOnInlineQuery(InlineQuery inlineQuery)
         {
-            if (inlineQuery.Query.Length < 2) return;
+            var query = inlineQuery.Query.ToLower();
+            var faqs = await faqRepo.FindById();
+            var keyword2Faqs = faqRepo.GetKeyword2Faqs(faqs);
+            var keywords = keyword2Faqs.Keys.ToHashSet();
+            logger.LogInformation("Запрос {a}, длина {b}", inlineQuery.Query, inlineQuery.Query.Length);
+
+            if (inlineQuery.Query.Length == 0 || query == "faq")
+            {
+                await presenter.InlineFaqResults(inlineQuery.Id, faqs);
+                return;
+            }
+            if (keywords.Contains(query))
+            {
+                await presenter.InlineFaqResults(inlineQuery.Id, new List<Faq>{keyword2Faqs[query]});
+                return;
+            }
+
             var sender = await GetSenderContact(inlineQuery.From);
             if (!sender.Contact.Type.IsOneOf(ContactTypes.AllNotExternal)) return;
             var foundPeople = botDataRepo.GetData().SearchContacts(inlineQuery.Query);
