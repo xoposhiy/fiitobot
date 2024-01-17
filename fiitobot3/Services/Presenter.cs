@@ -395,6 +395,9 @@ namespace fiitobot.Services
             {
                 b.AppendLine($"Команда ФИИТ");
                 b.AppendLine($"Чем занимается: {contact.FiitJob}");
+                if (!string.IsNullOrWhiteSpace(contact.GoogleCalendarId))
+                    b.AppendLine(
+                        $"<a href='{GetGoogleCalendarLinkById(contact.GoogleCalendarId)}'>Расписание в Google Calendar</a>");
 
                 if (!string.IsNullOrWhiteSpace(contact.BirthDate) && contact.BirthDate != "no")
                 {
@@ -417,6 +420,9 @@ namespace fiitobot.Services
                         ? $"Дата рождения: {contact.BirthDate}  /bd_remove"
                         : $"Дата рождения: {contact.BirthDate}");
                 }
+                if (!string.IsNullOrWhiteSpace(contact.GoogleCalendarId))
+                    b.AppendLine(
+                        $"<a href='{GetGoogleCalendarLinkById(contact.GoogleCalendarId)}'>Расписание в Google Calendar</a>");
             }
 
             b.AppendLine();
