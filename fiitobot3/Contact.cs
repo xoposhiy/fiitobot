@@ -41,6 +41,7 @@ namespace fiitobot
         public string Concurs = "";
         public string EnrollRating = "";
         public string Telegram;
+        public string BirthDate;
         public string Phone = "";
         public string Email = "";
         public string Google = "";
@@ -52,6 +53,8 @@ namespace fiitobot
         public string MainCompany = "";
         public string Status = "";
         public double? CurrentRating;
+        public bool ReceiveBirthdayNotifications = true;
+        public string GoogleCalendarId = "";
 
         public bool IsGraduated(DateTime now)
         {
