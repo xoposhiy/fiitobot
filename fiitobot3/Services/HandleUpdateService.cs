@@ -356,24 +356,20 @@ namespace fiitobot.Services
                 return true;
             }
 
-            if (text.Equals("др", StringComparison.OrdinalIgnoreCase))
+            if (!text.Equals("др", StringComparison.OrdinalIgnoreCase)) return false;
+            if (sender.Type == ContactType.Student)
             {
-                if (sender.Type == ContactType.Student)
-                {
-                    if (!await ShowContactsListBy(
-                            sender.FormatMnemonicGroup(DateTime.Now, false),
-                            c => c.FormatMnemonicGroup(DateTime.Now, false),
-                            fromChatId,
-                            true))
-                        await presenter.SayNoResults(fromChatId);
-                    return true;
-                }
-
+                if (!await ShowContactsListBy(
+                        sender.FormatMnemonicGroup(DateTime.Now, false),
+                        c => c.FormatMnemonicGroup(DateTime.Now, false),
+                        fromChatId,
+                        true))
+                    await presenter.SayNoResults(fromChatId);
+            }
+            else
                 await presenter.Say("Информация по др одногруппников доступна только студентам." +
                                     "\n\nВы можете поискать др студентов и преподавателей по названию месяца, например \"сентябрь\".", fromChatId);
-            }
-
-            return false;
+            return true;
         }
 
         private (ContactType newSenderType, string restText) OverrideSenderType(string text, ContactType senderType)
