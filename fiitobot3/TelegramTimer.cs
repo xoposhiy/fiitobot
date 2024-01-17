@@ -19,14 +19,14 @@ namespace fiitobot
                 var botDataRepository = new BotDataRepository(settings);
                 var formattedDateToday = DateTime.Today.ToString("dd.MM");
                 var botData = botDataRepository.GetData();
-                var contacts = botData.AllContacts.Select(p => p).ToList();
+                var contacts = botData.AllContacts.ToList();
 
                 var contactsWithBirthDate = contacts
                         .Where(c => !string.IsNullOrEmpty(c.BirthDate) && c.BirthDate != "no")
                         .ToList();
 
                 var contactsTodayBirth = contactsWithBirthDate.Where(contact =>
-                    Regex.Match(contact.BirthDate, @"\d{2}\.\d{2}").Value == formattedDateToday).ToList();
+                    contact.BirthDate.StartsWith(formattedDateToday)).ToList();
 
                 var chatIds = new Dictionary<Contact, List<Contact>>(); // для каждого именниника храним его одногруппников
 
@@ -34,7 +34,7 @@ namespace fiitobot
                 {
                     chatIds.Add(contact, contacts
                         .Where(c => contact.FormatMnemonicGroup(DateTime.Now, false)
-                                    == c.FormatMnemonicGroup(DateTime.Now, false) && c != contact && c.IsReceivesNotification)
+                                    == c.FormatMnemonicGroup(DateTime.Now, false) && c != contact && c.ReceiveBirthdayNotifications)
                         .ToList());
                 }
 
@@ -42,12 +42,12 @@ namespace fiitobot
                 {
                     foreach (var receiver in contact.Value)
                     {
-                        if (receiver.IsReceivesNotification)
+                        if (receiver.ReceiveBirthdayNotifications)
                         {
                             client.SendTextMessageAsync(receiver.TgId,
                                 $"Сегодня свой день рождения отмечает {contact.Key.FirstLastName()} {contact.Key.Telegram}🥳" +
                                 "\n\nМожешь написать оригинальное поздравление в личку или беседу своего курса)" +
-                                "\n\nЧтобы перестать получать уведомления о др своих одногруппников, напиши /no_notification");
+                                "\n\nЧтобы перестать получать уведомления о др своих одногруппников, напиши /bd_notify_off");
                         }
                     }
                 }

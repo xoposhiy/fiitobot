@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
@@ -182,30 +183,6 @@ namespace fiitobot.Services
                 text = text.Replace(m.Value, "");
             }
 
-            var fullBirthDate = Regex.Match(text, @"^(0[1-9]|[12][0-9]|3[01])\.(0[1-9]|1[012])");
-            var birthDate = FormatMonthToDate(text);
-            if (birthDate != "fail" || fullBirthDate.Success)
-            {
-                var allContacts = botDataRepo.GetData().AllContacts;
-
-                var impersonatedUser = allContacts.FirstOrDefault(c => c.Id.ToString() == sender.Id.ToString());
-                sender = impersonatedUser ?? sender;
-
-                if (fullBirthDate.Success)
-                {
-                    await presenter.ShowBirthDateActions(sender, fromChatId, text);
-                    return;
-                }
-
-                if (birthDate != "fail")
-                {
-                    if (!await ShowContactsListBy(birthDate, c => c.BirthDate.Split(".")[1], fromChatId, true))
-                        await presenter.SayNoResults(fromChatId);
-
-                    return;
-                }
-            }
-
             var command = commands.FirstOrDefault(c => text.StartsWith(c.Command));
 
             if (command != null)
@@ -227,85 +204,6 @@ namespace fiitobot.Services
                 return;
             }
 
-            if (text.StartsWith("/changed"))
-            {
-                var date = text.Split(" ")[1];
-
-                if (IsValidDate(date))
-                {
-                    sender.UpdateBirthDate(botDataRepo, sender, date);
-
-                    await presenter.Say("Данные успешно изменены!", fromChatId);
-                    return;
-                }
-
-                await presenter.Say("Неверный формат или значение даты(" +
-                                    "\nУкажите допустимую дату в формате ДД.ММ или ДД.ММ.ГГГГ", fromChatId);
-                return;
-            }
-
-            if (text.StartsWith("/find"))
-            {
-                var date = text.Split(" ")[1];
-
-                if (!await ShowContactsListBy(date, c => c.BirthDate, fromChatId))
-                    await presenter.SayNoResults(fromChatId);
-                return;
-            }
-
-            if (text.ToLower().StartsWith("др"))
-            {
-                if (sender.Type == ContactType.Student)
-                {
-                    if (!await ShowContactsListBy(
-                            sender.FormatMnemonicGroup(DateTime.Now, false),
-                            c => c.FormatMnemonicGroup(DateTime.Now, false),
-                            fromChatId,
-                            true))
-                        await presenter.SayNoResults(fromChatId);
-                    return;
-                }
-
-                await presenter.Say("Информация по др одногруппников доступна только студентам." +
-                                    "\n\nВы можете поискать др студентов и преподавателей по названию месяца, например \"сентябрь\".", fromChatId);
-                return;
-            }
-
-            if (text.StartsWith("/stat_birthDate"))
-            {
-                var statCount = botDataRepo.GetData().Students.Count(s => !string.IsNullOrEmpty(s.BirthDate) && s.BirthDate != "no");
-
-                await presenter.Say($"{statCount} людей указали когда у них день рождения.", fromChatId);
-                return;
-            }
-
-            if (text.StartsWith("/no_birthDate"))
-            {
-                sender.UpdateBirthDate(botDataRepo, sender, "no");
-
-                await presenter.Say("Данные о твоем др теперь недоступны" +
-                                    "\n\nТы в любой момент можешь добавить др, написав нужную дату в формате ДД.ММ или ДД.ММ.ГГГГ", fromChatId);
-                return;
-            }
-
-            if (text.StartsWith("/no_notification"))
-            {
-                sender.UpdateBirthDate(botDataRepo, sender, null, false);
-
-                await presenter.Say("Уведомления больше не будут приходить тебе в личные сообщения." +
-                                    "\n\nТы в любой момент можешь вернуть их, написав /send_notification", fromChatId);
-                return;
-            }
-
-            if (text.StartsWith("/send_notification"))
-            {
-                sender.UpdateBirthDate(botDataRepo, sender, null, true);
-
-                await presenter.Say("Теперь ты будешь получать уведомления о др своих одногруппников!" +
-                                    "\n\nТы в любой момент можешь отключить их, написав /no_notification", fromChatId);
-                return;
-            }
-
             if (text.StartsWith("/"))
                 return;
 
@@ -315,6 +213,8 @@ namespace fiitobot.Services
             if (await TryHandleAsRequestAboutHimself(text, data.AllContacts.ToArray(), sender))
                 return;
             if (await TryHandleAsRequestAsMultilineList(text, data, fromChatId))
+                return;
+            if (await TryHandleAsBirthdayCommands(text, sender, fromChatId, new DateUtils()))
                 return;
             var contacts = data.SearchContacts(text);
             const int maxResultsCount = 1;
@@ -388,54 +288,6 @@ namespace fiitobot.Services
             }
         }
 
-        private bool IsValidDate(string dateString)
-        {
-            DateTime tempDate;
-            string[] formats = { "dd.MM", "dd.MM.yyyy" };
-
-            return DateTime.TryParseExact(dateString, formats, CultureInfo.InvariantCulture, DateTimeStyles.None, out tempDate);
-        }
-
-        private string FormatDateToMonth(string date)
-        {
-            return date switch
-            {
-                "01" => "январе",
-                "02" => "феврале",
-                "03" => "марте",
-                "04" => "апреле",
-                "05" => "мае",
-                "06" => "июне",
-                "07" => "июле",
-                "08" => "августе",
-                "09" => "сентябре",
-                "10" => "октябре",
-                "11" => "ноябре",
-                "12" => "декабре",
-                _ => "fail"
-            };
-        }
-
-        private string FormatMonthToDate(string month)
-        {
-            return month.ToLower() switch
-            {
-                "январь" => "01",
-                "февраль" => "02",
-                "март" => "03",
-                "апрель" => "04",
-                "май" => "05",
-                "июнь" => "06",
-                "июль" => "07",
-                "август" => "08",
-                "сентябрь" => "09",
-                "октябрь" => "10",
-                "ноябрь" => "11",
-                "декабрь" => "12",
-                _ => "fail"
-            };
-        }
-
         private async Task<bool> TryHandleAsRequestAsMultilineList(string text, BotData data, long fromChatId)
         {
             var lines = text.Split("\n").ToArray();
@@ -472,11 +324,6 @@ namespace fiitobot.Services
             await SayCompliment(person, sender.TgId);
             await presenter.ShowContact(person, sender.TgId, detailsLevel);
 
-            if (string.IsNullOrEmpty(sender.BirthDate))
-            {
-                await presenter.AskForBirthDate(sender.TgId);
-            }
-
             return true;
         }
 
@@ -497,6 +344,48 @@ namespace fiitobot.Services
             {
                 presenter.Say(mnemonicGroupStudent.FormatOfficialGroup(DateTime.Now), chatId);
                 return true;
+            }
+
+            return false;
+        }
+
+        private async Task<bool> TryHandleAsBirthdayCommands(string text, Contact sender, long fromChatId, DateUtils dateUtils)
+        {
+            var fullBirthDate = Regex.Match(text, @"^(0[1-9]|[12][0-9]|3[01])\.(0[1-9]|1[012])");
+            var birthDate = dateUtils.TryParseMonthNumber(text, out var monthString);
+
+            if (birthDate || fullBirthDate.Success)
+            {
+                if (fullBirthDate.Success)
+                {
+                    await presenter.ShowBirthDateActions(sender, fromChatId, text);
+                    return true;
+                }
+
+                if (Regex.IsMatch(monthString, @"^\d+$"))
+                {
+                    if (!await ShowContactsListBy(monthString, c => c.BirthDate.Split(".")[1], fromChatId, true))
+                        await presenter.SayNoResults(fromChatId);
+
+                    return true;
+                }
+            }
+
+            if (text.ToLower().StartsWith("др"))
+            {
+                if (sender.Type == ContactType.Student)
+                {
+                    if (!await ShowContactsListBy(
+                            sender.FormatMnemonicGroup(DateTime.Now, false),
+                            c => c.FormatMnemonicGroup(DateTime.Now, false),
+                            fromChatId,
+                            true))
+                        await presenter.SayNoResults(fromChatId);
+                    return true;
+                }
+
+                await presenter.Say("Информация по др одногруппников доступна только студентам." +
+                                    "\n\nВы можете поискать др студентов и преподавателей по названию месяца, например \"сентябрь\".", fromChatId);
             }
 
             return false;
@@ -523,6 +412,7 @@ namespace fiitobot.Services
 
         private async Task<bool> ShowContactsListBy(string text, Func<Contact, string> getProperty, long chatId, bool isBirth=false)
         {
+            var dateUtils = new DateUtils();
             var botData = botDataRepo.GetData();
             var contacts = botData.AllContacts.Select(p => p).ToList();
             if (isBirth)
@@ -537,9 +427,9 @@ namespace fiitobot.Services
 
             if (isBirth)
             {
-                if (FormatDateToMonth(text) != "fail")
+                if (dateUtils.TryParseMonthNumber(text, out var monthName))
                 {
-                    await presenter.ShowContactsBy($"Дни рождения в {FormatDateToMonth(text)}", res, chatId);
+                    await presenter.ShowContactsBy($"{monthName} - месяц, в котором родились", res, chatId);
                 }
                 else
                 {

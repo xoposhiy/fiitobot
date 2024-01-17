@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using fiitobot.Services.Commands;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -161,6 +162,8 @@ namespace fiitobot.Services
                 b.Append("\n\nА если прислать мне номер учебной группы ФИИТ, то я сконвертирую ее из ФТ- формата в МЕН- формат или наоборот.");
                 b.Append("\n\nТакже ты можешь написать свой день рождения в формате ДД.ММ.ГГГГ (можно без года), добавить его, и другие студенты смогут тебя поздравить.");
                 b.Append("\nА можешь найти других студентов по их др в формате, написанном выше.");
+                b.Append("\n\nНапиши \"др\" и ты увидишь, когда у твоих одногруппников день рождения ;)");
+
                 if (senderType.IsOneOf(ContactType.Administration))
                     b.AppendLine(
                         "\n\nВ любом другом чате напиши @fiitobot и после пробела начни писать фамилию. Я покажу, кого я знаю с такой фамилией, и после выбора конкретного студента, запощу карточку про студента в чат." +
@@ -175,7 +178,7 @@ namespace fiitobot.Services
                         .AppendLine("/as_student ... — как это выглядит для студента.")
                         .AppendLine("/as_staff ... — как это выглядит для препода.")
                         .AppendLine("/as_external ... —  как это выглядит для внешних.")
-                        .AppendLine("/stat_birthDate —  получить количество людей, указавших др.");
+                        .AppendLine("/bd_stats —  получить количество людей, указавших др.");
 
                 await botClient.SendTextMessageAsync(chatId, b.ToString(), parseMode: ParseMode.Html);
             }
@@ -216,16 +219,17 @@ namespace fiitobot.Services
 
         public async Task ShowBirthDateActions(Contact sender, long chatId, string text)
         {
+            var dateUtils = new DateUtils();
             var inlineKeyboardMarkup = new InlineKeyboardMarkup(new []
                 {
-                    new InlineKeyboardButton("Да")
+                    new InlineKeyboardButton("Сохрани как мой ДР")
                         { CallbackData = GetBirthDateCallbackData(text) },
-                    new InlineKeyboardButton("Найти людей")
+                    new InlineKeyboardButton("Поищи людей")
                         { CallbackData = GetCallbackData(text) }
                 }
             );
 
-            var htmlText = "Хотите установить эту дату в качестве др?" +
+            var htmlText = $"{text} - похоже на чей-то др. Что с ним сделать?" +
                            "\n\nМожете поискать др одногруппников по слову \"др\" или остальных по названию месяца";
 
             await botClient.SendTextMessageAsync(chatId, htmlText, parseMode: ParseMode.Html,
@@ -254,12 +258,12 @@ namespace fiitobot.Services
 
         private string GetBirthDateCallbackData(string text)
         {
-            return $"/changed {text}";
+            return $"/bd_save {text}";
         }
 
         private string GetCallbackData(string text)
         {
-            return $"/find {text}";
+            return $"/bd_find {text}";
         }
 
         private string GetButtonCallbackData(Contact contact)
@@ -321,7 +325,7 @@ namespace fiitobot.Services
             await Say("Мы заметили, что у вас не указан день рождения :( " +
                       "\nУкажите его в формате ДД.ММ или ДД.ММ.ГГГГ, пожалуйста " +
                       "\n\nОн будет виден другим студентам ФИИТа и они смогут вас поздравить!" +
-                      "\n\nЕсли не хотите указывать день рождения, то напишите /no_birthDate и данное сообщение вас больше не побеспокоит ;)", chatId);
+                      "\n\nЕсли не хотите указывать день рождения, то напишите /bd_remove и данное сообщение вас больше не побеспокоит ;)", chatId);
         }
 
         public async Task ShowPhoto(Contact contact, PersonPhoto photo, long chatId, ContactType senderType)
@@ -377,7 +381,7 @@ namespace fiitobot.Services
                 {
                     b.AppendLine();
                     b.AppendLine(isSelf
-                        ? $"Дата рождения: {contact.BirthDate}  /no_birthDate"
+                        ? $"Дата рождения: {contact.BirthDate}  /bd_remove"
                         : $"Дата рождения: {contact.BirthDate}");
                 }
 
@@ -396,7 +400,7 @@ namespace fiitobot.Services
                 {
                     b.AppendLine();
                     b.AppendLine(isSelf
-                        ? $"Дата рождения: {contact.BirthDate}  /no_birthDate"
+                        ? $"Дата рождения: {contact.BirthDate}  /bd_remove"
                         : $"Дата рождения: {contact.BirthDate}");
                 }
             }
@@ -410,7 +414,7 @@ namespace fiitobot.Services
                 {
                     b.AppendLine();
                     b.AppendLine(isSelf
-                        ? $"Дата рождения: {contact.BirthDate}  /no_birthDate"
+                        ? $"Дата рождения: {contact.BirthDate}  /bd_remove"
                         : $"Дата рождения: {contact.BirthDate}");
                 }
             }

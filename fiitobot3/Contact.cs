@@ -52,7 +52,7 @@ namespace fiitobot
         public string MainCompany = "";
         public string Status = "";
         public double? CurrentRating;
-        public bool IsReceivesNotification = true;
+        public bool ReceiveBirthdayNotifications = true;
 
         public bool IsGraduated(DateTime now)
         {
@@ -123,21 +123,6 @@ namespace fiitobot
                 Telegram = details.TelegramUsernameWithSobachka;
             if (details.TelegramId != 0)
                 TgId = details.TelegramId;
-        }
-
-        public void UpdateBirthDate(IBotDataRepository botDataRepo, Contact sender, string text = null, bool isReceivesNotif = true)
-        {
-            var botData = botDataRepo.GetData();
-
-            var impersonatedUser = botData.AllContacts.FirstOrDefault(c => c.Id.ToString() == sender.Id.ToString());
-            sender = impersonatedUser ?? sender;
-
-            if (text != null)
-                sender.BirthDate = text;
-
-            sender.IsReceivesNotification = isReceivesNotif;
-
-            botDataRepo.Save(botData);
         }
 
         public static int ExtractGroupIndex(string group)
