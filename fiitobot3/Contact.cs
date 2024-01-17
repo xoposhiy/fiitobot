@@ -53,6 +53,7 @@ namespace fiitobot
         public string Status = "";
         public double? CurrentRating;
         public bool ReceiveBirthdayNotifications = true;
+        public string GoogleCalendarId = "";
 
         public bool IsGraduated(DateTime now)
         {
