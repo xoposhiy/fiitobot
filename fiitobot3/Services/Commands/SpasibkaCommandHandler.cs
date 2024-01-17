@@ -121,9 +121,6 @@ namespace fiitobot.Services.Commands
                     var spska = string.Join(' ', s);
                     await ConfirmAndSendSpasibka(rcvId, sender, spska, fromChatId);
 
-                    // if (senderDetails.DialogState.MessageId == null)
-                    //     throw new NullReferenceException();
-                    // await presenter.HideInlineKeyboard(fromChatId, (int)senderDetails.DialogState.MessageId);
                     senderDetails.DialogState = new DialogState();
                     await contactDetailsRepo.Save(senderDetails);
                     return;
