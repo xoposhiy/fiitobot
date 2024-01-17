@@ -45,7 +45,7 @@ namespace fiitobot
                 var studentsDownloader = new UrfuStudentsDownloader(settings);
                 var demidovichService = new DemidovichService(settings.CreateDemidovichBucketService());
                 var brsClient = new BrsClient(BrsClient.IsFiitOfficialGroup);
-                var faqRepo = new S3FAQRepo(settings.CreateFaqBucketService());
+                var faqRepo = new S3FaqRepo(settings.CreateFaqBucketService());
                 var commands = new IChatCommandHandler[]
                 {
                     new StartCommandHandler(presenter, botDataRepository),

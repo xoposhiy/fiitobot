@@ -69,7 +69,7 @@ namespace fiitobot.Services
         private readonly ILogger logger;
         private readonly ITelegramBotClient botClient;
         private readonly Settings settings;
-        private readonly S3FAQRepo S3FAQRepo;
+        private readonly S3FaqRepo S3FAQRepo;
         /*
         private DocsService docsService;
         */
@@ -78,7 +78,7 @@ namespace fiitobot.Services
         {
             using ILoggerFactory factory = LoggerFactory.Create(builder => builder.AddConsole());
             logger = factory.CreateLogger("HandleUpdateService");
-            S3FAQRepo = new S3FAQRepo(settings.CreateFaqBucketService());
+            S3FAQRepo = new S3FaqRepo(settings.CreateFaqBucketService());
             S3FAQRepo.StartUploading();
             this.botClient = botClient;
             this.settings = settings;

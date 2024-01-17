@@ -10,10 +10,9 @@ using AspNetCore.Yandex.ObjectStorage;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
-
-namespace fiitobot.Services.Commands
+namespace fiitobot.Services
 {
-    public class S3FAQRepo: IFAQRepo
+    public class S3FaqRepo: IFAQRepo
     {
         private readonly YandexStorageService storageService;
         private ILogger logger;
@@ -25,7 +24,7 @@ namespace fiitobot.Services.Commands
             _timer = new Timer(Save, null, TimeSpan.Zero, TimeSpan.FromMinutes(1));
         }
 
-        public S3FAQRepo(YandexStorageService storageService)
+        public S3FaqRepo(YandexStorageService storageService)
         {
             using ILoggerFactory factory = LoggerFactory.Create(builder => builder.AddConsole());
             logger = factory.CreateLogger("faq service");
@@ -65,7 +64,7 @@ namespace fiitobot.Services.Commands
             var list = (from text in separation.Skip(1)
                 select text.Split("\r\n".ToCharArray(), StringSplitOptions.RemoveEmptyEntries) into lines
                 let question = lines[0]
-                let keywords = lines[2].Split(',', StringSplitOptions.RemoveEmptyEntries).Select(w => w.ToLower()).ToList()
+                let keywords = lines[2].Split(',', StringSplitOptions.RemoveEmptyEntries).Select(w => w.ToLower().Trim()).ToList()
                 let answer = string.Join("\n", lines.Skip(4))
                 select new Faq(keywords, question, answer)).ToList();
             return list;
@@ -78,6 +77,7 @@ namespace fiitobot.Services.Commands
             {
                 foreach (var keyword in faq.Keywords)
                 {
+                    logger.LogInformation(keyword);
                     dict[keyword] = faq;
                 }
             }

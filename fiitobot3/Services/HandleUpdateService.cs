@@ -85,7 +85,7 @@ namespace fiitobot.Services
 
         private async Task BotOnInlineQuery(InlineQuery inlineQuery)
         {
-            var query = inlineQuery.Query.ToLower();
+            var query = inlineQuery.Query.ToLower().Trim();
             var faqs = await faqRepo.FindById();
             var keyword2Faqs = faqRepo.GetKeyword2Faqs(faqs);
             var keywords = keyword2Faqs.Keys.ToHashSet();
@@ -96,9 +96,23 @@ namespace fiitobot.Services
                 await presenter.InlineFaqResults(inlineQuery.Id, faqs);
                 return;
             }
-            if (keywords.Contains(query))
+
+            var autocompleteKeywords = keywords.Where(word => word.StartsWith(query)).ToHashSet();
+            var autoQuestions = new HashSet<string>();
+            var autoFaqs = new List<Faq>();
+            foreach (var k in autocompleteKeywords)
             {
-                await presenter.InlineFaqResults(inlineQuery.Id, new List<Faq>{keyword2Faqs[query]});
+                logger.LogInformation($"{k} {inlineQuery.Query}");
+            }
+            if (autocompleteKeywords.Count > 0)
+            {
+                foreach (var pair in keyword2Faqs.Where(pair => autocompleteKeywords.Contains(pair.Key) && !autoQuestions.Contains(pair.Value.Question)))
+                {
+                    autoFaqs.Add(pair.Value);
+                    autoQuestions.Add(pair.Value.Question);
+                }
+
+                await presenter.InlineFaqResults(inlineQuery.Id, autoFaqs);
                 return;
             }
 
