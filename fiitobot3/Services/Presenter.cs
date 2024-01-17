@@ -57,13 +57,17 @@ namespace fiitobot.Services
         Task ShowDemidovichTask(byte[] imageBytes, string exerciseNumber, long chatId);
         Task PromptChangePhoto(long chatId);
         Task OfferToSetHisPhoto(long chatId);
+        Task ShowIfItIsDemidovichTask(string callbackData, long fromChatId);
+        Task SendFile(byte[] content, string filename, string caption, long fromChatId);
+        Task AskForBirthDate(long chatId);
+        Task ShowBirthDateActions(Contact sender, long chatId, string text);
     }
 
     public class Presenter : IPresenter
     {
         private readonly ITelegramBotClient botClient;
         private readonly Settings settings;
-        private const string baseGoogleUrl = "https://calendar.google.com/calendar/embed?src=";
+        private const string BaseGoogleUrl = "https://calendar.google.com/calendar/embed?src=";
 
         public Presenter(ITelegramBotClient botClient, Settings settings)
         {
@@ -152,10 +156,14 @@ namespace fiitobot.Services
                 await SayNoRights(chatId, senderType);
             else
             {
-                var b = new StringBuilder("Напиши что-нибудь и я найду кого-нибудь из ФИИТ :)\nЯ понимаю имена, фамилии, юзернеймы Telegram, школы, города, компании и всякое.");
+                var b = new StringBuilder("Напиши что-нибудь и я найду кого-нибудь из ФИИТ :)\nЯ понимаю имена, фамилии, месяца, юзернеймы Telegram, школы, города, компании и всякое.");
                 b.Append("\n\nЕщё можешь прислать мне свою фотографию, и её будут видеть все, кто запросит твой контакт у фиитобота.");
                 b.Append("\n\nМожно написать номер задачи из Демидовича, и я пришлю формулировку задачи.");
                 b.Append("\n\nА если прислать мне номер учебной группы ФИИТ, то я сконвертирую ее из ФТ- формата в МЕН- формат или наоборот.");
+                b.Append("\n\nТакже ты можешь написать свой день рождения в формате ДД.ММ.ГГГГ (можно без года), добавить его, и другие студенты смогут тебя поздравить.");
+                b.Append("\nА можешь найти других студентов по их др в формате, написанном выше.");
+                b.Append("\n\nНапиши \"др\" и ты увидишь, когда у твоих одногруппников день рождения ;)");
+
                 if (senderType.IsOneOf(ContactType.Administration))
                     b.AppendLine(
                         "\n\nВ любом другом чате напиши @fiitobot и после пробела начни писать фамилию. Я покажу, кого я знаю с такой фамилией, и после выбора конкретного студента, запощу карточку про студента в чат." +
@@ -169,7 +177,8 @@ namespace fiitobot.Services
                         .AppendLine("/tell @user message — отправляет message @user-у от имени фиитобота.")
                         .AppendLine("/as_student ... — как это выглядит для студента.")
                         .AppendLine("/as_staff ... — как это выглядит для препода.")
-                        .AppendLine("/as_external ... —  как это выглядит для внешних.");
+                        .AppendLine("/as_external ... —  как это выглядит для внешних.")
+                        .AppendLine("/bd_stats —  получить количество людей, указавших др.");
 
                 await botClient.SendTextMessageAsync(chatId, b.ToString(), parseMode: ParseMode.Html);
             }
@@ -208,23 +217,51 @@ namespace fiitobot.Services
                 .Replace(">", "&gt;");
         }
 
+        public async Task ShowBirthDateActions(Contact sender, long chatId, string text)
+        {
+            var inlineKeyboardMarkup = new InlineKeyboardMarkup(new []
+                {
+                    new InlineKeyboardButton("Сохрани как мой ДР")
+                        { CallbackData = GetBirthDateCallbackData(text) },
+                    new InlineKeyboardButton("Поищи людей")
+                        { CallbackData = GetCallbackData(text) }
+                }
+            );
+
+            var htmlText = $"{text} - похоже на чей-то др. Что с ним сделать?";
+
+            await botClient.SendTextMessageAsync(chatId, htmlText, parseMode: ParseMode.Html,
+                replyMarkup: inlineKeyboardMarkup);
+        }
+
         public async Task ShowContact(Contact contact, long chatId, ContactDetailsLevel detailsLevel)
         {
+            var htmlText = FormatContactAsHtml(contact, detailsLevel, contact.TgId == chatId);
+
             if (contact.Type == ContactType.Student)
             {
                 var inlineKeyboardMarkup = detailsLevel.HasFlag(ContactDetailsLevel.Details)
                     ? new InlineKeyboardMarkup(new InlineKeyboardButton("Подробнее!")
                     { CallbackData = GetButtonCallbackData(contact) })
                     : null;
-                var htmlText = FormatContactAsHtml(contact, detailsLevel);
+
                 await botClient.SendTextMessageAsync(chatId, htmlText, parseMode: ParseMode.Html,
                     replyMarkup: inlineKeyboardMarkup);
             }
             else
             {
-                var htmlText = FormatContactAsHtml(contact, detailsLevel);
                 await botClient.SendTextMessageAsync(chatId, htmlText, parseMode: ParseMode.Html);
             }
+        }
+
+        private string GetBirthDateCallbackData(string text)
+        {
+            return $"/bd_save {text}";
+        }
+
+        private string GetCallbackData(string text)
+        {
+            return $"/bd_find {text}";
         }
 
         private string GetButtonCallbackData(Contact contact)
@@ -270,6 +307,24 @@ namespace fiitobot.Services
             await Say("Тут могла бы быть твоя фотка, но ее нет. Пришли мне свою фотку, чтобы это исправить!", chatId);
         }
 
+        public async Task ShowIfItIsDemidovichTask(string callbackData, long fromChatId)
+        {
+            await botClient.SendTextMessageAsync(fromChatId, "Задача из демидовича?", replyMarkup:
+                new InlineKeyboardMarkup(new InlineKeyboardButton("Да, покажи её!") { CallbackData = callbackData }));
+        }
+
+        public async Task SendFile(byte[] content, string filename, string caption, long fromChatId)
+        {
+            await botClient.SendDocumentAsync(fromChatId, new InputFileStream(new MemoryStream(content), filename), caption:caption);
+        }
+
+        public async Task AskForBirthDate(long chatId)
+        {
+            await Say("Кстати, а когда у тебя день рождения?" +
+                      "\nНапиши мне свою дату рождения в формате ДД.ММ или ДД.ММ.ГГГГ и она станет видна другим студентам ФИИТ. Возможно, они захотят тебя поздравить!" +
+                      "\n\nЕсли не любишь поздравления, то нажми на /bd_remove я больше не буду тебя беспокоить.", chatId);
+        }
+
         public async Task ShowPhoto(Contact contact, PersonPhoto photo, long chatId, ContactType senderType)
         {
             var caption = senderType.IsOneOf(ContactType.Administration)
@@ -300,7 +355,7 @@ namespace fiitobot.Services
                 await botClient.SendTextMessageAsync(chatId, "Простите, эта команда не для вас.", parseMode: ParseMode.Html);
         }
 
-        public string FormatContactAsHtml(Contact contact, ContactDetailsLevel detailsLevel)
+        public string FormatContactAsHtml(Contact contact, ContactDetailsLevel detailsLevel, bool isSelf=false)
         {
             var b = new StringBuilder();
             b.AppendLine($"<b>{contact.LastName} {contact.FirstName} {contact.Patronymic}</b>");
@@ -322,6 +377,14 @@ namespace fiitobot.Services
                         b.Append($" c рейтингом {contact.EnrollRating}");
                 }
 
+                if (!string.IsNullOrWhiteSpace(contact.BirthDate) && contact.BirthDate != "no")
+                {
+                    b.AppendLine();
+                    b.AppendLine(isSelf
+                        ? $"Дата рождения: {contact.BirthDate}  /bd_remove"
+                        : $"Дата рождения: {contact.BirthDate}");
+                }
+
                 if (!string.IsNullOrWhiteSpace(contact.Status) && contact.Status != "Активный")
                 {
                     b.AppendLine();
@@ -332,12 +395,28 @@ namespace fiitobot.Services
             {
                 b.AppendLine($"Команда ФИИТ");
                 b.AppendLine($"Чем занимается: {contact.FiitJob}");
+
+                if (!string.IsNullOrWhiteSpace(contact.BirthDate) && contact.BirthDate != "no")
+                {
+                    b.AppendLine();
+                    b.AppendLine(isSelf
+                        ? $"Дата рождения: {contact.BirthDate}  /bd_remove"
+                        : $"Дата рождения: {contact.BirthDate}");
+                }
             }
             else if (contact.Type == ContactType.Staff)
             {
                 b.AppendLine($"{contact.FiitJob}");
                 if (!string.IsNullOrWhiteSpace(contact.MainCompany))
                     b.AppendLine($"Основное место работы: {contact.MainCompany}");
+
+                if (!string.IsNullOrWhiteSpace(contact.BirthDate) && contact.BirthDate != "no")
+                {
+                    b.AppendLine();
+                    b.AppendLine(isSelf
+                        ? $"Дата рождения: {contact.BirthDate}  /bd_remove"
+                        : $"Дата рождения: {contact.BirthDate}");
+                }
             }
 
             b.AppendLine();
@@ -401,7 +480,7 @@ namespace fiitobot.Services
 
         private string GetGoogleCalendarLinkById(string googleCalendarId)
         {
-            return $"{baseGoogleUrl}{googleCalendarId}";
+            return $"{BaseGoogleUrl}{googleCalendarId}";
         }
 
         public async Task ShowContactsBy(string criteria, IList<Contact> people, long chatId)
@@ -536,6 +615,9 @@ namespace fiitobot.Services
                 ContactType.Staff => p.FiitJob,
                 _ => p.Type.ToString()
             };
+
+            if (!string.IsNullOrEmpty(p.BirthDate) && p.BirthDate != "no")
+                return $"<code>{p.LastName} {p.FirstName} {p.BirthDate}</code> {p.Telegram} {who}";
             return $"<code>{p.LastName} {p.FirstName}</code> {p.Telegram} {who}";
         }
 

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using AspNetCore.Yandex.ObjectStorage;
 using Newtonsoft.Json;
@@ -42,6 +43,16 @@ namespace fiitobot.Services
         public void SaveDetails(Contact contact, IReadOnlyCollection<ContactDetail> details)
         {
         }
+
+        public bool UpdateContact(long id, Action<Contact> update)
+        {
+            botData = GetData();
+            var contact = botData.AllContacts.FirstOrDefault(c => c.Id == id);
+            if (contact == null) return false;
+            update(contact);
+            Save(botData);
+            return true;
+        }
     }
 
     public interface IBotDataRepository
@@ -50,6 +61,7 @@ namespace fiitobot.Services
         void Save(BotData newBotData);
         ContactWithDetails GetDetails(Contact contact);
         void SaveDetails(Contact contact, IReadOnlyCollection<ContactDetail> details);
+        bool UpdateContact(long id, Action<Contact> update);
     }
 
     public class MemoryBotDataRepository : IBotDataRepository
@@ -78,6 +90,11 @@ namespace fiitobot.Services
 
         public void SaveDetails(Contact contact, IReadOnlyCollection<ContactDetail> details)
         {
+        }
+
+        public bool UpdateContact(long id, Action<Contact> update)
+        {
+            return false;
         }
     }
 }

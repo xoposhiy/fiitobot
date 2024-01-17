@@ -212,12 +212,15 @@ namespace fiitobot.Services
                 return;
             if (await TryHandleAsRequestAsMultilineList(text, data, fromChatId))
                 return;
+            if (await TryHandleAsBirthdayCommands(text, sender, fromChatId))
+                return;
             var contacts = data.SearchContacts(text);
             const int maxResultsCount = 1;
             foreach (var person in contacts.Take(maxResultsCount))
             {
                 if (person.TgId == fromChatId || asSelf)
                     await SayCompliment(person, fromChatId);
+
                 var details = detailsRepo.FindById(person.Id).Result;
                 person.UpdateFromDetails(details);
                 var detailsLevel = person.GetDetailsLevelFor(asSelf ? person : sender);
@@ -269,6 +272,11 @@ namespace fiitobot.Services
                 if (!foundAnswer && !silentOnNoResults)
                     await presenter.SayNoResults(fromChatId);
             }
+
+            if (string.IsNullOrEmpty(sender.BirthDate))
+            {
+                await presenter.AskForBirthDate(fromChatId);
+            }
         }
 
         private async Task<bool> TryHandleAsRequestAsMultilineList(string text, BotData data, long fromChatId)
@@ -306,6 +314,7 @@ namespace fiitobot.Services
             var detailsLevel = person.GetDetailsLevelFor(sender);
             await SayCompliment(person, sender.TgId);
             await presenter.ShowContact(person, sender.TgId, detailsLevel);
+
             return true;
         }
 
@@ -331,6 +340,42 @@ namespace fiitobot.Services
             return false;
         }
 
+        private async Task<bool> TryHandleAsBirthdayCommands(string text, Contact sender, long fromChatId)
+        {
+            var fullBirthDate = Regex.Match(text, @"^(0[1-9]|[12][0-9]|3[01])\.(0[1-9]|1[012])");
+            if (fullBirthDate.Success)
+            {
+                await presenter.ShowBirthDateActions(sender, fromChatId, text);
+                return true;
+            }
+
+            if (DateUtils.TryParseMonthName(text, out var monthNumber))
+            {
+                if (!await ShowContactsListBy(monthNumber, c => c.BirthDate.Split(".")[1], fromChatId, true))
+                    await presenter.SayNoResults(fromChatId);
+                return true;
+            }
+
+            if (text.Equals("др", StringComparison.OrdinalIgnoreCase))
+            {
+                if (sender.Type == ContactType.Student)
+                {
+                    if (!await ShowContactsListBy(
+                            sender.FormatMnemonicGroup(DateTime.Now, false),
+                            c => c.FormatMnemonicGroup(DateTime.Now, false),
+                            fromChatId,
+                            true))
+                        await presenter.SayNoResults(fromChatId);
+                    return true;
+                }
+
+                await presenter.Say("Информация по др одногруппников доступна только студентам." +
+                                    "\n\nВы можете поискать др студентов и преподавателей по названию месяца, например \"сентябрь\".", fromChatId);
+            }
+
+            return false;
+        }
+
         private (ContactType newSenderType, string restText) OverrideSenderType(string text, ContactType senderType)
         {
             if (senderType != ContactType.Administration) return (senderType, text);
@@ -350,14 +395,34 @@ namespace fiitobot.Services
                 ?? (senderType, text);
         }
 
-        private async Task<bool> ShowContactsListBy(string text, Func<Contact, string> getProperty, long chatId)
+        private async Task<bool> ShowContactsListBy(string text, Func<Contact, string> getProperty, long chatId, bool isBirth=false)
         {
             var botData = botDataRepo.GetData();
             var contacts = botData.AllContacts.Select(p => p).ToList();
+            if (isBirth)
+                contacts = contacts
+                    .Where(c => !string.IsNullOrEmpty(c.BirthDate) && c.BirthDate != "no")
+                    .ToList();
+
             var res = contacts.Where(c => SmartContains(getProperty(c) ?? "", text))
                 .ToList();
             if (res.Count == 0) return false;
             var bestGroup = res.GroupBy(getProperty).MaxBy(g => g.Count());
+
+            if (isBirth)
+            {
+                if (DateUtils.TryParseMonthNumber(text, out var monthName))
+                {
+                    await presenter.ShowContactsBy($"{monthName} — месяц, в котором родились", res, chatId);
+                }
+                else
+                {
+                    await presenter.ShowContactsBy($"Дни рождения '{text}'", res, chatId);
+                }
+
+                return true;
+            }
+
             await presenter.ShowContactsBy(bestGroup.Key, res, chatId);
             return true;
         }
