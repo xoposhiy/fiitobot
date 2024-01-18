@@ -1,9 +1,7 @@
 ﻿using fiitobot.Services.Commands;
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
-using System.Text.Json.Nodes;
 using Newtonsoft.Json;
 using Telegram.Bot.Types;
 
@@ -87,7 +85,9 @@ namespace fiitobot.Services
         // нужен для сохранения индекса в листе на удаление, когда листаем список
         // понимаю, что не очень хорошо, но больше некуда засунуть этот индекс
 
-        public int IdxSpasibkaToDelete;
+        // TODO Унести в CommandHandlerData:
+        public int ItemIndex;
+
         // айди сообщения, на котором нажали кнопку
         public int? MessageId;
     }

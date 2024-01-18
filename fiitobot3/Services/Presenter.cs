@@ -62,7 +62,7 @@ namespace fiitobot.Services
         Task StopCallbackQueryAnimation(CallbackQuery callbackQuery);
         Task ShowSpasibkaConfirmationMessage(string content, long chatId);
         Task NotifyReceiverAboutNewSpasibka(string content, long chatId);
-        Task ShowAllSpasibkaList(string content, long chatId, bool canEdit = false);
+        Task ShowAllSpasibkaList(string content, long chatId, bool canDelete = false);
         Task ShowOneSpasibkaFromList(string content, long chatId, int messageId,
             bool previous = false, bool next = false);
         Task EditMessage(string content, long chatId, int messageId,
@@ -290,10 +290,10 @@ namespace fiitobot.Services
                 replyMarkup: inlineKeyboardMarkup);
         }
 
-        public async Task ShowAllSpasibkaList(string content, long chatId, bool canEdit = false)
+        public async Task ShowAllSpasibkaList(string content, long chatId, bool canDelete = false)
         {
             var inlineKeyboardMarkup =
-                canEdit ? new InlineKeyboardMarkup(new[]
+                canDelete ? new InlineKeyboardMarkup(new[]
                     {
                         new InlineKeyboardButton("Выбрать для удаления") { CallbackData = ShowSpasibkaToDelete() },
                     })
@@ -324,7 +324,7 @@ namespace fiitobot.Services
 
         public async Task ShowSpasibkaConfirmationMessage(string content, long chatId)
         {
-            var htmlText = $"Вот что у нас получилось:\n\n{content}";
+            var htmlText = $"Проверяй! Я отправлю вот такое сообщение получателю:\n\n{content}";
             var inlineKeyboardMarkup = new InlineKeyboardMarkup(new[]
             {
                 new InlineKeyboardButton("Отменить") {CallbackData = CancelSpasibka()},
@@ -405,7 +405,7 @@ namespace fiitobot.Services
 
         private string GetSpasibkiCallbackData(Contact receiver)
         {
-            return $"/spasibka {receiver.Id}";
+            return $"/spasibka start {receiver.Id}";
         }
 
         private string GetBirthDateCallbackData(string text)
