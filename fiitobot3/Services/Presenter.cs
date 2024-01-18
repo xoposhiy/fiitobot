@@ -72,6 +72,7 @@ namespace fiitobot.Services
         Task SendFile(byte[] content, string filename, string caption, long fromChatId);
         Task AskForBirthDate(long chatId);
         Task ShowBirthDateActions(Contact sender, long chatId, string text);
+        Task AskForSpasibkaText(long fromChatId, int? initialMessageId = null);
     }
 
     public class Presenter : IPresenter
@@ -243,6 +244,16 @@ namespace fiitobot.Services
 
             await botClient.SendTextMessageAsync(chatId, htmlText, parseMode: ParseMode.Html,
                 replyMarkup: inlineKeyboardMarkup);
+        }
+
+        public async Task AskForSpasibkaText(long fromChatId, int? initialMessageId = null)
+        {
+            var message = "Напиши текст спасибки.\n\nБлагодари за что-то конкретное, за действие или качество человека. Так спасибка будет понятна и интересна другим людям. А ещё конкретные спасибки получать приятнее, чем просто 'ты классный'!";
+            if (initialMessageId.HasValue)
+                await EditMessage(message, fromChatId,
+                    initialMessageId.Value);
+            else
+                await Say(message, fromChatId);
         }
 
         public async Task ShowContact(Contact contact, long chatId, ContactDetailsLevel detailsLevel)

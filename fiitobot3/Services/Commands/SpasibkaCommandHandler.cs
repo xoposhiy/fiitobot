@@ -28,11 +28,22 @@ namespace fiitobot.Services.Commands
         {
             senderDetails = contactDetailsRepo.FindById(sender.Id).Result;
             var dialogState = senderDetails.DialogState;
-            var parameters = text.Split(' ');
-            var subcommand = parameters[1];
             var storedData = dialogState.CommandHandlerData?.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>();
             var storedReceiverId = storedData.Length > 0 ? long.Parse(storedData[0]) : -1;
             var storedText = storedData.Length > 1 ? storedData[1] : "";
+
+            if (!string.IsNullOrEmpty(dialogState.CommandHandlerLine) && !text.StartsWith(Command))
+            {
+                // пришёл текст спасибки
+                senderDetails.DialogState.CommandHandlerLine = "";
+                senderDetails.DialogState.CommandHandlerData = $"{storedReceiverId} {text}";
+                await contactDetailsRepo.Save(senderDetails);
+                await presenter.ShowSpasibkaConfirmationMessage(FormatSpasibkaNotification(sender, text), fromChatId);
+                return;
+            }
+
+            var parameters = text.Split(' ');
+            var subcommand = parameters[1];
 
             switch (subcommand)
             {
@@ -99,7 +110,7 @@ namespace fiitobot.Services.Commands
                         CommandHandlerData = $"{receiverId}"
                     };
                     await contactDetailsRepo.Save(senderDetails);
-                    await presenter.Say("Напишите текст спасибки", fromChatId);
+                    await presenter.AskForSpasibkaText(fromChatId);
                     return;
 
                 case "restart":
@@ -109,9 +120,7 @@ namespace fiitobot.Services.Commands
                     await contactDetailsRepo.Save(senderDetails);
                     if (senderDetails.DialogState.MessageId == null)
                         throw new Exception("DialogState.MessageId is null");
-
-                    await presenter.EditMessage("Напишите текст спасибки", fromChatId,
-                        (int)senderDetails.DialogState.MessageId);
+                    await presenter.AskForSpasibkaText(fromChatId, (int)senderDetails.DialogState.MessageId);
                     return;
 
                 case "confirm":
@@ -127,12 +136,6 @@ namespace fiitobot.Services.Commands
                     await ShowAll(contactId ?? sender.Id, sender, fromChatId);
                     return;
             }
-
-            // пришёл текст спасибки
-            senderDetails.DialogState.CommandHandlerLine = "";
-            senderDetails.DialogState.CommandHandlerData = $"{storedReceiverId} {text}";
-            await contactDetailsRepo.Save(senderDetails);
-            await presenter.ShowSpasibkaConfirmationMessage(FormatSpasibkaNotification(sender, text), fromChatId);
         }
 
         private async Task ShowAll(long contactId, Contact sender, long fromChatId, bool editMessage = false)

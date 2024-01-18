@@ -79,9 +79,16 @@ namespace fiitobot
             }
             catch (Exception e)
             {
-                client.SendTextMessageAsync(settings.DevopsChatId, "Request:\n\n" + request + "\n\n" + e).Wait();
-                return new Response(500, e.ToString());
-            }
+                var message = "Request:\n\n" + request + "\n\n" + e;
+                try
+                {
+                    client.SendTextMessageAsync(settings.DevopsChatId, message).Wait();
+                }
+                catch(Exception e2)
+                {
+                    Console.Error.WriteLine(message + "\n\n" + e2);
+                }
+                return new Response(500, e.ToString());            }
         }
 
         private long GetSender(Update update)
