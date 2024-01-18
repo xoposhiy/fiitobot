@@ -68,7 +68,8 @@ namespace fiitobot
                     new StatBirthdayCommandHandler(presenter, botDataRepository),
                     new RemoveBirthdayCommandHandler(presenter, botDataRepository),
                     new NotifyOffBirthdayCommandHandler(presenter, botDataRepository),
-                    new NotifyOnBirthdayCommandHandler(presenter, botDataRepository)
+                    new NotifyOnBirthdayCommandHandler(presenter, botDataRepository),
+                    new SpasibkaCommandHandler(presenter, detailsRepo, botDataRepository)
                 };
                 var updateService = new HandleUpdateService(botDataRepository, namedPhotoDirectory, photoRepo, demidovichService, downloader, presenter, detailsRepo, commands);
                 updateService.Handle(update).Wait();

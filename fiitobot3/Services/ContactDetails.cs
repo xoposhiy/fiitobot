@@ -9,11 +9,14 @@ namespace fiitobot.Services
 {
     public class ContactDetails
     {
-        public ContactDetails(long contactId, List<ContactDetail> details = null, List<SemesterMarks> semesters = null)
+        public ContactDetails(long contactId, List<ContactDetail> details = null, List<SemesterMarks> semesters = null,
+            DialogState dialogState = null, List<Spasibka> spasibki = null)
         {
             ContactId = contactId;
             Details = details ?? new List<ContactDetail>();
             Semesters = semesters ?? new List<SemesterMarks>();
+            DialogState = dialogState ?? new DialogState();
+            Spasibki = spasibki ?? new List<Spasibka>();
         }
 
         public readonly long ContactId;
@@ -22,9 +25,9 @@ namespace fiitobot.Services
         public List<SemesterMarks> Semesters;
         public TgUsernameSource TelegramUsernameSource;
         public DateTime LastUseTime;
-
-        // TODO dialogState
+        public DialogState DialogState;
         public List<ContactDetail> Details;
+        public List<Spasibka> Spasibki;
 
         public void UpdateOrAddMark(BrsStudentMark mark, int year, int yearPart, int courseNumber)
         {
@@ -67,5 +70,42 @@ namespace fiitobot.Services
     {
         GoogleSheet = 0,
         UsernameTgMessage = 1
+    }
+
+
+
+    public class DialogState
+    {
+        // сохраняем строку команды, которая должна вызываться на следующем этапе
+        public string CommandHandlerLine = "";
+
+        // сохраняем то что поняли из пользовательского сообщения: внутреннее_состояние ReceiverId текст_спасибки
+        public string CommandHandlerData = "";
+
+        // нужен для сохранения индекса в листе на удаление, когда листаем список
+        // понимаю, что не очень хорошо, но больше некуда засунуть этот индекс
+
+        // TODO Унести в CommandHandlerData:
+        public int ItemIndex;
+
+        // айди сообщения, на котором нажали кнопку
+        public int? MessageId;
+    }
+
+    public class Spasibka
+    {
+        public readonly long SenderContactId;
+        public readonly string Content;
+        public readonly DateTime PostDate;
+
+        public Spasibka(long senderContactId, string content, DateTime postDate)
+        {
+            SenderContactId = senderContactId;
+            Content = content;
+            // TimeZoneInfo cstZone = TimeZoneInfo.FindSystemTimeZoneById("Russian Standard Time");
+            PostDate = postDate;
+            // PostDate = Convert.ToString(postDate
+            //     .ToString("dd.MM.yyyy:HH:mm"), CultureInfo.InvariantCulture);
+        }
     }
 }

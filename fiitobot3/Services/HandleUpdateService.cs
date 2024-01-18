@@ -69,9 +69,12 @@ namespace fiitobot.Services
 
         private async Task BotOnCallbackQuery(CallbackQuery callbackQuery)
         {
-            //if (!await EnsureHasAdminRights(callbackQuery.From, callbackQuery.Message!.Chat.Id)) return;
+            // if (!await EnsureHasAdminRights(callbackQuery.From, callbackQuery.Message!.Chat.Id)) return;
             var sender = await GetSenderContact(callbackQuery.From);
-            await HandlePlainText(callbackQuery.Data!, callbackQuery.Message!.Chat.Id, sender);
+            await HandlePlainText(callbackQuery.Data!, callbackQuery.Message!.Chat.Id, sender,
+                buttonMessageId: callbackQuery.Message.MessageId);
+            await presenter.StopCallbackQueryAnimation(callbackQuery);
+            // await presenter.HideInlineKeyboard(callbackQuery.Message.Chat.Id, callbackQuery.Message.MessageId);
         }
 
         private async Task BotOnInlineQuery(InlineQuery inlineQuery)
@@ -94,6 +97,7 @@ namespace fiitobot.Services
             if (messageFrom == null) return;
             var sender = await GetSenderContact(message.From);
             var fromChatId = message.Chat.Id;
+
             var inGroupChat = messageFrom.Id != fromChatId;
             if (message.Type == MessageType.Text)
                 if (message.ForwardFrom != null)
@@ -164,7 +168,8 @@ namespace fiitobot.Services
         }
 
         public async Task HandlePlainText(string text, long fromChatId, ContactWithDetails senderWithDetails,
-            bool silentOnNoResults = false)
+            bool silentOnNoResults = false,
+            int? buttonMessageId = null)
         {
             var sender = senderWithDetails.Contact;
             var asSelf = text.Contains("/as_self");
@@ -181,16 +186,15 @@ namespace fiitobot.Services
                 text = text.Replace(m.Value, "");
             }
 
-            var command = commands.FirstOrDefault(c => text.StartsWith(c.Command));
-
-            if (command != null)
+            var senderDetails = senderWithDetails.ContactDetails;
+            if (buttonMessageId != null)
             {
-                if (sender.Type.IsOneOf(command.AllowedFor))
-                    await command.HandlePlainText(text, fromChatId, sender, silentOnNoResults);
-                else
-                    await presenter.SayNoRights(fromChatId, sender.Type);
-                return;
+                //TODO Кажется MessageId не должно быть в DialogState, а должно передаваться через аргуметы методов
+                senderDetails.DialogState.MessageId = buttonMessageId;
+                await detailsRepo.Save(senderDetails);
             }
+            if (await TryHandleAsCommand(text, fromChatId, silentOnNoResults, senderWithDetails))
+                return;
 
             if (sender.Type == ContactType.External)
             {
@@ -279,6 +283,38 @@ namespace fiitobot.Services
             }
         }
 
+        private async Task<bool> TryHandleAsCommand(string text, long fromChatId, bool silentOnNoResults,
+            ContactWithDetails senderWithDetails)
+        {
+            var sender = senderWithDetails.Contact;
+            var dialogState = senderWithDetails.ContactDetails.DialogState;
+            var searchText =
+                !string.IsNullOrEmpty(dialogState.CommandHandlerLine)
+                    ? dialogState.CommandHandlerLine
+                    : text;
+            var command = commands.FirstOrDefault(c => searchText.StartsWith(c.Command));
+            if (command == null) return false;
+            if (sender.Type.IsOneOf(command.AllowedFor))
+            {
+                //TODO Вынести этот try-catch ещё выше
+                try
+                {
+                    await command.HandlePlainText(text, fromChatId, sender, silentOnNoResults);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                    senderWithDetails.ContactDetails.DialogState = new DialogState();
+                    await detailsRepo.Save(senderWithDetails.ContactDetails);
+                    throw;
+                }
+            }
+            else
+                await presenter.SayNoRights(fromChatId, sender.Type);
+            return true;
+
+        }
+
         private async Task<bool> TryHandleAsRequestAsMultilineList(string text, BotData data, long fromChatId)
         {
             var lines = text.Split("\n").ToArray();
@@ -294,12 +330,14 @@ namespace fiitobot.Services
                 {
                     var res = contacts[0];
                     var question = contacts.Length > 1 ? ("(?) " + query + " ") : "";
-                    resultLines.AppendLine(line + " " + res.Telegram + " " + question + res.FormatMnemonicGroup(DateTime.Now));
+                    resultLines.AppendLine(line + " " + res.Telegram + " " + question +
+                                           res.FormatMnemonicGroup(DateTime.Now));
                     found++;
                 }
                 else
                     resultLines.AppendLine(line);
             }
+
             if (found == 0) return false;
             await presenter.SayPlainText(string.Join("\n", resultLines), fromChatId);
             return true;
@@ -380,7 +418,7 @@ namespace fiitobot.Services
             {
                 return text.StartsWith(command)
                     ? (newSenderType, text.Replace(command, ""))
-                    : ((ContactType newSenderType, string restText)?)null;
+                    : ((ContactType newSenderType, string restText)?) null;
             }
 
             return
