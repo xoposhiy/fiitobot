@@ -5,6 +5,7 @@ namespace fiitobot
     // Create Settings.Production.cs file with concrete values set in default constructor.
     public partial class Settings
     {
+        public string GoogleApiKey;
         public string TgToken;
         public long DevopsChatId;
         public string SpreadSheetId;

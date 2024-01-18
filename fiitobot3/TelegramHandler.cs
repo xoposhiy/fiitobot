@@ -31,11 +31,12 @@ namespace fiitobot
             var client = new TelegramBotClient(settings.TgToken);
             try
             {
+                var fiitobotBucketService = settings.CreateFiitobotBucketService();
                 var body = JObject.Parse(request).GetValue("body")!.Value<string>();
                 var update = JsonConvert.DeserializeObject<Update>(body);
                 var sheetClient = new GSheetClient(settings.GoogleAuthJson);
                 var botDataRepository = new BotDataRepository(settings);
-                var detailsRepo = new S3ContactsDetailsRepo(settings.CreateFiitobotBucketService());
+                var detailsRepo = new S3ContactsDetailsRepo(fiitobotBucketService);
                 var contactsRepo = new SheetContactsRepository(sheetClient, settings.SpreadSheetId, botDataRepository, detailsRepo);
                 var presenter = new Presenter(client, settings);
                 var marksReloadService = new MarksReloadService(botDataRepository, detailsRepo, sheetClient);
@@ -45,7 +46,8 @@ namespace fiitobot
                 var studentsDownloader = new UrfuStudentsDownloader(settings);
                 var demidovichService = new DemidovichService(settings.CreateDemidovichBucketService());
                 var brsClient = new BrsClient(BrsClient.IsFiitOfficialGroup);
-                var faqRepo = new S3FaqRepo(settings.CreateFaqBucketService());
+                var faqRepo = new S3FaqRepo(fiitobotBucketService, settings);
+                faqRepo.Save();
                 var commands = new IChatCommandHandler[]
                 {
                     new StartCommandHandler(presenter, botDataRepository),

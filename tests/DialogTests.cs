@@ -303,7 +303,7 @@ public class DialogTests
         var downloader = A.Fake<ITelegramFileDownloader>();
         var repo = new MemoryBotDataRepository(data);
         var detailsRepo = A.Fake<IContactDetailsRepo>();
-        var faqRepo = A.Fake<IFAQRepo>();
+        var faqRepo = A.Fake<FaqRepo>();
         var commands = new IChatCommandHandler[]
         {
             new StartCommandHandler(presenter, repo),

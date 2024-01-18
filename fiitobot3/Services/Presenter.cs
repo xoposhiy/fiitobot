@@ -9,8 +9,6 @@ using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.InlineQueryResults;
 using Telegram.Bot.Types.ReplyMarkups;
-using fiitobot.Services.Commands;
-using Microsoft.Extensions.Logging;
 using Update = Telegram.Bot.Types.Update;
 
 namespace fiitobot.Services
@@ -66,20 +64,14 @@ namespace fiitobot.Services
 
     public class Presenter : IPresenter
     {
-        private readonly ILogger logger;
         private readonly ITelegramBotClient botClient;
         private readonly Settings settings;
-        private readonly S3FaqRepo S3FAQRepo;
         /*
         private DocsService docsService;
         */
 
         public Presenter(ITelegramBotClient botClient, Settings settings)
         {
-            using ILoggerFactory factory = LoggerFactory.Create(builder => builder.AddConsole());
-            logger = factory.CreateLogger("HandleUpdateService");
-            S3FAQRepo = new S3FaqRepo(settings.CreateFaqBucketService());
-            S3FAQRepo.StartUploading();
             this.botClient = botClient;
             this.settings = settings;
         }

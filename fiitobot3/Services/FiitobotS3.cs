@@ -32,19 +32,5 @@ namespace fiitobot.Services
             });
             return objectStorage;
         }
-
-        public static YandexStorageService CreateFaqBucketService(this Settings settings)
-        {
-            var objectStorage = new YandexStorageService(new YandexStorageOptions
-            {
-                AccessKey = "YCAJEmPJoNy6oMO7U3LRFK4Uc",
-                SecretKey = "YCOpvS20fis42WY2yCv1_Q6HzNRxq8Qkp7sBsycH",
-                BucketName = "faq-storage",
-                Endpoint = "storage.yandexcloud.net",
-                Location = "ru-central1-a",
-                Protocol = "https"
-            });
-            return objectStorage;
-        }
     }
 }
