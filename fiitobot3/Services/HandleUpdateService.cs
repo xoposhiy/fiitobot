@@ -80,18 +80,8 @@ namespace fiitobot.Services
 
         private async Task BotOnInlineQuery(InlineQuery inlineQuery)
         {
-            await HandleFaq(inlineQuery);
-            var sender = await GetSenderContact(inlineQuery.From);
-            if (!sender.Contact.Type.IsOneOf(ContactTypes.AllNotExternal)) return;
-            var foundPeople = botDataRepo.GetData().SearchContacts(inlineQuery.Query);
-            if (foundPeople.Length > 10) return;
-            await presenter.InlineSearchResults(inlineQuery.Id, foundPeople.Select(c => c).ToArray());
-        }
-
-        private async Task HandleFaq(InlineQuery inlineQuery)
-        {
             var query = inlineQuery.Query.ToLower().Trim();
-            var faqs = await faqRepo.FindById();
+            var faqs = await faqRepo.GetFaqs();
             var keyword2Faqs = faqRepo.GetKeyword2Faqs(faqs);
             var keywords = keyword2Faqs.Keys.ToHashSet();
 

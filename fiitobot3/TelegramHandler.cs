@@ -47,7 +47,7 @@ namespace fiitobot
                 var demidovichService = new DemidovichService(settings.CreateDemidovichBucketService());
                 var brsClient = new BrsClient(BrsClient.IsFiitOfficialGroup);
                 var faqRepo = new S3FaqRepo(fiitobotBucketService, settings);
-                faqRepo.Save();
+                faqRepo.UpdateBucketData();
                 var commands = new IChatCommandHandler[]
                 {
                     new StartCommandHandler(presenter, botDataRepository),
