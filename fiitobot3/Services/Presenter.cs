@@ -66,9 +66,6 @@ namespace fiitobot.Services
     {
         private readonly ITelegramBotClient botClient;
         private readonly Settings settings;
-        /*
-        private DocsService docsService;
-        */
 
         public Presenter(ITelegramBotClient botClient, Settings settings)
         {
