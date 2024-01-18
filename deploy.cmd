@@ -1,2 +1,2 @@
 rmdir /S /Q fiitobot3\bin
-yc serverless function version create --function-name fiitobot-handler --entrypoint fiitobot.TelegramBotHandlerFunction --runtime dotnetcore31 --service-account-id ajeribu1mlqraagre02j --execution-timeout 120s --source-path fiitobot3
+yc serverless function version create --function-name fiitobot-handler --entrypoint fiitobot.TelegramBotHandlerFunction --runtime dotnetcore31 --service-account-id ajet10dfncm9rjmfdets --execution-timeout 120s --source-path fiitobot3
