@@ -21,7 +21,7 @@ namespace fiitobot.Services
         private readonly INamedPhotoDirectory namedPhotoDirectory;
         private readonly IPhotoRepository photoRepo;
         private readonly IPresenter presenter;
-        private readonly FaqRepo faqRepo;
+        private readonly IFaqRepo faqRepo;
 
         public HandleUpdateService(IBotDataRepository botDataRepo,
             INamedPhotoDirectory namedPhotoDirectory,
@@ -31,7 +31,7 @@ namespace fiitobot.Services
             IPresenter presenter,
             IContactDetailsRepo detailsRepo,
             IChatCommandHandler[] commands,
-            FaqRepo faqRepo)
+            IFaqRepo faqRepo)
         {
             this.botDataRepo = botDataRepo;
             this.namedPhotoDirectory = namedPhotoDirectory;

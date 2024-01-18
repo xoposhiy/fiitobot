@@ -10,7 +10,7 @@ using Newtonsoft.Json;
 
 namespace fiitobot.Services
 {
-    public class S3FaqRepo: FaqRepo
+    public class S3FaqRepo: IFaqRepo
     {
         private readonly YandexStorageService storageService;
         private readonly Settings settings;
