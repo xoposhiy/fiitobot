@@ -8,6 +8,14 @@ namespace fiitobot
 {
     public static class Extensions
     {
+        public static string EscapeForTgHtml(this string text)
+        {
+            return text
+                .Replace("&", "&amp;")
+                .Replace("<", "&lt;")
+                .Replace(">", "&gt;");
+        }
+
 
         public static string Canonize(this string text)
         {
@@ -268,7 +276,7 @@ namespace fiitobot
         {
             return string.Join(delimiter, items);
         }
-        
+
         public static string StrJoin<T>(this IEnumerable<T> items, char delimiter)
         {
             return string.Join(delimiter, items);
@@ -278,7 +286,7 @@ namespace fiitobot
         {
             return items.Select(toString).StrJoin(delimiter);
         }
-        
+
         public static bool IsOneOf<T>(this T item, params T[] set)
         {
             return set.IndexOf(item) >= 0;
@@ -293,7 +301,7 @@ namespace fiitobot
             if (Math.Abs(x) > 0.01) return x.ToString("0.####", CultureInfo.InvariantCulture);
             return x.ToString(CultureInfo.InvariantCulture);
         }
-        
+
     }
 
     public static class RandomExtensions
@@ -321,7 +329,7 @@ namespace fiitobot
                 sample[i] = list[r.Next(list.Count)];
             return sample;
         }
-        
+
         public static bool Chance(this Random r, double probability)
         {
             return r.NextDouble() < probability;

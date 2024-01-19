@@ -196,10 +196,10 @@ namespace fiitobot.Services.Commands
                 (int)senderDetails.DialogState.MessageId);
         }
 
-        private static string FormatSpasibkaNotification(Contact sender, string content)
+        private static string FormatSpasibkaNotification(Contact sender, string rawContent)
         {
             return $"Спасибо тебе от <code>{sender.FirstLastName()}</code> {sender.Telegram}." +
-                   $" Вот что он пишет:\n\n«{content}»";
+                   $" Вот что он пишет:\n\n«{rawContent.EscapeForTgHtml()}»";
         }
 
         private async Task ShowOneSpasibkaToDelete(long fromChatId)

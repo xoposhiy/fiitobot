@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using fiitobot.Services.Commands;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -61,7 +60,7 @@ namespace fiitobot.Services
 
         Task StopCallbackQueryAnimation(CallbackQuery callbackQuery);
         Task ShowSpasibkaConfirmationMessage(string content, long chatId);
-        Task NotifyReceiverAboutNewSpasibka(string content, long chatId);
+        Task NotifyReceiverAboutNewSpasibka(string contentHtml, long chatId);
         Task ShowAllSpasibkaList(string content, long chatId, bool canDelete = false);
         Task ShowOneSpasibkaFromList(string content, long chatId, int messageId,
             bool previous = false, bool next = false);
@@ -113,9 +112,9 @@ namespace fiitobot.Services
                 if (rubric.Key.StartsWith("Семестр 1") || rubric.Key.StartsWith("Семестр 2") || rubric.Key.StartsWith("Семестр 3") || rubric.Key.StartsWith("Семестр 4"))
                     continue;
                 text.AppendLine(
-                    $"<b>{EscapeForHtml(rubric.Key)}</b>");
+                    $"<b>{rubric.Key.EscapeForTgHtml()}</b>");
                 foreach (var detail in rubric)
-                    text.AppendLine($" • {EscapeForHtml(detail.Parameter.TrimEnd('?'))}: {EscapeForHtml(detail.Value)}");
+                    text.AppendLine($" • {detail.Parameter.TrimEnd('?').EscapeForTgHtml()}: {detail.Value.EscapeForTgHtml()}");
                 text.AppendLine();
             }
             await botClient.SendTextMessageAsync(chatId, text.ToString().TrimEnd(), parseMode:ParseMode.Html);
@@ -129,7 +128,7 @@ namespace fiitobot.Services
                     $"<b>Семестр {semester.SemesterNumber}</b>");
                 foreach (var disciplineMark in semester.Marks)
                 {
-                    var markLine = $" • {EscapeForHtml(disciplineMark.DisciplineName)}: {EscapeForHtml(disciplineMark.MarkName)}";
+                    var markLine = $" • {disciplineMark.DisciplineName.EscapeForTgHtml()}: {disciplineMark.MarkName.EscapeForTgHtml()}";
                     if (disciplineMark.Mark100Grade.HasValue)
                         markLine += $" ({disciplineMark.Mark100Grade.Value})";
                     text.AppendLine(markLine);
@@ -199,7 +198,7 @@ namespace fiitobot.Services
         private string FormatErrorHtml(Update incomingUpdate, string errorMessage)
         {
             var formattedUpdate = FormatIncomingUpdate(incomingUpdate);
-            var formattedError = EscapeForHtml(errorMessage);
+            var formattedError = errorMessage.EscapeForTgHtml();
             return $"Error handling message: {formattedUpdate}\n\nError:\n<pre>{formattedError}</pre>";
         }
 
@@ -218,15 +217,7 @@ namespace fiitobot.Services
             };
 
             return
-                $"<pre>{EscapeForHtml(incoming)}</pre>";
-        }
-
-        private string EscapeForHtml(string text)
-        {
-            return text
-                .Replace("&", "&amp;")
-                .Replace("<", "&lt;")
-                .Replace(">", "&gt;");
+                $"<pre>{incoming.EscapeForTgHtml()}</pre>";
         }
 
         public async Task ShowBirthDateActions(Contact sender, long chatId, string text)
@@ -290,14 +281,14 @@ namespace fiitobot.Services
                 replyMarkup: inlineKeyboardMarkup);
         }
 
-        public async Task NotifyReceiverAboutNewSpasibka(string content, long chatId)
+        public async Task NotifyReceiverAboutNewSpasibka(string contentHtml, long chatId)
         {
             var inlineKeyboardMarkup = new InlineKeyboardMarkup(new[]
             {
                 new InlineKeyboardButton("Посмотреть все спасибки") { CallbackData = ShowAllSpasibki() },
             });
 
-            await botClient.SendTextMessageAsync(chatId, content, parseMode: ParseMode.Html,
+            await botClient.SendTextMessageAsync(chatId, contentHtml, parseMode: ParseMode.Html,
                 replyMarkup: inlineKeyboardMarkup);
         }
 
@@ -333,9 +324,9 @@ namespace fiitobot.Services
                 replyMarkup: inlineKeyboardMarkup);
         }
 
-        public async Task ShowSpasibkaConfirmationMessage(string content, long chatId)
+        public async Task ShowSpasibkaConfirmationMessage(string contentHtml, long chatId)
         {
-            var htmlText = $"Проверяй! Я отправлю вот такое сообщение получателю:\n\n{content}";
+            var htmlText = $"Проверяй! Я отправлю вот такое сообщение получателю:\n\n{contentHtml}";
             var inlineKeyboardMarkup = new InlineKeyboardMarkup(new[]
             {
                 new InlineKeyboardButton("Отменить") {CallbackData = CancelSpasibka()},
@@ -616,7 +607,7 @@ namespace fiitobot.Services
                 b.AppendLine($"💬 {tgName}");
 
             if (!string.IsNullOrWhiteSpace(contact.SecretNote))
-                b.AppendLine($"\n{EscapeForHtml(contact.Note)}");
+                b.AppendLine($"\n{contact.Note.EscapeForTgHtml()}");
 
             if (detailsLevel.HasFlag(ContactDetailsLevel.SecretNote) && !string.IsNullOrWhiteSpace(contact.SecretNote))
             {
@@ -809,7 +800,7 @@ namespace fiitobot.Services
         }
         public async Task SayPlainText(string plainText, long chatId)
         {
-            await botClient.SendTextMessageAsync(chatId, EscapeForHtml(plainText), parseMode: ParseMode.Html);
+            await botClient.SendTextMessageAsync(chatId, plainText.EscapeForTgHtml(), parseMode: ParseMode.Html);
         }
     }
 }
