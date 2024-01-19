@@ -438,7 +438,7 @@ namespace fiitobot.Services
                     .Where(c => !string.IsNullOrEmpty(c.BirthDate) && c.BirthDate != "no")
                     .ToList();
 
-            var res = contacts.Where(c => SmartContains(getProperty(c) ?? "", text))
+            var res = contacts.Where(c => getProperty(c).ContainsWholeWordIgnoreCase(text))
                 .ToList();
             if (res.Count == 0) return false;
             var bestGroup = res.GroupBy(getProperty).MaxBy(g => g.Count());
@@ -459,11 +459,6 @@ namespace fiitobot.Services
 
             await presenter.ShowContactsBy(bestGroup.Key, res, chatId);
             return true;
-        }
-
-        private bool SmartContains(string value, string query)
-        {
-            return new Regex($@"\b{Regex.Escape(query)}\b", RegexOptions.IgnoreCase).IsMatch(value);
         }
 
         private async Task SayCompliment(Contact contact, long fromChatId)

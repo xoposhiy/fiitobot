@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 #nullable disable
 namespace fiitobot
@@ -15,6 +16,13 @@ namespace fiitobot
                 .Replace("<", "&lt;")
                 .Replace(">", "&gt;");
         }
+
+        public static bool ContainsWholeWordIgnoreCase(this string value, string word)
+        {
+            if (value is null) return false;
+            return new Regex($@"\b{Regex.Escape(word)}\b", RegexOptions.IgnoreCase).IsMatch(value);
+        }
+
 
 
         public static string Canonize(this string text)

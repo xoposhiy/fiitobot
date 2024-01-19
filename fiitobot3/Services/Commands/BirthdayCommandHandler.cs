@@ -65,19 +65,12 @@ namespace fiitobot.Services.Commands
             var botData = botDataRepo.GetData();
             var contacts = botData.AllContacts.Select(p => p).ToList();
 
-            var res = contacts.Where(c => SmartContains(getProperty(c) ?? "", text))
-                .ToList();
+            var res = contacts.Where(c => getProperty(c).ContainsWholeWordIgnoreCase(text)).ToList();
             if (res.Count == 0) return false;
             var bestGroup = res.GroupBy(getProperty).MaxBy(g => g.Count());
 
             await presenter.ShowContactsBy(bestGroup.Key, res, chatId);
             return true;
-        }
-
-        //TODO Дублирование с HandleUpdateService.
-        private bool SmartContains(string value, string query)
-        {
-            return new Regex($@"\b{Regex.Escape(query)}\b", RegexOptions.IgnoreCase).IsMatch(value);
         }
     }
 
