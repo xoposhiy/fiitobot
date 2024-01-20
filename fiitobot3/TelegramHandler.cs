@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using fiitobot.GoogleSpreadsheet;
 using fiitobot.Services;
 using fiitobot.Services.Commands;
@@ -27,6 +28,7 @@ namespace fiitobot
     {
         public Response FunctionHandler(string request, Context context)
         {
+            Thread.CurrentThread.CurrentCulture = new System.Globalization.CultureInfo("ru-RU");
             var settings = new Settings();
             var client = new TelegramBotClient(settings.TgToken);
             try

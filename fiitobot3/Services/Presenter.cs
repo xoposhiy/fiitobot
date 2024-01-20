@@ -622,6 +622,7 @@ namespace fiitobot.Services
             if (detailsLevel.HasFlag(ContactDetailsLevel.TechnicalInfo))
             {
                 b.AppendLine();
+                b.AppendLine("Id: <code>" + contact.Id + "</code>");
                 b.AppendLine("TelegramId: <code>" + contact.TgId + "</code>");
             }
             if (detailsLevel.HasFlag(ContactDetailsLevel.LinksToFiitTeamFiles))

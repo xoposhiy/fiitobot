@@ -1,13 +1,13 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace fiitobot.Services.Commands
 {
     public class SpasibkaCommandHandler : IChatCommandHandler
     {
+        private const int MaxSpasibkaLength = 2000;
+        private const int MaxMessageLength = 4096;
         private readonly IPresenter presenter;
         private readonly IContactDetailsRepo contactDetailsRepo;
         private readonly BotDataRepository botDataRepository;
@@ -35,10 +35,16 @@ namespace fiitobot.Services.Commands
             if (!string.IsNullOrEmpty(dialogState.CommandHandlerLine) && !text.StartsWith(Command))
             {
                 // пришёл текст спасибки
+                if (text.Length > MaxSpasibkaLength)
+                {
+                    await presenter.Say("Ой, это слишком длинно! Давай ещё раз, но короче 2000 символов.", fromChatId);
+                    return;
+                }
                 senderDetails.DialogState.CommandHandlerLine = "";
                 senderDetails.DialogState.CommandHandlerData = $"{storedReceiverId} {text}";
                 await contactDetailsRepo.Save(senderDetails);
-                await presenter.ShowSpasibkaConfirmationMessage(FormatSpasibkaNotification(sender, text), fromChatId);
+                var spasibka = new Spasibka(sender.Id, text, DateTime.UtcNow);
+                await presenter.ShowSpasibkaConfirmationMessage(FormatSpasibkaNotificationHtml(spasibka), fromChatId);
                 return;
             }
 
@@ -140,55 +146,60 @@ namespace fiitobot.Services.Commands
 
         private async Task ShowAll(long contactId, Contact sender, long fromChatId, bool editMessage = false)
         {
-            var canDelete = false;
-            var zeroSpasibkas = "У этого пользователя пока нет спасибок :(\n" +
-                               "Но вы можете поблагодарить его за что-нибудь!";
-
             var details = await contactDetailsRepo.FindById(contactId);
-            if (contactId == sender.Id)
+            var spasibkas = details.Spasibki.OrderByDescending(s => s.PostDate).ToList();
+            var content = "";
+            var count = 0;
+            foreach (var spasibka in spasibkas)
             {
-                canDelete = true;
-                zeroSpasibkas = "У вас пока нет спасибок :(\n" +
-                               "Но вы можете отправить их тому, кого есть за что благодарить!";
+                var formatted = FormatSpasibkaHtml(spasibka);
+                if (content.Length + formatted.Length > MaxMessageLength - 500)
+                {
+                    content += $"\n\n<i>и ещё {(spasibkas.Count - count).Pluralize("спасибка|спасибки|спасибок")}</i>";
+                    //TODO Показывать кнопку "Показать следующие" и следующие спасибки.
+                    break;
+                }
+                if (count > 0) content += "\n\n";
+                content += formatted;
+                count++;
             }
-
-            var spasibkaLst = details.Spasibki;
-            var i = 1;
-
-            var content = new StringBuilder();
-            for (var j = spasibkaLst.Count - 1; j >= 0; j--)
-            {
-                content.Append($"{i}) От {FormatSpasibka(spasibkaLst[j], "\n")}\n\n");
-                i++;
-            }
-
-            // TODO: помещать максимум по 15-20 спасибок в страницу + возможность листать строницы
-            if (content.Length != 0)
+            if (spasibkas.Count != 0)
             {
                 if (editMessage)
                 {
                     if (senderDetails.DialogState.MessageId == null)
                         throw new Exception("DialogState.MessageId is null");
-                    await presenter.EditMessage(content.ToString(), fromChatId, (int)senderDetails.DialogState.MessageId);
+                    await presenter.EditMessage(content, fromChatId, (int)senderDetails.DialogState.MessageId);
                 }
                 else
-                    await presenter.ShowAllSpasibkaList(content.ToString(), fromChatId, canDelete);
+                    await presenter.ShowAllSpasibkaList(content, fromChatId, contactId == sender.Id);
             }
             else
+            {
+                var zeroSpasibkas = "Тут пока нет спасибок :(\n" +
+                                    "Есть за что поблагодарить? Так сделай это — получить спасибку всегда приятно!";
+
+                if (contactId == sender.Id)
+                {
+                    zeroSpasibkas = "Тут пока нет спасибок :(\n" +
+                                    "Отправь сам кому-нибудь спасибку, и она к тебе не раз ещё вернется!";
+                }
                 await presenter.Say(zeroSpasibkas, fromChatId);
+            }
         }
 
         private async Task ConfirmAndSendSpasibka(long receiverId, Contact sender, string content, long fromChatId)
         {
             var receiverDetails = contactDetailsRepo.FindById(receiverId).Result;
-            receiverDetails.Spasibki.Add(new Spasibka(sender.Id, content, DateTime.UtcNow.AddHours(5)));
+            var spasibka = new Spasibka(sender.Id, content, DateTime.UtcNow);
+            receiverDetails.Spasibki.Add(spasibka);
             await contactDetailsRepo.Save(receiverDetails);
 
             if (senderDetails.DialogState.MessageId == null)
                 throw new Exception("DialogState.MessageId is null");
 
             await presenter.NotifyReceiverAboutNewSpasibka(
-                FormatSpasibkaNotification(sender, content),
+                FormatSpasibkaNotificationHtml(spasibka),
                 receiverDetails.TelegramId);
 
             await presenter.EditMessage("Спасибка отправлена, получатель получил уведомление!",
@@ -196,16 +207,10 @@ namespace fiitobot.Services.Commands
                 (int)senderDetails.DialogState.MessageId);
         }
 
-        private static string FormatSpasibkaNotification(Contact sender, string rawContent)
-        {
-            return $"Спасибо тебе от <code>{sender.FirstLastName()}</code> {sender.Telegram}." +
-                   $" Вот что он пишет:\n\n«{rawContent.EscapeForTgHtml()}»";
-        }
-
         private async Task ShowOneSpasibkaToDelete(long fromChatId)
         {
             var spasibka = senderDetails.Spasibki[senderDetails.DialogState.ItemIndex];
-            var content = FormatSpasibka(spasibka, "\n\n");
+            var content = FormatSpasibkaHtml(spasibka);
 
             if (senderDetails.DialogState.MessageId == null)
                 throw new Exception("DialogState.MessageId is null");
@@ -225,13 +230,21 @@ namespace fiitobot.Services.Commands
                 (int)senderDetails.DialogState.MessageId);
         }
 
-        private string FormatSpasibka(Spasibka spasibka, string lineSeparator)
+        private  string FormatSpasibkaNotificationHtml(Spasibka spasibka)
         {
             var botData = botDataRepository.GetData();
             var sender = botData.AllContacts.FirstOrDefault(contact => contact.Id == spasibka.SenderContactId);
+            return $"Спасибо тебе от <code>{sender?.FirstLastName() ?? "НЛО"}</code> {sender?.Telegram}." +
+                   $" Вот что он пишет:\n\n«{spasibka.Content.EscapeForTgHtml()}»";
+        }
 
-            var res = $"<code>{sender?.FirstLastName()}</code> {sender?.Telegram}:" +
-                      $"{lineSeparator}«{spasibka.Content}»\n<code>{spasibka.PostDate:yyyy.MM.dd}</code>";
+        private string FormatSpasibkaHtml(Spasibka spasibka)
+        {
+            var botData = botDataRepository.GetData();
+            var sender = botData.AllContacts.FirstOrDefault(contact => contact.Id == spasibka.SenderContactId);
+            var res = $"{spasibka.PostDate.AddHours(5):dd MMMM yyyy} ";
+            if (sender != null) res += $"<code>{sender.FirstLastName()}</code> {sender.Telegram}";
+            res += $":\n{spasibka.Content.EscapeForTgHtml()}";
             return res;
         }
     }
