@@ -89,9 +89,14 @@ namespace fiitobot.Services.Commands
                 .ToList();
             if (random.NextDouble() < ShowSameYearChance)
             {
-                students = students.Where(s => s.AdmissionYear == sender.AdmissionYear).ToList();
+                var lessStudents = students.Where(s => s.AdmissionYear == sender.AdmissionYear).ToList();
+                students = lessStudents.Any() ? lessStudents : students;
                 if (random.NextDouble() < ShowSameGroupChance)
-                    students = students.Where(s => s.GroupIndex == sender.GroupIndex).ToList();
+                {
+                    lessStudents = students.Where(s => s.GroupIndex == sender.GroupIndex).ToList();
+                    students = lessStudents.Any() ? lessStudents : students;
+                }
+
             }
             var randomContact = students[random.Next(students.Count)];
             var details = detailsRepo.GetById(randomContact.Id).Result;

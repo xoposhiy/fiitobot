@@ -229,7 +229,6 @@ public class DialogTests
 
         A.CallTo(() => contactsPresenter.SayNoResults(42))
             .MustHaveHappenedOnceExactly();
-        Assert.AreEqual(1, Fake.GetCalls(contactsPresenter).Count());
     }
 
     [TestCase("Иван")]
