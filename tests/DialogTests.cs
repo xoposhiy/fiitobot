@@ -189,12 +189,14 @@ public class DialogTests
 
     private ContactWithDetails AStudent(long tgId = 123123123)
     {
-        return new ContactWithDetails(data!.Students.First(c => c.TgId == tgId));
+        var contact = data!.Students.First(c => c.TgId == tgId);
+        return new ContactWithDetails(contact, new ContactDetails(contact.Id));
     }
 
     private ContactWithDetails AnAdmin()
     {
-        return new ContactWithDetails(data!.Administrators.First());
+        var contact = data!.Administrators.First();
+        return new ContactWithDetails(contact, new ContactDetails(contact.Id));
     }
 
     [TestCase("Иван")]
@@ -246,16 +248,16 @@ public class DialogTests
 
     private ContactWithDetails AGuest()
     {
-        return new ContactWithDetails(
-            new Contact
-            {
-                Id = 1,
-                Type = ContactType.External,
-                TgId = 555,
-                FirstName = "Некто",
-                LastName = "Нектович",
-                Telegram = "@guest"
-            });
+        var contact = new Contact
+        {
+            Id = 1,
+            Type = ContactType.External,
+            TgId = 555,
+            FirstName = "Некто",
+            LastName = "Нектович",
+            Telegram = "@guest"
+        };
+        return new ContactWithDetails(contact, new ContactDetails(contact.Id));
     }
 
     [TestCase("Я Гриша!")]

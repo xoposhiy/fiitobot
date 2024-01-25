@@ -26,7 +26,7 @@ namespace fiitobot.Services.Commands
 
         public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
         {
-            senderDetails = contactDetailsRepo.FindById(sender.Id).Result;
+            senderDetails = contactDetailsRepo.GetById(sender.Id).Result;
             var dialogState = senderDetails.DialogState;
             var storedData = dialogState.CommandHandlerData?.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>();
             var storedReceiverId = storedData.Length > 0 ? long.Parse(storedData[0]) : -1;
@@ -131,7 +131,7 @@ namespace fiitobot.Services.Commands
 
                 case "confirm":
                     await ConfirmAndSendSpasibka(storedReceiverId, sender, storedText, fromChatId);
-                    senderDetails = await contactDetailsRepo.FindById(senderDetails.ContactId);
+                    senderDetails = await contactDetailsRepo.GetById(senderDetails.ContactId);
                     senderDetails.DialogState = new DialogState();
                     await contactDetailsRepo.Save(senderDetails);
                     return;
@@ -146,7 +146,7 @@ namespace fiitobot.Services.Commands
 
         private async Task ShowAll(long contactId, Contact sender, long fromChatId, bool editMessage = false)
         {
-            var details = await contactDetailsRepo.FindById(contactId);
+            var details = await contactDetailsRepo.GetById(contactId);
             var spasibkas = details.Spasibki.OrderByDescending(s => s.PostDate).ToList();
             var content = "";
             var count = 0;
@@ -190,7 +190,7 @@ namespace fiitobot.Services.Commands
 
         private async Task ConfirmAndSendSpasibka(long receiverId, Contact sender, string content, long fromChatId)
         {
-            var receiverDetails = contactDetailsRepo.FindById(receiverId).Result;
+            var receiverDetails = contactDetailsRepo.GetById(receiverId).Result;
             var spasibka = new Spasibka(sender.Id, content, DateTime.UtcNow);
             receiverDetails.Spasibki.Add(spasibka);
             await contactDetailsRepo.Save(receiverDetails);

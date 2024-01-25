@@ -36,7 +36,7 @@ namespace fiitobot.Services.Commands
                     await presenter.SayNoRights(fromChatId, ContactType.Student);
                     return;
                 }
-                var details = await contactDetailsRepo.FindById(contact.Id);
+                var details = await contactDetailsRepo.GetById(contact.Id);
                 var contactWithDetails = new
                     ContactWithDetails(contact, details);
                 await presenter.ShowDetails(contactWithDetails, fromChatId);

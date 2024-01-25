@@ -131,7 +131,7 @@ namespace fiitobot.Services
             var senderContact = botData.FindContactByTgId(user.Id)
                                 ?? botData.FindContactByTelegramName(user.Username)
                                 ?? CreateExternalContactFromTgUser(user);
-            var details = await detailsRepo.FindById(senderContact.Id) ?? new ContactDetails(senderContact.Id);
+            var details = await detailsRepo.GetById(senderContact.Id);
             details.UpdateFromTelegramUser(user);
             senderContact.UpdateFromDetails(details);
             return new ContactWithDetails(senderContact, details);
@@ -225,7 +225,7 @@ namespace fiitobot.Services
                 if (person.TgId == fromChatId || asSelf)
                     await SayCompliment(person, fromChatId);
 
-                var details = detailsRepo.FindById(person.Id).Result;
+                var details = detailsRepo.GetById(person.Id).Result;
                 person.UpdateFromDetails(details);
                 var detailsLevel = person.GetDetailsLevelFor(asSelf ? person : sender);
                 await presenter.ShowContact(person, fromChatId, detailsLevel);

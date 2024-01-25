@@ -4,7 +4,7 @@ namespace fiitobot.Services
 {
     public interface IContactDetailsRepo
     {
-        Task<ContactDetails> FindById(long contactId);
+        Task<ContactDetails> GetById(long contactId);
         Task Save(ContactDetails details);
     }
 }

@@ -120,7 +120,6 @@ namespace fiitobot
 
         public void UpdateFromDetails(ContactDetails details)
         {
-            if (details == null) return;
             if (!string.IsNullOrEmpty(details.TelegramUsername))
                 Telegram = details.TelegramUsernameWithSobachka;
             if (details.TelegramId != 0)

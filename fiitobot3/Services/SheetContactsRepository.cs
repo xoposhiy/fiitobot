@@ -102,8 +102,8 @@ namespace fiitobot.Services
                 // Мы поменяли username в Google Sheets → Надо перезаписать все в details, если там другой username
                 if (newContact.Telegram != oldContact.Telegram)
                 {
-                    var details = detailsRepo.FindById(newContact.Id).Result;
-                    if (details != null && details.TelegramUsername != newContact.Telegram)
+                    var details = detailsRepo.GetById(newContact.Id).Result;
+                    if (details.TelegramUsername != newContact.Telegram)
                     {
                         details.TelegramId = 0;
                         details.TelegramUsername = newContact.Telegram;
@@ -117,8 +117,8 @@ namespace fiitobot.Services
                 // поэтому делаем это только если явно заказали сделать, удалив TgId из таблички
                 else if (newContact.TgId == 0 || newContact.Telegram == "")
                 {
-                    var details = detailsRepo.FindById(newContact.Id).Result;
-                    if (details != null && details.TelegramId != 0)
+                    var details = detailsRepo.GetById(newContact.Id).Result;
+                    if (details.TelegramId != 0)
                     {
                         newContact.TgId = details.TelegramId;
                         newContact.Telegram = details.TelegramUsernameWithSobachka;

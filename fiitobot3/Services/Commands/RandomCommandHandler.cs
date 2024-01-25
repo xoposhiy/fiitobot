@@ -94,7 +94,7 @@ namespace fiitobot.Services.Commands
                     students = students.Where(s => s.GroupIndex == sender.GroupIndex).ToList();
             }
             var randomContact = students[random.Next(students.Count)];
-            var details = detailsRepo.FindById(randomContact.Id).Result;
+            var details = detailsRepo.GetById(randomContact.Id).Result;
             randomContact.UpdateFromDetails(details);
             return randomContact;
         }

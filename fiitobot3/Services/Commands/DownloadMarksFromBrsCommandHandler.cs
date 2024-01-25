@@ -75,7 +75,7 @@ namespace fiitobot.Services.Commands
 
         private async Task UpdateStudentDetails(IEnumerable<BrsStudentMark> brsMarks, Contact student, int year, int yearPart, int courseNumber)
         {
-            var details = await contactDetailsRepo.FindById(student.Id) ?? new ContactDetails(student.Id);
+            var details = await contactDetailsRepo.GetById(student.Id);
             foreach (var mark in brsMarks)
                 details.UpdateOrAddMark(mark, year, yearPart, courseNumber);
             details.Details.RemoveAll(c => c.Value.Trim() == "()");

@@ -60,7 +60,7 @@ namespace fiitobot.Services
 
             foreach (var kv in studentSemesters)
             {
-                var details = await detailsRepo.FindById(kv.Key) ?? new ContactDetails(kv.Key);
+                var details = await detailsRepo.GetById(kv.Key);
                 var reloadedSemesters = studentSemesters[kv.Key];
                 var oldSem = details.Semesters == null ? "" : details.Semesters.StrJoin("\n", s => $"{s.SemesterNumber}:\n{s.Marks.StrJoin("\n")}");
                 var newSem = reloadedSemesters.StrJoin("\n", s => $"{s.SemesterNumber}:\n{s.Marks.StrJoin("\n")}");

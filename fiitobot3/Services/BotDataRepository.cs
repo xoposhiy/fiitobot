@@ -35,11 +35,6 @@ namespace fiitobot.Services
             botData = newBotData;
         }
 
-        public ContactWithDetails GetDetails(Contact contact)
-        {
-            return new ContactWithDetails(contact);
-        }
-
         public void SaveDetails(Contact contact, IReadOnlyCollection<ContactDetail> details)
         {
         }
@@ -59,7 +54,6 @@ namespace fiitobot.Services
     {
         BotData GetData();
         void Save(BotData newBotData);
-        ContactWithDetails GetDetails(Contact contact);
         void SaveDetails(Contact contact, IReadOnlyCollection<ContactDetail> details);
         bool UpdateContact(long id, Action<Contact> update);
     }
@@ -81,11 +75,6 @@ namespace fiitobot.Services
         public void Save(BotData newBotData)
         {
             botData = newBotData;
-        }
-
-        public ContactWithDetails GetDetails(Contact contact)
-        {
-            return new ContactWithDetails(contact);
         }
 
         public void SaveDetails(Contact contact, IReadOnlyCollection<ContactDetail> details)

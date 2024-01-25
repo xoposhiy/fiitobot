@@ -10,7 +10,7 @@ namespace fiitobot
         public readonly Contact Contact;
         public readonly ContactDetails ContactDetails;
 
-        public ContactWithDetails(Contact contact, ContactDetails details = null)
+        public ContactWithDetails(Contact contact, ContactDetails details)
         {
             Contact = contact;
             ContactDetails = details;

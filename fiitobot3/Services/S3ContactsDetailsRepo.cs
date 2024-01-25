@@ -15,11 +15,11 @@ namespace fiitobot.Services
             this.storageService = storageService;
         }
 
-        public async Task<ContactDetails> FindById(long contactId)
+        public async Task<ContactDetails> GetById(long contactId)
         {
             var response = await storageService.TryGetAsync(GetFilename(contactId));
             if (response.StatusCode == HttpStatusCode.NotFound)
-                return null;
+                return new ContactDetails(contactId);
             if (!response.IsSuccessStatusCode)
                 throw new System.Exception(response.Error);
             var contactState = JsonConvert.DeserializeObject<ContactDetails>(response.Result);
