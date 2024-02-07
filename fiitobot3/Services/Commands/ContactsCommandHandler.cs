@@ -75,7 +75,7 @@ namespace fiitobot.Services.Commands
                         "*",
                         c.Email,
                         "Telegram",
-                        c.Telegram,
+                        c.TelegramWithSobachka,
                         "Mobile",
                         c.Phone,
                         "",

@@ -12,16 +12,22 @@ var detailsRepo = new S3ContactsDetailsRepo(settings.CreateFiitobotBucketService
 var contactsRepository = new SheetContactsRepository(sheetClient, settings.SpreadSheetId, botDataRepo, detailsRepo);
 
 Console.WriteLine("Loading");
-var contacts = contactsRepository.GetStudents().ToArray();
-Console.WriteLine($"Loaded {contacts.Length} students");
-var botData = new BotData
+var data = botDataRepo.GetData();
+foreach (var teacher in data.Administrators)
 {
-    Administrators = contactsRepository.GetAdmins(),
-    Teachers = contactsRepository.GetTeachers(),
-    Students = contacts
-};
-Console.WriteLine("Saving data to S3");
-botDataRepo.Save(botData);
-Console.WriteLine("Done");
-
-
+    var details = await detailsRepo.GetById(teacher.Id);
+    if (teacher.TelegramWithSobachka != details.TelegramUsernameWithSobachka)
+    {
+        if (details.TelegramUsernameSource == TgUsernameSource.GoogleSheet)
+        {
+            Console.WriteLine($"Updating {teacher.Id} {teacher.FirstName} {teacher.LastName}");
+            Console.WriteLine(details.TelegramUsername + " → " + teacher.TelegramUsername);
+            details.TelegramUsername = teacher.TelegramUsername;
+            await detailsRepo.Save(details);
+        }
+        else
+        {
+            Console.WriteLine($"Have better(?) username {details.TelegramUsername}");
+        }
+    }
+}

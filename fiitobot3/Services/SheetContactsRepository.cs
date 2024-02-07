@@ -106,7 +106,7 @@ namespace fiitobot.Services
                     if (details.TelegramUsername != newContact.Telegram)
                     {
                         details.TelegramId = 0;
-                        details.TelegramUsername = newContact.Telegram;
+                        details.TelegramUsername = newContact.TelegramUsername;
                         details.TelegramUsernameSource = TgUsernameSource.GoogleSheet;
                         detailsRepo.Save(details).Wait();
                     }

@@ -330,7 +330,7 @@ namespace fiitobot.Services
                 {
                     var res = contacts[0];
                     var question = contacts.Length > 1 ? ("(?) " + query + " ") : "";
-                    resultLines.AppendLine(line + " " + res.Telegram + " " + question +
+                    resultLines.AppendLine(line + " " + res.TelegramWithSobachka + " " + question +
                                            res.FormatMnemonicGroup(DateTime.Now));
                     found++;
                 }

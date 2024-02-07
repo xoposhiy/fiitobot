@@ -41,6 +41,26 @@ namespace fiitobot
         public string Concurs = "";
         public string EnrollRating = "";
         public string Telegram;
+
+        public string TelegramUsername
+        {
+            get
+            {
+                var name = Telegram;
+                if (name == null) return "";
+                if (name.StartsWith("@"))
+                    name = name.Substring(1);
+                if (name.StartsWith("https://t.me/"))
+                    name = name.Substring("https://t.me/".Length);
+                return name;
+            }
+        }
+
+        public string TelegramWithSobachka =>
+            string.IsNullOrWhiteSpace(TelegramUsername) ? ""
+                : "@" + TelegramUsername;
+
+
         public string BirthDate;
         public string Phone = "";
         public string Email = "";
@@ -65,7 +85,7 @@ namespace fiitobot
         {
             if (string.IsNullOrWhiteSpace(tgUsername)) return false;
             return Telegram != null &&
-                   Telegram.Trim('@').Equals(tgUsername.Trim('@'), StringComparison.OrdinalIgnoreCase);
+                   TelegramWithSobachka.Trim('@').Equals(tgUsername.Trim('@'), StringComparison.OrdinalIgnoreCase);
         }
 
         public string FormatMnemonicGroup(DateTime now, bool withSubgroup = true)
@@ -99,7 +119,7 @@ namespace fiitobot
                 var last = LastName.Canonize();
                 var patronymic = Patronymic.Canonize();
                 var queryRegex = new Regex(@$" {Regex.Escape(query)} ");
-                var tgUsernameLowercase = Telegram.ToLower();
+                var tgUsernameLowercase = TelegramWithSobachka.ToLower();
                 var contact = " " + first + " " + last + " " + first + " " + patronymic + " " + tgUsernameLowercase + " " + tgUsernameLowercase.TrimStart('@') + " ";
                 return queryRegex.IsMatch(contact);
             }

@@ -62,8 +62,9 @@ namespace fiitobot.Services
         [JsonIgnore] public bool Changed { get; set; }
 
         public string TelegramUsernameWithSobachka =>
-            string.IsNullOrEmpty(TelegramUsername) ? "" : (
-            TelegramUsername.StartsWith("@") ? TelegramUsername : "@" + TelegramUsername);
+            string.IsNullOrEmpty(TelegramUsername)
+                ? "" : TelegramUsername.StartsWith("@")
+                    ? TelegramUsername : "@" + TelegramUsername;
     }
 
     public enum TgUsernameSource

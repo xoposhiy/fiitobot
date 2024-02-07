@@ -45,7 +45,7 @@ namespace fiitobot
                         if (receiver.ReceiveBirthdayNotifications)
                         {
                             client.SendTextMessageAsync(receiver.TgId,
-                                $"Сегодня свой день рождения отмечает {contact.Key.FirstLastName()} {contact.Key.Telegram}🥳" +
+                                $"Сегодня свой день рождения отмечает {contact.Key.FirstLastName()} {contact.Key.TelegramWithSobachka}🥳" +
                                 "\n\nМожешь написать оригинальное поздравление в личку или беседу своего курса)" +
                                 "\n\nЧтобы перестать получать уведомления о др своих одногруппников, напиши /bd_notify_off");
                         }

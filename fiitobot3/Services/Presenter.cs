@@ -89,7 +89,7 @@ namespace fiitobot.Services
         public async Task InlineSearchResults(string inlineQueryId, Contact[] foundContacts)
         {
             var results = foundContacts.Select(c =>
-                new InlineQueryResultArticle(c.GetHashCode().ToString(), $"{c.LastName} {c.FirstName} {c.FormatMnemonicGroup(DateTime.Now)} {c.Telegram}",
+                new InlineQueryResultArticle(c.GetHashCode().ToString(), $"{c.LastName} {c.FirstName} {c.FormatMnemonicGroup(DateTime.Now)} {c.TelegramWithSobachka}",
                     new InputTextMessageContent(FormatContactAsHtml(c, ContactDetailsLevel.Minimal))
                     {
                         ParseMode = ParseMode.Html
@@ -602,11 +602,11 @@ namespace fiitobot.Services
                     b.AppendLine($"Github: {contact.Github}");
             }
 
-            var tgName = contact.Telegram;
+            var tgName = contact.TelegramWithSobachka;
             if (!string.IsNullOrWhiteSpace(tgName))
                 b.AppendLine($"💬 {tgName}");
 
-            if (!string.IsNullOrWhiteSpace(contact.SecretNote))
+            if (!string.IsNullOrWhiteSpace(contact.Note))
                 b.AppendLine($"\n{contact.Note.EscapeForTgHtml()}");
 
             if (detailsLevel.HasFlag(ContactDetailsLevel.SecretNote) && !string.IsNullOrWhiteSpace(contact.SecretNote))
@@ -786,8 +786,8 @@ namespace fiitobot.Services
             };
 
             if (!string.IsNullOrEmpty(p.BirthDate) && p.BirthDate != "no")
-                return $"<code>{p.LastName} {p.FirstName} {p.BirthDate}</code> {p.Telegram} {who}";
-            return $"<code>{p.LastName} {p.FirstName}</code> {p.Telegram} {who}";
+                return $"<code>{p.LastName} {p.FirstName} {p.BirthDate}</code> {p.TelegramWithSobachka} {who}";
+            return $"<code>{p.LastName} {p.FirstName}</code> {p.TelegramWithSobachka} {who}";
         }
 
         public async Task ShowOtherResults(Contact[] otherContacts, long chatId)

@@ -234,7 +234,7 @@ namespace fiitobot.Services.Commands
         {
             var botData = botDataRepository.GetData();
             var sender = botData.AllContacts.FirstOrDefault(contact => contact.Id == spasibka.SenderContactId);
-            return $"Спасибо тебе от <code>{sender?.FirstLastName() ?? "НЛО"}</code> {sender?.Telegram}." +
+            return $"Спасибо тебе от <code>{sender?.FirstLastName() ?? "НЛО"}</code> {sender?.TelegramWithSobachka}." +
                    $" Вот что он пишет:\n\n«{spasibka.Content.EscapeForTgHtml()}»";
         }
 
@@ -243,7 +243,7 @@ namespace fiitobot.Services.Commands
             var botData = botDataRepository.GetData();
             var sender = botData.AllContacts.FirstOrDefault(contact => contact.Id == spasibka.SenderContactId);
             var res = $"{spasibka.PostDate.AddHours(5):dd MMMM yyyy} ";
-            if (sender != null) res += $"<code>{sender.FirstLastName()}</code> {sender.Telegram}";
+            if (sender != null) res += $"<code>{sender.FirstLastName()}</code> {sender.TelegramWithSobachka}";
             res += $":\n{spasibka.Content.EscapeForTgHtml()}";
             return res;
         }
