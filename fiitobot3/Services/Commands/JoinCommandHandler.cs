@@ -15,9 +15,9 @@ namespace fiitobot.Services.Commands
 
         public string Command => "/join";
         public ContactType[] AllowedFor => new[] { ContactType.External };
-        public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
+        public async Task HandlePlainText(string text, long fromChatId, ContactWithDetails sender, bool silentOnNoResults = false)
         {
-            if (sender.Type != ContactType.External)
+            if (sender.Contact.Type != ContactType.External)
             {
                 await presenter.Say("Так у тебя же уже есть доступ!", fromChatId);
                 return;

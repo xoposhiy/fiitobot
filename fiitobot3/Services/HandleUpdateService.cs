@@ -299,7 +299,7 @@ namespace fiitobot.Services
                 //TODO Вынести этот try-catch ещё выше
                 try
                 {
-                    await command.HandlePlainText(text, fromChatId, sender, silentOnNoResults);
+                    await command.HandlePlainText(text, fromChatId, senderWithDetails, silentOnNoResults);
                 }
                 catch (Exception e)
                 {

@@ -20,7 +20,7 @@ namespace fiitobot.Services.Commands
 
         public string Command => "/reject_photo";
         public ContactType[] AllowedFor => ContactTypes.AllNotExternal;
-        public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
+        public async Task HandlePlainText(string text, long fromChatId, ContactWithDetails sender, bool silentOnNoResults = false)
         {
             if (fromChatId != reviewerChatId) return;
             var parts = text.Split(" ");
@@ -31,7 +31,7 @@ namespace fiitobot.Services.Commands
             var success = await photoRepository.RejectPhoto(contactTgId);
             if (success)
             {
-                await presenter.SayPhotoRejected(person, sender, fromChatId);
+                await presenter.SayPhotoRejected(person, sender.Contact, fromChatId);
                 await presenter.SayPhotoRejected(person, null, person.TgId);
             }
         }
@@ -54,7 +54,7 @@ namespace fiitobot.Services.Commands
 
         public string Command => "/accept_photo";
         public ContactType[] AllowedFor => ContactTypes.AllNotExternal;
-        public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
+        public async Task HandlePlainText(string text, long fromChatId, ContactWithDetails sender, bool silentOnNoResults = false)
         {
             if (fromChatId != reviewerChatId) return;
             var parts = text.Split(" ");
@@ -65,7 +65,7 @@ namespace fiitobot.Services.Commands
             var success = await photoRepository.AcceptPhoto(contactTgId);
             if (success)
             {
-                await presenter.SayPhotoAccepted(person, sender, fromChatId);
+                await presenter.SayPhotoAccepted(person, sender.Contact, fromChatId);
                 await presenter.SayPhotoAccepted(person, null, person.TgId);
             }
         }

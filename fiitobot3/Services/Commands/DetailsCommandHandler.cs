@@ -18,7 +18,7 @@ namespace fiitobot.Services.Commands
 
         public string Command => "/details";
         public ContactType[] AllowedFor => new[] { ContactType.Staff, ContactType.Administration, ContactType.Student };
-        public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
+        public async Task HandlePlainText(string text, long fromChatId, ContactWithDetails sender, bool silentOnNoResults = false)
         {
             var query = text.Split(" ").Skip(1).StrJoin(" ");
             await ShowDetails(query, sender, fromChatId);

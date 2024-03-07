@@ -18,7 +18,7 @@ namespace fiitobot.Services.Commands
 
         public string Command => "/contacts";
         public ContactType[] AllowedFor => ContactTypes.AllNotExternal;
-        public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
+        public async Task HandlePlainText(string text, long fromChatId, ContactWithDetails sender, bool silentOnNoResults = false)
         {
             var parts = text.Split("_");
             if (parts.Length == 1)

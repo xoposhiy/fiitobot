@@ -20,7 +20,7 @@ namespace fiitobot.Services.Commands
 
         public string Command => "/bd_save";
         public ContactType[] AllowedFor => ContactTypes.AllNotExternal;
-        public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
+        public async Task HandlePlainText(string text, long fromChatId, ContactWithDetails sender, bool silentOnNoResults = false)
         {
             var date = text.Split(" ")[1];
 
@@ -51,7 +51,7 @@ namespace fiitobot.Services.Commands
 
         public string Command => "/bd_find";
         public ContactType[] AllowedFor => ContactTypes.AllNotExternal;
-        public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
+        public async Task HandlePlainText(string text, long fromChatId, ContactWithDetails sender, bool silentOnNoResults = false)
         {
             var date = text.Split(" ")[1];
 
@@ -87,7 +87,7 @@ namespace fiitobot.Services.Commands
 
         public string Command => "/bd_stats";
         public ContactType[] AllowedFor => new[] { ContactType.Administration };
-        public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
+        public async Task HandlePlainText(string text, long fromChatId, ContactWithDetails sender, bool silentOnNoResults = false)
         {
             var statCount = botDataRepo.GetData().AllContacts.Count(s => !string.IsNullOrEmpty(s.BirthDate) && s.BirthDate != "no");
 
@@ -108,7 +108,7 @@ namespace fiitobot.Services.Commands
 
         public string Command => "/bd_remove";
         public ContactType[] AllowedFor => ContactTypes.AllNotExternal;
-        public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
+        public async Task HandlePlainText(string text, long fromChatId, ContactWithDetails sender, bool silentOnNoResults = false)
         {
             botDataRepo.UpdateContact(sender.Id, c => c.BirthDate = "no");
 
@@ -130,7 +130,7 @@ namespace fiitobot.Services.Commands
 
         public string Command => "/bd_notify_off";
         public ContactType[] AllowedFor => ContactTypes.AllNotExternal;
-        public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
+        public async Task HandlePlainText(string text, long fromChatId, ContactWithDetails sender, bool silentOnNoResults = false)
         {
             botDataRepo.UpdateContact(sender.Id, c => c.ReceiveBirthdayNotifications = false);
 
@@ -152,7 +152,7 @@ namespace fiitobot.Services.Commands
 
         public string Command => "/bd_notify_on";
         public ContactType[] AllowedFor => ContactTypes.AllNotExternal;
-        public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
+        public async Task HandlePlainText(string text, long fromChatId, ContactWithDetails sender, bool silentOnNoResults = false)
         {
             botDataRepo.UpdateContact(sender.Id, c => c.ReceiveBirthdayNotifications = true);
 

@@ -8,6 +8,6 @@ namespace fiitobot.Services.Commands
         ContactType[] AllowedFor { get; }
 
         //TODO Перейти на ContactWithDetail sender
-        Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false);
+        Task HandlePlainText(string text, long fromChatId, ContactWithDetails sender, bool silentOnNoResults = false);
     }
 }

@@ -10,6 +10,8 @@ namespace fiitobot
         public readonly Contact Contact;
         public readonly ContactDetails ContactDetails;
 
+        public static implicit operator Contact(ContactWithDetails c) => c.Contact;
+
         public ContactWithDetails(Contact contact, ContactDetails details)
         {
             Contact = contact;
@@ -17,6 +19,7 @@ namespace fiitobot
         }
 
         public IReadOnlyList<ContactDetail> Details => ContactDetails?.Details ?? new List<ContactDetail>();
+        public long Id => Contact.Id;
     }
 
     public class SemesterMarks

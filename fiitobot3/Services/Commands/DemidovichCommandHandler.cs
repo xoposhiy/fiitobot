@@ -15,7 +15,7 @@ namespace fiitobot.Services.Commands
 
         public string Command => "/demidovich";
         public ContactType[] AllowedFor => ContactTypes.All;
-        public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
+        public async Task HandlePlainText(string text, long fromChatId, ContactWithDetails sender, bool silentOnNoResults = false)
         {
             var parts = text.Split(" ", 2);
             if (parts.Length < 2)

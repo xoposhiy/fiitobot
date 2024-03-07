@@ -19,10 +19,11 @@ namespace fiitobot.Services.Commands
         public string Command => "/show_group";
         public ContactType[] AllowedFor => ContactTypes.AllNotExternal;
 
-        public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
+        public async Task HandlePlainText(string text, long fromChatId, ContactWithDetails senderWithDetails, bool silentOnNoResults = false)
         {
             var students = dataRepo.GetData().Students;
-            var groupName = "";
+            string groupName;
+            var sender = senderWithDetails.Contact;
             if (sender.Type == ContactType.Student)
             {
                 students = students.Where(p => p.GroupIndex == sender.GroupIndex && p.GraduationYear == sender.GraduationYear).ToArray();
