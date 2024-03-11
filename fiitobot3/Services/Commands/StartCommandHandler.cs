@@ -15,11 +15,11 @@ namespace fiitobot.Services.Commands
         public string Command => "/start";
 
         public ContactType[] AllowedFor => ContactTypes.All;
-        public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
+        public async Task HandlePlainText(string text, long fromChatId, ContactWithDetails sender, bool silentOnNoResults = false)
         {
             if (text == "/start")
             {
-                await presenter.ShowHelp(fromChatId, sender.Type);
+                await presenter.ShowHelp(fromChatId, sender.Contact.Type);
                 return;
             }
             var rest = text.Split(new[] { ' ' }, 2)[1].Trim();

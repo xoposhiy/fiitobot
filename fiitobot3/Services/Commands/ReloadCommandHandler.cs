@@ -18,7 +18,7 @@ namespace fiitobot.Services.Commands
         public string Command => "/reload";
 
         public ContactType[] AllowedFor => new[] { ContactType.Administration };
-        public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
+        public async Task HandlePlainText(string text, long fromChatId, ContactWithDetails sender, bool silentOnNoResults = false)
         {
             await presenter.SayReloadStarted(fromChatId);
             ReloadContactsFromSpreadsheet();

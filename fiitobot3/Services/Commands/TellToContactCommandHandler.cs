@@ -16,7 +16,7 @@ namespace fiitobot.Services.Commands
 
         public string Command => "/tell";
         public ContactType[] AllowedFor => new[] { ContactType.Administration, };
-        public async Task HandlePlainText(string text, long fromChatId, Contact contact, bool silentOnNoResults = false)
+        public async Task HandlePlainText(string text, long fromChatId, ContactWithDetails contact, bool silentOnNoResults = false)
         {
             var args = text.Split(new[] { ' ' }, 3);
             var toWhom = args[1];

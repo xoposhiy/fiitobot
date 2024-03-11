@@ -21,7 +21,7 @@ namespace fiitobot.Services.Commands
         }
         public string Command => "/its";
         public ContactType[] AllowedFor => new[] { ContactType.Administration, };
-        public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
+        public async Task HandlePlainText(string text, long fromChatId, ContactWithDetails sender, bool silentOnNoResults = false)
         {
             await presenter.Say($"Получаю рейтинги и статусы студентов из ИТС УрФУ...", fromChatId);
             var groups = repo.GetData().Students.Where(s => s.GroupIndex > 0)

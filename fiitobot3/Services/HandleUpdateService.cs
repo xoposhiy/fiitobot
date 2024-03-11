@@ -106,8 +106,8 @@ namespace fiitobot.Services
                     await HandlePlainText(message.Text!, fromChatId, sender, silentOnNoResults);
             else if (!inGroupChat && message.Type == MessageType.Photo)
                 await HandlePhoto(message, sender.Contact, fromChatId);
-            if (sender.ContactDetails.Changed)
-                await detailsRepo.Save(sender.ContactDetails);
+            sender.ContactDetails.LastUseTime = DateTime.Now;
+            await detailsRepo.Save(sender.ContactDetails);
         }
 
         private async Task HandlePhoto(Message message, Contact sender, long fromChatId)

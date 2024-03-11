@@ -68,7 +68,7 @@ namespace fiitobot.Services.Commands
         public string Command => "/random";
         public ContactType[] AllowedFor => ContactTypes.AllNotExternal;
 
-        public async Task HandlePlainText(string text, long fromChatId, Contact sender, bool silentOnNoResults = false)
+        public async Task HandlePlainText(string text, long fromChatId, ContactWithDetails sender, bool silentOnNoResults = false)
         {
             if (random.NextDouble() < ShowRandomFactChance)
             {

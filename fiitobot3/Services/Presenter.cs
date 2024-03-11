@@ -24,7 +24,8 @@ namespace fiitobot.Services
         LinksToFiitTeamFiles = 16,
         TechnicalInfo = 32,
         Details = 64,
-        Iddqd = 255,
+        SecretKeys = 128,
+        Iddqd = 255 ^ SecretKeys,
     }
 
     public interface IPresenter
@@ -599,7 +600,13 @@ namespace fiitobot.Services
                 if (!string.IsNullOrWhiteSpace(contact.Phone))
                     b.AppendLine($"📞 {contact.Phone}");
                 if (!string.IsNullOrWhiteSpace(contact.Github))
-                    b.AppendLine($"Github: {contact.Github}");
+                    b.AppendLine($"Github: <code>{contact.Github}</code>");
+            }
+
+            if (detailsLevel.HasFlag(ContactDetailsLevel.SecretKeys))
+            {
+                if (!string.IsNullOrWhiteSpace(contact.DevKey))
+                    b.AppendLine($"DevKey (для доступа к облачным сервисам): <tg-spoiler>{contact.DevKey}</tg-spoiler>");
             }
 
             var tgName = contact.TelegramWithSobachka;

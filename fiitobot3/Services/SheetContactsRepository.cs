@@ -141,12 +141,14 @@ namespace fiitobot.Services
             return loadContacts.ToArray();
         }
 
+
         public (IList<UrfuStudent> newStudents, IList<UrfuStudent> updatedStudents) UpdateStudentsActivity(IReadOnlyList<UrfuStudent> itsContacts)
         {
             var spreadsheet = sheetClient.GetSpreadsheet(spreadsheetId);
             var studentsSheet = spreadsheet.GetSheetByName(StudentsSheetName);
             var data = studentsSheet.ReadRange(Range);
             var headers = data[0].TakeWhile(s => !string.IsNullOrWhiteSpace(s)).ToList();
+            // TODO: Replace with GSheetSynchronizer
             var sheetStudents = data.Skip(1).Select(row => ParseContactFromRow(row, headers, ContactType.Student))
                 .ToArray();
             var map = itsContacts.ToLookup(s => s.Name.Canonize());
@@ -238,7 +240,8 @@ namespace fiitobot.Services
                 MainCompany = Get("MainCompany"),
                 SecretNote = Get("SecretNote"),
                 CurrentRating = UniversalParseDouble(Get("CurrentRating")),
-                GoogleCalendarId = Get("GoogleCalendarId")
+                GoogleCalendarId = Get("GoogleCalendarId"),
+                DevKey = Get("DevKey")
             };
         }
 
