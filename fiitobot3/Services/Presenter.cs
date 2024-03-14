@@ -73,6 +73,7 @@ namespace fiitobot.Services
         Task AskForBirthDate(long chatId);
         Task ShowBirthDateActions(Contact sender, long chatId, string text);
         Task AskForSpasibkaText(long fromChatId, int? initialMessageId = null);
+        Task ShowGenericError(long chatId);
     }
 
     public class Presenter : IPresenter
@@ -246,6 +247,11 @@ namespace fiitobot.Services
                     initialMessageId.Value);
             else
                 await Say(message, fromChatId);
+        }
+
+        public async Task ShowGenericError(long chatId)
+        {
+            await Say("Ой, что-то пошло не так... Сейчас отправлю админам уведомление об ошибке.", chatId);
         }
 
         public async Task ShowContact(Contact contact, long chatId, ContactDetailsLevel detailsLevel)

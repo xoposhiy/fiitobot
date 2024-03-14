@@ -18,6 +18,11 @@ namespace fiitobot
             ContactDetails = details;
         }
 
+        public override string ToString()
+        {
+            return Contact.ToString();
+        }
+
         public IReadOnlyList<ContactDetail> Details => ContactDetails?.Details ?? new List<ContactDetail>();
         public long Id => Contact.Id;
     }

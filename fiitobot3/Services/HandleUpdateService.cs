@@ -69,11 +69,18 @@ namespace fiitobot.Services
 
         private async Task BotOnCallbackQuery(CallbackQuery callbackQuery)
         {
-            // if (!await EnsureHasAdminRights(callbackQuery.From, callbackQuery.Message!.Chat.Id)) return;
-            var sender = await GetSenderContact(callbackQuery.From);
-            await HandlePlainText(callbackQuery.Data!, callbackQuery.Message!.Chat.Id, sender,
-                buttonMessageId: callbackQuery.Message.MessageId);
-            await presenter.StopCallbackQueryAnimation(callbackQuery);
+            try
+            {
+                var sender = await GetSenderContact(callbackQuery.From);
+                await HandlePlainText(callbackQuery.Data!, callbackQuery.Message!.Chat.Id, sender,
+                    buttonMessageId: callbackQuery.Message.MessageId);
+                await presenter.StopCallbackQueryAnimation(callbackQuery);
+            }
+            catch (Exception)
+            {
+                await presenter.ShowGenericError(callbackQuery.Message!.Chat.Id);
+                throw;
+            }
             // await presenter.HideInlineKeyboard(callbackQuery.Message.Chat.Id, callbackQuery.Message.MessageId);
         }
 
@@ -92,22 +99,30 @@ namespace fiitobot.Services
             // logger.LogInformation(
             //     "Receive message type {messageType}: {text} from {message.From} charId {message.Chat.Id}", message.Type,
             //     message.Text, message.From, message.Chat.Id);
-            var silentOnNoResults = message.ReplyToMessage != null;
-            var messageFrom = message.From;
-            if (messageFrom == null) return;
-            var sender = await GetSenderContact(message.From);
-            var fromChatId = message.Chat.Id;
+            try
+            {
+                var silentOnNoResults = message.ReplyToMessage != null;
+                var messageFrom = message.From;
+                if (messageFrom == null) return;
+                var sender = await GetSenderContact(message.From);
+                var fromChatId = message.Chat.Id;
 
-            var inGroupChat = messageFrom.Id != fromChatId;
-            if (message.Type == MessageType.Text)
-                if (message.ForwardFrom != null)
-                    await HandleForward(message.ForwardFrom!, sender, fromChatId);
-                else
-                    await HandlePlainText(message.Text!, fromChatId, sender, silentOnNoResults);
-            else if (!inGroupChat && message.Type == MessageType.Photo)
-                await HandlePhoto(message, sender.Contact, fromChatId);
-            sender.ContactDetails.LastUseTime = DateTime.Now;
-            await detailsRepo.Save(sender.ContactDetails);
+                var inGroupChat = messageFrom.Id != fromChatId;
+                if (message.Type == MessageType.Text)
+                    if (message.ForwardFrom != null)
+                        await HandleForward(message.ForwardFrom!, sender, fromChatId);
+                    else
+                        await HandlePlainText(message.Text!, fromChatId, sender, silentOnNoResults);
+                else if (!inGroupChat && message.Type == MessageType.Photo)
+                    await HandlePhoto(message, sender.Contact, fromChatId);
+                sender.ContactDetails.LastUseTime = DateTime.Now;
+                await detailsRepo.Save(sender.ContactDetails);
+            }
+            catch (Exception)
+            {
+                await presenter.ShowGenericError(message.Chat.Id);
+                throw;
+            }
         }
 
         private async Task HandlePhoto(Message message, Contact sender, long fromChatId)
