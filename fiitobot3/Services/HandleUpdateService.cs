@@ -75,6 +75,8 @@ namespace fiitobot.Services
                 await HandlePlainText(callbackQuery.Data!, callbackQuery.Message!.Chat.Id, sender,
                     buttonMessageId: callbackQuery.Message.MessageId);
                 await presenter.StopCallbackQueryAnimation(callbackQuery);
+                sender.ContactDetails.LastUseTime = DateTime.Now;
+                await detailsRepo.Save(sender.ContactDetails);
             }
             catch (Exception)
             {
