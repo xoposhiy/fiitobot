@@ -39,6 +39,7 @@ namespace fiitobot.Services
         Task SayNoRights(long chatId, ContactType senderType);
         Task SayBeMoreSpecific(long chatId);
         Task InlineSearchResults(string inlineQueryId, Contact[] foundContacts);
+        Task InlineFaqResults(string inlineQueryId, IEnumerable<Faq> faqs);
         Task ShowDetails(ContactWithDetails contact, long chatId);
         Task SayReloadStarted(long chatId);
         Task SayReloaded(BotData botData, long chatId);
@@ -96,6 +97,14 @@ namespace fiitobot.Services
                     {
                         ParseMode = ParseMode.Html
                     }));
+            await botClient.AnswerInlineQueryAsync(inlineQueryId, results, 60);
+        }
+
+        public async Task InlineFaqResults(string inlineQueryId, IEnumerable<Faq> faqs)
+        {
+            var results = faqs.Select(faq =>
+                new InlineQueryResultArticle(faq.GetHashCode().ToString(), $"{faq.Question}",
+                    new InputTextMessageContent($"{faq.Question}\n\n{faq.Answer}")));
             await botClient.AnswerInlineQueryAsync(inlineQueryId, results, 60);
         }
 

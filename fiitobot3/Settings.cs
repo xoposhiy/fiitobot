@@ -5,6 +5,7 @@ namespace fiitobot
     // Create Settings.Production.cs file with concrete values set in default constructor.
     public partial class Settings
     {
+        public string GoogleApiKey;
         public string TgToken;
         public long DevopsChatId;
         public string SpreadSheetId;
@@ -18,6 +19,7 @@ namespace fiitobot
         public string PhotoListUrl;
         public long ModeratorsChatId;
         public string SpreadsheetUrl => $"https://docs.google.com/spreadsheets/d/{SpreadSheetId}";
+        public string FaqGoogleDocUrl => $@"https://www.googleapis.com/drive/v3/files/1u0o3GvZKJhSQNkdKKSIrUllu2d5-XnWY6SDNviv7W7E/export?mimeType=text/plain&key={GoogleApiKey}";
         public string ItsLogin;
         public string ItsPassword;
 

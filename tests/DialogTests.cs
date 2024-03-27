@@ -304,6 +304,7 @@ public class DialogTests
         var downloader = A.Fake<ITelegramFileDownloader>();
         var repo = new MemoryBotDataRepository(data);
         var detailsRepo = A.Fake<IContactDetailsRepo>();
+        var faqRepo = A.Fake<IFaqRepo>();
         var commands = new IChatCommandHandler[]
         {
             new StartCommandHandler(presenter, repo),
@@ -313,6 +314,6 @@ public class DialogTests
             new RandomCommandHandler(repo, detailsRepo, presenter, new Random(123123)),
             new JoinCommandHandler(presenter, 111),
         };
-        return new HandleUpdateService(repo, namedPhotoDirectory, photoRepo, null, downloader, presenter, detailsRepo, commands);
+        return new HandleUpdateService(repo, namedPhotoDirectory, photoRepo, null, downloader, presenter, detailsRepo, commands, faqRepo);
     }
 }
