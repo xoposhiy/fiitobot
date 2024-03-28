@@ -32,7 +32,7 @@ namespace fiitobot.GoogleSpreadsheet
             this.getId = getId.Compile();
         }
 
-        public List<TRecord> LoadSheetAndCreateIdsForNewRecords(Func<TRecord> recordFactory, Func<TId> genNewId)
+        public List<TRecord> LoadSheetAndAssignIdsForNewRecords(Func<TRecord> recordFactory, Func<TId> genNewId)
         {
             data = sheet.ReadRange("A1:ZZ");
             var (_, records) = ParseRecords(recordFactory, data);

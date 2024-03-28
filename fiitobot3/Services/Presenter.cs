@@ -757,8 +757,8 @@ namespace fiitobot.Services
                 caption: $"{contact.FirstName} {contact.LastName} хочет поменять фотку. Одобряешь?",
 
                 replyMarkup: new InlineKeyboardMarkup(new[]{
-                    new InlineKeyboardButton("Одобрить"){CallbackData = "/accept_photo " + contact.TgId},
-                    new InlineKeyboardButton("Отклонить"){CallbackData = "/reject_photo " + contact.TgId}
+                    new InlineKeyboardButton("Одобрить"){CallbackData = "/accept_photo " + contact.Id},
+                    new InlineKeyboardButton("Отклонить"){CallbackData = "/reject_photo " + contact.Id}
                     }
                     )
                 );

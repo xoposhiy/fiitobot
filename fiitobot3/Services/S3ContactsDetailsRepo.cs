@@ -22,8 +22,7 @@ namespace fiitobot.Services
                 return new ContactDetails(contactId);
             if (!response.IsSuccessStatusCode)
                 throw new System.Exception(response.Error);
-            var contactState = JsonConvert.DeserializeObject<ContactDetails>(response.Result);
-            return contactState;
+            return JsonConvert.DeserializeObject<ContactDetails>(response.Result);
         }
 
         public async Task Save(ContactDetails details)

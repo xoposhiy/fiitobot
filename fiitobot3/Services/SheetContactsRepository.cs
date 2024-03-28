@@ -84,14 +84,13 @@ namespace fiitobot.Services
             var spreadsheet = sheetClient.GetSpreadsheet(spreadsheetId);
             var contactsSheet = spreadsheet.GetSheetByName(sheetName);
             var synchronizer = new GSheetSynchronizer<Contact, long>(contactsSheet, contact => contact.Id);
-            var loadContacts = synchronizer.LoadSheetAndCreateIdsForNewRecords(() => new Contact { Type = contactType }, GenerateNewId);
+            var loadContacts = synchronizer.LoadSheetAndAssignIdsForNewRecords(() => new Contact { Type = contactType }, GenerateNewId);
             var changes = new List<Contact>();
-            if (loadContacts.Any(c => c.Id == 0))
-                throw new Exception("Why no Id?!?");
             var pairs = loadContacts.Join(
                     oldContacts ?? Array.Empty<Contact>(),
                     c => c.Id,
-                    c => c.Id, (newContact, currentContact) => (newContact, currentContact));
+                    c => c.Id,
+                    (newContact, currentContact) => (newContact, currentContact));
             foreach (var (newContact, oldContact) in pairs)
             {
                 //TODO обобщить: пометить часть полей как хранящиеся только в S3 и отсутствующие в гугл-таблице
@@ -99,11 +98,12 @@ namespace fiitobot.Services
                 newContact.BirthDate = oldContact.BirthDate;
                 newContact.ReceiveBirthdayNotifications = oldContact.ReceiveBirthdayNotifications;
 
-                // Мы поменяли username в Google Sheets → Надо перезаписать все в details, если там другой username
-                if (newContact.Telegram != oldContact.Telegram)
+                // Мы поменяли username в Google Sheets
+                // → Надо перезаписать все в details, если там другой username
+                if (newContact.TelegramUsername != oldContact.TelegramUsername)
                 {
                     var details = detailsRepo.GetById(newContact.Id).Result;
-                    if (details.TelegramUsername != newContact.Telegram)
+                    if (details.TelegramUsername != newContact.TelegramUsername)
                     {
                         details.TelegramId = 0;
                         details.TelegramUsername = newContact.TelegramUsername;

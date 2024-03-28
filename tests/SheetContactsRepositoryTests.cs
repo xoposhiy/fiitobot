@@ -10,6 +10,6 @@ public class SheetContactsRepositoryTests
     public void TestGetAllContacts()
     {
         var contactsRepository = new SheetContactsRepositoryBuilder().Build();
-        Console.WriteLine(contactsRepository.GetStudents().Length);
+        Console.WriteLine(contactsRepository.GetTeachers().Length);
     }
 }

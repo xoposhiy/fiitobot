@@ -13,21 +13,11 @@ var contactsRepository = new SheetContactsRepository(sheetClient, settings.Sprea
 
 Console.WriteLine("Loading");
 var data = botDataRepo.GetData();
-foreach (var teacher in data.Administrators)
+foreach (var teacher in data.Teachers)
 {
     var details = await detailsRepo.GetById(teacher.Id);
-    if (teacher.TelegramWithSobachka != details.TelegramUsernameWithSobachka)
+    if (details.LastUseTime > DateTime.Now.AddMonths(-30) && details.TelegramId == 0 && teacher.TgId == 0)
     {
-        if (details.TelegramUsernameSource == TgUsernameSource.GoogleSheet)
-        {
-            Console.WriteLine($"Updating {teacher.Id} {teacher.FirstName} {teacher.LastName}");
-            Console.WriteLine(details.TelegramUsername + " → " + teacher.TelegramUsername);
-            details.TelegramUsername = teacher.TelegramUsername;
-            await detailsRepo.Save(details);
-        }
-        else
-        {
-            Console.WriteLine($"Have better(?) username {details.TelegramUsername}");
-        }
+        Console.WriteLine(teacher);
     }
 }
