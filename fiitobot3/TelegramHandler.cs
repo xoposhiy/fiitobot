@@ -33,11 +33,12 @@ namespace fiitobot
             var client = new TelegramBotClient(settings.TgToken);
             try
             {
+                var fiitobotBucketService = settings.CreateFiitobotBucketService();
                 var body = JObject.Parse(request).GetValue("body")!.Value<string>();
                 var update = JsonConvert.DeserializeObject<Update>(body);
                 var sheetClient = new GSheetClient(settings.GoogleAuthJson);
                 var botDataRepository = new BotDataRepository(settings);
-                var detailsRepo = new S3ContactsDetailsRepo(settings.CreateFiitobotBucketService());
+                var detailsRepo = new S3ContactsDetailsRepo(fiitobotBucketService);
                 var contactsRepo = new SheetContactsRepository(sheetClient, settings.SpreadSheetId, botDataRepository, detailsRepo);
                 var presenter = new Presenter(client, settings);
                 var marksReloadService = new MarksReloadService(botDataRepository, detailsRepo, sheetClient);
@@ -47,6 +48,8 @@ namespace fiitobot
                 var studentsDownloader = new UrfuStudentsDownloader(settings);
                 var demidovichService = new DemidovichService(settings.CreateDemidovichBucketService());
                 var brsClient = new BrsClient(BrsClient.IsFiitOfficialGroup);
+                var faqRepo = new S3FaqRepo(fiitobotBucketService, settings);
+                faqRepo.UpdateBucketData();
                 var commands = new IChatCommandHandler[]
                 {
                     new StartCommandHandler(presenter, botDataRepository),
@@ -73,7 +76,7 @@ namespace fiitobot
                     new NotifyOnBirthdayCommandHandler(presenter, botDataRepository),
                     new SpasibkaCommandHandler(presenter, detailsRepo, botDataRepository)
                 };
-                var updateService = new HandleUpdateService(botDataRepository, namedPhotoDirectory, photoRepo, demidovichService, downloader, presenter, detailsRepo, commands);
+                var updateService = new HandleUpdateService(botDataRepository, namedPhotoDirectory, photoRepo, demidovichService, downloader, presenter, detailsRepo, commands, faqRepo);
                 updateService.Handle(update).Wait();
                 if (GetSender(update) != settings.DevopsChatId)
                     client.SendTextMessageAsync(settings.DevopsChatId, presenter.FormatIncomingUpdate(update), null, parseMode: ParseMode.Html);

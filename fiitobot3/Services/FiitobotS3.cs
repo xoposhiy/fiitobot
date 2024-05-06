@@ -32,6 +32,5 @@ namespace fiitobot.Services
             });
             return objectStorage;
         }
-
     }
 }

@@ -8,7 +8,6 @@ namespace tgnames
 {
     public class Function : YcFunction<string, YandexFunctionResponse>
     {
-
         public YandexFunctionResponse FunctionHandler(string request, Context context)
         {
             var accessToken = JsonConvert.DeserializeObject<JObject>(context.TokenJson).GetValue("access_token")!.Value<string>();

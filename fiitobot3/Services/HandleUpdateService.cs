@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -20,6 +21,7 @@ namespace fiitobot.Services
         private readonly INamedPhotoDirectory namedPhotoDirectory;
         private readonly IPhotoRepository photoRepo;
         private readonly IPresenter presenter;
+        private readonly IFaqRepo faqRepo;
 
         public HandleUpdateService(IBotDataRepository botDataRepo,
             INamedPhotoDirectory namedPhotoDirectory,
@@ -28,7 +30,8 @@ namespace fiitobot.Services
             ITelegramFileDownloader fileDownloader,
             IPresenter presenter,
             IContactDetailsRepo detailsRepo,
-            IChatCommandHandler[] commands)
+            IChatCommandHandler[] commands,
+            IFaqRepo faqRepo)
         {
             this.botDataRepo = botDataRepo;
             this.namedPhotoDirectory = namedPhotoDirectory;
@@ -38,6 +41,7 @@ namespace fiitobot.Services
             this.detailsRepo = detailsRepo;
             this.commands = commands;
             this.fileDownloader = fileDownloader;
+            this.faqRepo = faqRepo;
         }
 
         public async Task Handle(Update update)
@@ -88,12 +92,31 @@ namespace fiitobot.Services
 
         private async Task BotOnInlineQuery(InlineQuery inlineQuery)
         {
-            if (inlineQuery.Query.Length < 2) return;
-            var sender = await GetSenderContact(inlineQuery.From);
-            if (!sender.Contact.Type.IsOneOf(ContactTypes.AllNotExternal)) return;
-            var foundPeople = botDataRepo.GetData().SearchContacts(inlineQuery.Query);
-            if (foundPeople.Length > 10) return;
-            await presenter.InlineSearchResults(inlineQuery.Id, foundPeople.Select(c => c).ToArray());
+            var query = inlineQuery.Query.ToLower().Trim();
+            var faqs = await faqRepo.GetFaqs();
+            var keyword2Faqs = faqRepo.GetKeyword2Faqs(faqs);
+            var keywords = keyword2Faqs.Keys.ToHashSet();
+
+            if (inlineQuery.Query.Length == 0 || query == "faq")
+            {
+                await presenter.InlineFaqResults(inlineQuery.Id, faqs);
+                return;
+            }
+
+            var autocompleteKeywords = keywords.Where(word => word.StartsWith(query)).ToHashSet();
+            var autocompleteQuestions = new HashSet<string>();
+            var autocompleteFaqs = new List<Faq>();
+            if (autocompleteKeywords.Count > 0)
+            {
+                foreach (var pair in keyword2Faqs.Where(pair => autocompleteKeywords.Contains(pair.Key) &&
+                                                                !autocompleteQuestions.Contains(pair.Value.Question)))
+                {
+                    autocompleteFaqs.Add(pair.Value);
+                    autocompleteQuestions.Add(pair.Value.Question);
+                }
+
+                await presenter.InlineFaqResults(inlineQuery.Id, autocompleteFaqs);
+            }
         }
 
         private async Task BotOnMessageReceived(Message message)
